@@ -1,0 +1,11 @@
+.ipynb_checkpoints
+azureml-logs
+.azureml
+.git
+/outputs
+/data
+.vscode
+.config
+*.egg-info
+*.pyc
+__pycache__

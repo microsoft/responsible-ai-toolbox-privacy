@@ -1,0 +1,116 @@
+
+$schema: https://componentsdk.azureedge.net/jsonschema/CommandComponent.json
+name: privacy_games-training-fine-tune-many-transformer-classifier
+display_name: Fine-tune many transformer classifier
+version: local1
+type: CommandComponent
+description: Fine-tune many transformer classifier
+inputs:
+  train_base_data:
+    type: DataFrameDirectory
+    description: Training base data in Parquet format
+    optional: false
+  in_samples:
+    type: DataFrameDirectory
+    description: In samples base data in Parquet format
+    optional: false
+  test_data:
+    type: DataFrameDirectory
+    description: Test data in Parquet format
+    optional: false
+  seed:
+    type: integer
+    description: Random seed
+    default: 123891
+    optional: false
+  model_name:
+    type: string
+    description: Model name.
+    optional: false
+  num_train_epochs:
+    type: float
+    description: Number of training epochs.
+    optional: false
+  N:
+    type: integer
+    description: Number of challenge points.
+    optional: false
+  m:
+    type: integer
+    description: Number of challenge points per model.
+    optional: false
+  num_classes:
+    type: integer
+    description: Number of label classes.
+    optional: false
+  target_epsilon:
+    type: float
+    description: Target epsilon at the end of training.
+    optional: false
+  delta:
+    type: float
+    description: Target delta at the end of training.
+    optional: false
+  learning_rate:
+    type: float
+    description: Learning rate.
+    optional: false
+  per_device_train_batch_size:
+    type: integer
+    description: Per device train batch size.
+    optional: false
+  gradient_accumulation_steps:
+    type: integer
+    description: Number of gradient accumulation steps.
+    optional: false
+  per_sample_max_grad_norm:
+    type: float
+    description: Per sample max grad norm for DP training.
+    optional: false
+  max_sequence_length:
+    type: integer
+    description: Max sequence length of input samples. 
+outputs:
+  output:
+    type: path
+    description: Trained models.
+code: ../../
+command: >-
+  python -m pip install . && python bin/tune-run.py
+    --num-trials 1
+    --cpus-per-trial 0.00001
+    --gpus-per-trial 1
+    --seed {inputs.seed}
+    --output-dir {outputs.output}
+    --output-directory-flag output_dir
+    --max-failures 0
+    -p "seed ~ randint(0, 1000000000)"
+    -p "model_index ~ rangeint(0, {inputs.N}//{inputs.m})"
+    python bin/fine-tune-transformer-classifier.py
+    --train_base_data_path {inputs.train_base_data}/data.parquet
+    --in_samples_path {inputs.in_samples}/data.parquet
+    --num_classes {inputs.num_classes}
+    --m {inputs.m}
+    --test_data_path {inputs.test_data}/data.parquet
+    --model_name {inputs.model_name}
+    --target_epsilon {inputs.target_epsilon}
+    --delta {inputs.delta}
+    --lr_scheduler_type constant
+    --learning_rate {inputs.learning_rate}
+    --num_train_epochs {inputs.num_train_epochs}
+    --logging_strategy steps
+    --logging_steps 1
+    --save_strategy no
+    --disable_tqdm 1
+    --evaluation_strategy epoch
+    --dataloader_num_workers 2
+    --per_device_train_batch_size {inputs.per_device_train_batch_size}
+    --gradient_accumulation_steps {inputs.gradient_accumulation_steps}
+    --per_sample_max_grad_norm {inputs.per_sample_max_grad_norm}
+    --max_sequence_length {inputs.max_sequence_length}
+environment:
+  conda:
+    conda_dependencies_file: environment.yaml
+  docker:
+    image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu20.04
+  os: Linux

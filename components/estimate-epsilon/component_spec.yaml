@@ -1,0 +1,33 @@
+
+$schema: https://componentsdk.azureedge.net/jsonschema/CommandComponent.json
+name: privacy_games-estimation-estimate-epsilon
+display_name: Estimate epsilon
+version: local1
+type: CommandComponent
+description: Estimate DP epsilon
+inputs:
+  attack_confusion_matrix:
+    type: AnyFile
+    description: Confusion matrix formatted as `AttackResults` JSON file
+    optional: false
+  alpha:
+    type: float
+    description: Significance level
+    optional: false
+    default: 0.05
+  delta:
+    type: float
+    description: DP delta
+    optional: false
+code: ../../
+command: >-
+  python -m pip install . && python bin/estimate-epsilon.py
+    --delta {inputs.delta}
+    --results_file {inputs.attack_confusion_matrix}/data.json
+    --alpha {inputs.alpha}
+environment:
+  conda:
+    conda_dependencies_file: environment.yaml
+  docker:
+    image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu20.04
+  os: Linux

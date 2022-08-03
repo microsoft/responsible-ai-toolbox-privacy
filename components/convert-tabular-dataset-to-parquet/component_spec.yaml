@@ -1,0 +1,26 @@
+
+$schema: https://componentsdk.azureedge.net/jsonschema/CommandComponent.json
+name: privacy_games-conversion-convert-tabular-dataset-to-parquet
+version: 0.0.1
+display_name: Convert Tabular Dataset to Parquet
+type: CommandComponent
+description: Convert a tabular dataset to Parquet
+inputs:
+  tabular_dataset_id:
+    type: AzureMLDataset
+    description: AML tabular dataset ID
+    optional: false
+code: ./
+outputs:
+  output:
+    type: DataFrameDirectory
+    description: Output directory of tabular dataset as Parquet
+command: >-
+  python run.py
+    --tabular_dataset_id {inputs.tabular_dataset_id}
+    --output {outputs.output}/data.parquet
+
+environment:
+  conda:
+    conda_dependencies_file: environment.yaml
+  os: Linux

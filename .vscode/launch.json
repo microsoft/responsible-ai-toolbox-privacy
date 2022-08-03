@@ -1,0 +1,131 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Python: Current File",
+			"type": "python",
+			"request": "launch",
+			"program": "${file}",
+			"console": "integratedTerminal",
+			"justMyCode": false
+		},
+		{
+			"name": "Python: Debug Tests",
+			"type": "python",
+			"request": "launch",
+			"program": "${file}",
+			"purpose": ["debug-test"],
+			"console": "integratedTerminal",
+			"justMyCode": false
+		},
+		{
+			"name": "Roberta-SST2",
+			"type": "python",
+			"request": "launch",
+			"program": "bin/create-challenge-and-fine-tune-dp.py",
+			"console": "integratedTerminal",
+			"justMyCode": false,
+			"env": {
+				"CUDA_VISIBLE_DEVICES": "0"
+			},
+			"args": [
+        			"--output_dir", "outputs/debug/Roberta-SST2",
+        			"--seed", "129301",
+        			"--seed_sample_selection", "190231",
+				"--training_iteration", "0",
+				"--model_name", "roberta-base",
+				"--dataset", "SST2",
+				"--max_training_iterations", "16",
+				"--disable_dp", "1",
+				"--challenge_points_per_iteration", "1",
+				"--seed_dataset_creation", "1293190",
+				"--target_epsilon", "10",
+				"--num_train_epochs", "3",
+				"--per_device_train_batch_size", "4",
+				"--gradient_accumulation_steps", "1",
+				"--per_sample_max_grad_norm", "0.1",
+				"--max_sequence_length", "67",
+				"--dry_run", "1",
+				"--no_cuda"
+			]
+		},
+		{
+			"name": "Roberta-SST2+Amazon",
+			"type": "python",
+			"request": "launch",
+			"program": "bin/fine-tune-transformer-classifier.py",
+			"console": "integratedTerminal",
+			"justMyCode": false,
+			"env": {
+				"CUDA_VISIBLE_DEVICES": "0"
+			},
+			"args": [
+				"--train_base_data_dir", "data/debug",
+				"--in_samples_dir", "data/debug",
+				"--num_classes", "2",
+				"--m", "1",
+				"--test_data_dir", "data/debug",
+				"--model_name", "roberta-base",
+				"--target_epsilon", "8.0",
+				"--lr_scheduler_type", "constant",
+				"--learning_rate", "0.001",
+				"--num_train_epochs", "3",
+				"--logging_strategy", "steps",
+				"--logging_steps", "1",
+				"--save_strategy", "no",
+				"--disable_tqdm", "1",
+				"--evaluation_strategy", "epoch",
+				"--dataloader_num_workers", "2",
+				"--per_device_train_batch_size", "32",
+				"--gradient_accumulation_steps", "128",
+				"--per_sample_max_grad_norm", "0.1",
+				"--max_sequence_length", "67",
+				"--output_dir" "outputs/debug",
+				"--seed", "279174785",
+				"--i", "0",
+				"--no_cuda"
+			]
+		},
+		{
+			"name": "Largest-loss-gap",
+			"type": "python",
+			"request": "launch",
+			"program": "bin/random-split-and-fine-tune.py",
+			"console": "integratedTerminal",
+			"justMyCode": false,
+			"env": {
+				"CUDA_VISIBLE_DEVICES": "0"
+			},
+			"args": [
+        			"--output_dir", "outputs/debug/Roberta-SST2",
+				"--model_name", "roberta-base",
+				"--dataset", "SST2",
+				"--disable_dp", "1",
+				"--no_cuda"
+			]
+		},
+		{
+			"name": "Predict for challenge points with transformer classifier",
+			"type": "python",
+			"request": "launch",
+			"program": "bin/compute-predictions-for-challenge-points-with-transformer-classifier.py",
+			"console": "integratedTerminal",
+			"justMyCode": false,
+			"env": {
+				"CUDA_VISIBLE_DEVICES": "0"
+			},
+			"args": [
+				"--challenge_points", "~/cloudfiles/data/datastore/workspaceblobstore/azureml/1de39b57-afc5-42af-a35c-be3282257008/first_samples/data.parquet",
+				"--challenge_points_per_model", "100",
+				"--experiment_dir", "~/cloudfiles/data/datastore/workspaceblobstore/azureml/248c4152-1cab-446a-a30c-f2f9d40fccbe/output",
+				"--model_glob", "*/run_trial*",
+				"--tokenizer_glob", "*/run_trial*",
+				"--params_glob", "*/*/params.json",
+				"--output", "outputs/output.parquet"
+			]
+		}
+	]
+}
