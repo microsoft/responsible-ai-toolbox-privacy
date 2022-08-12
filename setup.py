@@ -2,12 +2,20 @@ from setuptools import setup
 
 with open("VERSION") as f:
     VERSION=f.read().strip()
+    
+with open('README.md') as f:
+    long_description = f.read()
 
 setup(
     name='privacy-estimates',
     version=VERSION,
-    description='Privacy estimates',
+    description='Empirical Privacy Estimates',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    url='https://github.com/microsoft/privacy-estimates',
+    author='Microsoft Corporation',
     packages=['privacy-estimates'],
+    include_package_data=True,
     install_requires=[
         "statsmodels",
         "numpy",
