@@ -3,7 +3,7 @@ import pytest
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
-from privacy_games.utils import AttackResults
+from privacy_estimates.utils import AttackResults
 
 
 class TestAttackResults:

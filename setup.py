@@ -4,21 +4,24 @@ with open("VERSION") as f:
     VERSION=f.read().strip()
 
 setup(
-    name='privacy_games',
+    name='privacy_estimates',
     version=VERSION,
-    description='Privacy Games',
-    packages=['privacy_games', 'privacy_games.estimates'],
+    description='Privacy estimates',
+    packages=['privacy_estimates'],
     install_requires=[
         "statsmodels",
         "numpy",
         "scipy",
         "multimethod",
-        "datasets<2.0.0"
+        "pydantic_cli"
     ],
     extras_require={
         "dev": [
             "pytest",
             "sympy"
         ]
-    }
+    },
+    scripts=[
+        "bin/estimate-epsilon.py"
+    ]
 )
