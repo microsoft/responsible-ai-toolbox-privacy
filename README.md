@@ -7,7 +7,7 @@ This repository provides utilities for estimating DP-$\varepsilon$ from the conf
 Simply run the following command in the root of the repository:
 
 ``` bash
-pip install .[dev] 
+pip install privacy-estimates
 ```
 This should install all the relevant dependencies
 
