@@ -4,10 +4,10 @@ with open("VERSION") as f:
     VERSION=f.read().strip()
 
 setup(
-    name='privacy_estimates',
+    name='privacy-estimates',
     version=VERSION,
     description='Privacy estimates',
-    packages=['privacy_estimates'],
+    packages=['privacy-estimates'],
     install_requires=[
         "statsmodels",
         "numpy",
@@ -22,6 +22,6 @@ setup(
         ]
     },
     scripts=[
-        "bin/estimate-epsilon.py"
+        "scripts/estimate-epsilon.py"
     ]
 )
