@@ -13,8 +13,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/microsoft/privacy-estimates',
-    author='Microsoft Corporation',
-    packages=['privacy-estimates'],
+    packages=['privacy_estimates'],
     include_package_data=True,
     install_requires=[
         "statsmodels",
