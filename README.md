@@ -1,6 +1,6 @@
 # Empirical Estimation of Differential Privacy
 
-This repository provides utilities for estimating DP-$\varepsilon$ from the confusion matrix of a membership inference attack based on the paper <a href="/https://arxiv.org/abs/2206.05199">Bayesian Estimation of Differential Privacy</a>.
+This repository provides utilities for estimating DP-$\varepsilon$ from the confusion matrix of a membership inference attack based on the paper <a href="https://arxiv.org/abs/2206.05199">Bayesian Estimation of Differential Privacy</a>.
 
 ## Installation
 
