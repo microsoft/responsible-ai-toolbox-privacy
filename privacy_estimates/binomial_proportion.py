@@ -60,7 +60,7 @@ def compute_binomial_proportion(count: AttackResults, alpha: float, method: str)
     assert (fpr_l <= fpr and fpr <= fpr_r)
     assert (fnr_l <= fnr and fnr <= fnr_r)
 
-    return fpr_l, fpr_r, fnr_l, fnr_r
+    return fnr_l, fnr_r, fpr_l, fpr_r
 
 
 def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: str) -> Tuple[float, float]:
@@ -85,7 +85,7 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
     Returns:
         eps_lo, eps_hi (Tuple[float, float]): two-sided interval [eps_lo, eps_hi] with confidence 100*(1 - alpha)%.
     """
-    fpr_l, fpr_r, fnr_l, fnr_r = compute_binomial_proportion(count, delta, alpha, method)
+    fnr_l, fnr_r, fpr_l, fpr_r = compute_binomial_proportion(count, delta, alpha, method)
 
     # Estimate confidence interval for epsilon
 
@@ -127,12 +127,12 @@ def compute_delta_lo_hi(count: AttackResults, epsilon: float, alpha: float, meth
     Returns:
         delta_low, delta_hi (Tuple[float, float]): two-sided interval [delta_lo, delta_hi]
     """
-    _, fpr_r, fnr_l, fnr_r = compute_binomial_proportion(count, alpha, method)
+    fnr_l, fnr_r, fpr_l, fpr_r = compute_binomial_proportion(count, alpha, method)
 
 
     # Compute delta from top side of the confidence-square for smaller delta width
     delta_up = delta_from_fnr_fpr(fnr=fnr_r, fpr=fpr_r, epsilon=epsilon)
-    delta_low = delta_from_fnr_fpr(fnr=fnr_l, fpr=fpr_r, epsilon=epsilon)
+    delta_low = delta_from_fnr_fpr(fnr=fnr_l, fpr=fpr_l, epsilon=epsilon)
 
     delta_lo = min(delta_low, delta_up)
     delta_hi = max(delta_low, delta_up)
