@@ -8,8 +8,7 @@ from privacy_estimates.privacy_region import eps_from_fnr_fpr, delta_from_fnr_fp
 
 def compute_binomial_proportion(count: AttackResults, alpha: float, method: str) -> Tuple[float, float, float, float]:
     """
-    Computes the binommial proportion from equal-tailed confidence intervals for the false positive and
-    false negative rates of a membership inference attack
+    Computes equal-tailed confidence intervals for FNR and FPR, where FNR and FPR are binomial proportions.
 
     Args:
         count (AttackResults):
@@ -27,7 +26,7 @@ def compute_binomial_proportion(count: AttackResults, alpha: float, method: str)
 
     Returns:
         fpr_l, fpr_r, fnr_l, fnr_r (Tuple[float, float, float, float]): 
-        Two-dimensional 100*(1 - alpha)% confidence region fpr fpr, fnr
+        Rectangle for FNR,FPR with 100*(1 - alpha)% confidence.
     """
     fpr = count.FPR 
     fnr = count.FNR
