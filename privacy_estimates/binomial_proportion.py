@@ -85,7 +85,7 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
     Returns:
         eps_lo, eps_hi (Tuple[float, float]): two-sided interval [eps_lo, eps_hi] with confidence 100*(1 - alpha)%.
     """
-    fnr_l, fnr_r, fpr_l, fpr_r = compute_binomial_proportion(count, delta, alpha, method)
+    fnr_l, fnr_r, fpr_l, fpr_r = compute_binomial_proportion(count, alpha, method)
 
     # Estimate confidence interval for epsilon
 
