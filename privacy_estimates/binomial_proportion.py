@@ -104,8 +104,8 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
 
 def compute_delta_lo_hi(count: AttackResults, epsilon: float, alpha: float, method: str) -> Tuple[float, float]:
     """
-    Computes a confidence interval for delta from equal-tailed confidence intervals for the false positive and
-    false negative rates of a membership inference attack, based on 100*(1 - alpha)% confidence intervals for epsilon
+    Computes a 100*(1 - alpha)% confidence interval for delta from equal-tailed confidence intervals for the
+    false positive and false negative rates of a membership inference attack.
 
     Args:
         count (AttackResults):
@@ -122,7 +122,7 @@ def compute_delta_lo_hi(count: AttackResults, epsilon: float, alpha: float, meth
             Default is 'jeffreys'
 
     Returns:
-        delta_low, delta_hi (Tuple[float, float]): two-sided interval [delta_lo, delta_hi]
+        delta_low, delta_hi (Tuple[float, float]): two-sided interval [delta_lo, delta_hi] with 100*(1 - alpha)% confidence.
     """
     fnr_l, fnr_r, fpr_l, fpr_r = compute_fnr_fpr_confidence_intervals(count, alpha, method)
 
