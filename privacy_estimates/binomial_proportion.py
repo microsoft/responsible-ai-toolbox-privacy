@@ -6,15 +6,13 @@ from privacy_estimates.utils import AttackResults
 from privacy_estimates.privacy_region import eps_from_fnr_fpr, delta_from_fnr_fpr
 
 
-def compute_binomial_proportion(count: AttackResults, alpha: float, method: str) -> Tuple[float, float, float, float]:
+def compute_confidence_region(count: AttackResults, alpha: float, method: str) -> Tuple[float, float, float, float]:
     """
     Computes equal-tailed confidence intervals for FNR and FPR, where FNR and FPR are binomial proportions.
 
     Args:
         count (AttackResults):
             Number of false positives, false negatives, true positives, and true negatives
-        delta (float):
-            Differential privacy :math:`\delta` parameter
         alpha (float):
             Significance level
         method ({'beta', 'jeffreys'}):
@@ -25,8 +23,8 @@ def compute_binomial_proportion(count: AttackResults, alpha: float, method: str)
             Default is 'jeffreys'
 
     Returns:
-        fpr_l, fpr_r, fnr_l, fnr_r (Tuple[float, float, float, float]): 
-        Rectangle for FNR,FPR with 100*(1 - alpha)% confidence.
+        fnr_l, fnr_r, fpr_l, fpr_r (Tuple[float, float, float, float]):
+        Rectangle region for FNR,FPR with 100*(1 - alpha)% confidence.
     """
     fpr = count.FPR 
     fnr = count.FNR
@@ -84,7 +82,7 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
     Returns:
         eps_lo, eps_hi (Tuple[float, float]): two-sided interval [eps_lo, eps_hi] with confidence 100*(1 - alpha)%.
     """
-    fnr_l, fnr_r, fpr_l, fpr_r = compute_binomial_proportion(count, alpha, method)
+    fnr_l, fnr_r, fpr_l, fpr_r = compute_confidence_region(count, alpha, method)
 
     # Estimate confidence interval for epsilon
 
@@ -126,17 +124,12 @@ def compute_delta_lo_hi(count: AttackResults, epsilon: float, alpha: float, meth
     Returns:
         delta_low, delta_hi (Tuple[float, float]): two-sided interval [delta_lo, delta_hi]
     """
-    fnr_l, fnr_r, fpr_l, fpr_r = compute_binomial_proportion(count, alpha, method)
+    fnr_l, fnr_r, fpr_l, fpr_r = compute_confidence_region(count, alpha, method)
 
+    delta_up = delta_from_fnr_fpr(fnr=fnr_l, fpr=fpr_l, epsilon=epsilon)
+    delta_low = delta_from_fnr_fpr(fnr=fnr_r, fpr=fpr_r, epsilon=epsilon)
 
-    # Compute delta from top side of the confidence-square for smaller delta width
-    delta_up = delta_from_fnr_fpr(fnr=fnr_r, fpr=fpr_r, epsilon=epsilon)
-    delta_low = delta_from_fnr_fpr(fnr=fnr_l, fpr=fpr_l, epsilon=epsilon)
-
-    delta_lo = min(delta_low, delta_up)
-    delta_hi = max(delta_low, delta_up)
-
-    return delta_lo, delta_hi
+    return delta_low, delta_up
 
 
 def compute_eps_lo(count: AttackResults, delta: float, alpha: float, method: str) -> float:
