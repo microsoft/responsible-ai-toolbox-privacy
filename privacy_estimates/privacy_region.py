@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Tuple
 
 
 def privacy_boundary_lo(fnr: float, eps: float, delta: float) -> float:
@@ -78,13 +79,7 @@ def eps_from_fnr_fpr(fnr: float, fpr: float, delta: float) -> float:
     if delta < 0 or delta >= 1:
         raise ValueError(f"delta={delta} must be positive and strictly less than 1")
 
-    # Flip across 1-x line if point is in upper right quadrant
-    if fpr > 1 - fnr:
-        fpr, fnr = 1-fnr, 1-fpr
-
-    # Bring point into the left quadrant
-    r_lo = min(fpr, fnr)
-    r_hi = max(fpr, fnr)
+    r_lo, r_hi = move_top_left(fnr, fpr)
  
     if r_hi > 1-delta-r_lo:
         return 0.0
@@ -93,3 +88,29 @@ def eps_from_fnr_fpr(fnr: float, fpr: float, delta: float) -> float:
         return np.inf
 
     return np.log((1-delta-r_hi)/r_lo)
+
+
+def delta_from_fnr_fpr(fnr: float, fpr: float, epsilon: float) -> float:
+    if fpr < 0 or fnr < 0:
+        raise ValueError(f"false_positive_rate={fpr} and false_negative_rate={fnr} must be non-negative")
+
+    if epsilon < 0:
+        raise ValueError(f"epsilon={epsilon} must be non-negative")
+    
+    x, y = move_top_left(fnr, fpr)
+
+    # Compute delta from (x, y) = (fnr, fpr)
+    delta = 1 - np.exp(epsilon) * x - y
+    return max(0, delta)
+
+
+def move_top_left(fnr: float, fpr: float) -> Tuple[float, float]:
+    # Flip across 1-x line if point is in upper right quadrant
+    if fpr > 1 - fnr:
+        fpr, fnr = 1-fnr, 1-fpr
+    
+    # Bring point into the left quadrant
+    x = min(fpr, fnr)
+    y = max(fpr, fnr)
+
+    return x, y

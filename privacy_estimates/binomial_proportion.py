@@ -3,19 +3,16 @@ from typing import Tuple
 from statsmodels.stats.proportion import proportion_confint
 
 from privacy_estimates.utils import AttackResults
-from privacy_estimates.privacy_region import eps_from_fnr_fpr
+from privacy_estimates.privacy_region import eps_from_fnr_fpr, delta_from_fnr_fpr
 
 
-def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: str) -> Tuple[float, float]:
+def compute_fnr_fpr_confidence_intervals(count: AttackResults, alpha: float, method: str) -> Tuple[float, float, float, float]:
     """
-    Computes a confidence interval for epsilon from equal-tailed confidence intervals for the false positive and
-    false negative rates of a membership inference attack
+    Computes equal-tailed confidence intervals for FNR and FPR, where FNR and FPR are binomial proportions.
 
     Args:
         count (AttackResults):
             Number of false positives, false negatives, true positives, and true negatives
-        delta (float):
-            Differential privacy :math:`\delta` parameter
         alpha (float):
             Significance level
         method ({'beta', 'jeffreys'}):
@@ -26,7 +23,8 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
             Default is 'jeffreys'
 
     Returns:
-        eps_lo, eps_hi (Tuple[float, float]): two-sided interval [eps_lo, eps_hi] with confidence 100*(1 - alpha)%.
+        fnr_l, fnr_r, fpr_l, fpr_r (Tuple[float, float, float, float]):
+        Rectangle for FNR,FPR with 100*(1 - alpha)% confidence.
     """
     fpr = count.FPR 
     fnr = count.FNR
@@ -59,6 +57,33 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
     assert (fpr_l <= fpr and fpr <= fpr_r)
     assert (fnr_l <= fnr and fnr <= fnr_r)
 
+    return fnr_l, fnr_r, fpr_l, fpr_r
+
+
+def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: str) -> Tuple[float, float]:
+    """
+    Computes a confidence interval for epsilon from equal-tailed confidence intervals for the false positive and
+    false negative rates of a membership inference attack
+
+    Args:
+        count (AttackResults):
+            Number of false positives, false negatives, true positives, and true negatives
+        delta (float):
+            Differential privacy :math:`\delta` parameter
+        alpha (float):
+            Significance level
+        method ({'beta', 'jeffreys'}):
+            Method to use for confidence intervals.
+            We use central (aka equal-tailed) methods available from `statsmodels`.
+            - `beta` : Clopper-Pearson interval based on Beta distribution
+            - `jeffreys` : Jeffreys Bayesian Interval
+            Default is 'jeffreys'
+
+    Returns:
+        eps_lo, eps_hi (Tuple[float, float]): two-sided interval [eps_lo, eps_hi] with confidence 100*(1 - alpha)%.
+    """
+    fnr_l, fnr_r, fpr_l, fpr_r = compute_fnr_fpr_confidence_intervals(count, alpha, method)
+
     # Estimate confidence interval for epsilon
 
     # If the rectangle is straddeling the 1-x diagonal then the lower epsilon has to be 0
@@ -75,6 +100,36 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
     eps_hi = max(eps_l, eps_r)
 
     return eps_lo, eps_hi
+
+
+def compute_delta_lo_hi(count: AttackResults, epsilon: float, alpha: float, method: str) -> Tuple[float, float]:
+    """
+    Computes a 100*(1 - alpha)% confidence interval for delta from equal-tailed confidence intervals for the
+    false positive and false negative rates of a membership inference attack.
+
+    Args:
+        count (AttackResults):
+            Number of false positives, false negatives, true positives, and true negatives
+        epsilon (float):
+            Differential privacy :math:`\epsilon` parameter
+        alpha (float):
+            Significance level
+        method ({'beta', 'jeffreys'}):
+            Method to use for confidence intervals.
+            We use central (aka equal-tailed) methods available from `statsmodels`.
+            - `beta` : Clopper-Pearson interval based on Beta distribution
+            - `jeffreys` : Jeffreys Bayesian Interval
+            Default is 'jeffreys'
+
+    Returns:
+        delta_low, delta_hi (Tuple[float, float]): two-sided interval [delta_lo, delta_hi] with 100*(1 - alpha)% confidence.
+    """
+    fnr_l, fnr_r, fpr_l, fpr_r = compute_fnr_fpr_confidence_intervals(count, alpha, method)
+
+    delta_up = delta_from_fnr_fpr(fnr=fnr_l, fpr=fpr_l, epsilon=epsilon)
+    delta_low = delta_from_fnr_fpr(fnr=fnr_r, fpr=fpr_r, epsilon=epsilon)
+
+    return delta_low, delta_up
 
 
 def compute_eps_lo(count: AttackResults, delta: float, alpha: float, method: str) -> float:
