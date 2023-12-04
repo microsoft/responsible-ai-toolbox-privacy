@@ -1,0 +1,30 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates_experiments_attacks_lira
+display_name: lira
+version: local1
+type: command
+description: LIRA Attack
+inputs:
+  challenge_points:
+    type: uri_folder
+    description: Challenge points in Huggingface dataset format
+  shadow_model_statistics:
+    type: uri_folder
+    description: Shadow model statistics in Huggingface dataset format
+  mean_estimator:
+    type: string
+    description: Mean estimator
+outputs:
+  scores:
+    type: uri_folder
+    description: Trained model
+code: .
+command: >-
+  python lira.py \
+    --challenge_points ${{inputs.challenge_points}} \
+    --shadow_model_statistics ${{inputs.shadow_model_statistics}} \
+    --mean_estimator ${{inputs.mean_estimator}} \
+    --scores ${{outputs.scores}}
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04

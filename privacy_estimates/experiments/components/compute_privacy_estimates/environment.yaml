@@ -1,0 +1,16 @@
+name: ComponentEnvironment
+channels:
+  - defaults
+dependencies:
+  - pip=21.2.4
+  - python=3.8.12
+  - pip:
+    - azure-ai-ml
+    - azureml-core
+    - datasets
+    - matplotlib
+    - mldesigner
+    - numpy
+    - git+https://github.com/microsoft/prv_accountant.git@535a9f0e417580bd28fd74579119fa4f269a16af
+    - pydantic-cli
+    - tqdm-loggable

@@ -1,4 +1,6 @@
 import numpy as np
+from shapely.geometry import Polygon
+from typing import List, Tuple
 
 
 def privacy_boundary_lo(fnr: float, eps: float, delta: float) -> float:
@@ -93,3 +95,36 @@ def eps_from_fnr_fpr(fnr: float, fpr: float, delta: float) -> float:
         return np.inf
 
     return np.log((1-delta-r_hi)/r_lo)
+
+
+def _intersect_polygons(polygons: List[Polygon]) -> Polygon:
+    if len(polygons) == 1:
+        return polygons[0]
+    elif len(polygons) == 2:
+        return polygons[0].intersection(polygons[1])
+    else:
+        mid = len(polygons) // 2
+        left = _intersect_polygons(polygons[:mid])
+        right = _intersect_polygons(polygons[mid:])
+        return left.intersection(right)
+
+
+def convert_eps_deltas_to_fpr_fnr(epsilons: np.ndarray, deltas: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Convert a list of (epsilon, delta) pairs to a list of (fpr, fnr) pairs.
+
+    Args:
+        epsilons (np.ndarray): Array of epsilon values
+        deltas (np.ndarray): Array of delta values
+    Returns:
+        fprs (np.ndarray): Array of false positive rates
+        fnrs (np.ndarray): Array of false negative rates
+    """
+    assert len(epsilons) == len(deltas), "epsilons and deltas must have the same length"
+    polygons = [
+        Polygon([(0, 1), (0, 1-d), ((1-d)/(1+np.exp(e)), (1-d)/(1+np.exp(e))), (1-d, 0), (1, 0)])
+        for e, d in zip(epsilons, deltas)
+    ]
+    intersection = _intersect_polygons(polygons)
+    points = np.array(sorted(intersection.exterior.coords, key=lambda x: x[0]))
+    return points[:, 0], points[:, 1]

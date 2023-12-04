@@ -1,0 +1,94 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates_experiments_train_cnn_classifier
+display_name: Train CNN classifier
+version: local1
+type: command
+description: Train CNN classifier
+inputs:
+  train_data:
+    type: uri_folder
+    description: Training data in Huggingface dataset format
+  validation_data:
+    type: uri_folder
+    description: Validation data in Huggingface dataset format
+  seed:
+    type: integer
+    description: Random seed
+  num_train_epochs:
+    type: number
+    description: Number of training epochs.
+  target_epsilon:
+    type: number
+    description: Target epsilon at the end of training.
+  delta:
+    type: number
+    description: Target delta at the end of training.
+  learning_rate:
+    type: number
+    description: Learning rate.
+  max_physical_batch_size:
+    type: integer
+    description: Largest batch size per device.
+  canary_gradient:
+    type: string
+    description: Canary gradient.
+    default: dirac
+  total_train_batch_size:
+    type: integer
+    description: Number of samples between gradient updates
+  per_sample_max_grad_norm:
+    type: number
+    description: Per sample max grad norm for DP training.
+  lr_scheduler_gamma:
+    type: number
+    description: Learning rate scheduler gamma.
+    default: 1.0
+  logging_steps:
+    type: integer
+    description: Number of steps before logging
+    default: 100
+  disable_ml_flow:
+    type: integer
+    description: Disable ML flow logging to AML
+    default: 0
+outputs:
+  model:
+    type: uri_folder
+    description: Trained model
+  dpd_data:
+    type: uri_file
+    description: JSON encoded membership inference scores for a differential privacy distinguisher
+  dp_parameters:
+    type: uri_file
+    description: JSON encoded differential privacy parameters
+  metrics:
+    type: uri_file
+    description: JSON encoded metrics
+code: .
+additional_includes:
+  - "../../models"
+  - "../../../privacy_estimates/experiments/utils.py"
+  - "../../../privacy_estimates/experiments/attacks/dpd"
+command: >-
+  python train_cnn.py \
+    --train_data_path ${{inputs.train_data}} \
+    --test_data_path ${{inputs.validation_data}} \
+    --target_epsilon ${{inputs.target_epsilon}} \
+    --delta ${{inputs.delta}} \
+    --learning_rate ${{inputs.learning_rate}} \
+    --num_train_epochs ${{inputs.num_train_epochs}} \
+    --max_physical_batch_size ${{inputs.max_physical_batch_size}} \
+    --per_sample_max_grad_norm ${{inputs.per_sample_max_grad_norm}} \
+    --total_train_batch_size ${{inputs.total_train_batch_size}} \
+    --output_dir ${{outputs.model}} \
+    --seed ${{inputs.seed}} \
+    --canary_gradient ${{inputs.canary_gradient}} \
+    --lr_scheduler_gamma ${{inputs.lr_scheduler_gamma}} \
+    --disable_ml_flow ${{inputs.disable_ml_flow}} \
+    --metrics ${{outputs.metrics}} \
+    --dpd_data ${{outputs.dpd_data}} \
+    --dp_parameters ${{outputs.dp_parameters}} \
+    --logging_steps ${{inputs.logging_steps}}
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu20.04

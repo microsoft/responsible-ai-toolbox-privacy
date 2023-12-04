@@ -79,6 +79,11 @@ class AttackResults:
             TP=int(df["TP"].sum())
         )
 
+    @staticmethod
+    def from_scores_threshold_and_labels(attack_scores: Sequence[float], threshold: float, challenge_bits: Sequence[int]) -> "AttackResults":
+        attack_guesses = (np.array(attack_scores) >= threshold).astype(np.int32)
+        return AttackResults.from_guesses_and_labels(attack_guesses=attack_guesses, challenge_bits=challenge_bits)
+
     def to_json(self, path: Path) -> None:
         with path.open("w") as f:
             json.dump(asdict(self), f)
