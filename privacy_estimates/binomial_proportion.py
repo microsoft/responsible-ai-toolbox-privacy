@@ -7,7 +7,7 @@ from privacy_estimates.privacy_region import eps_from_fnr_fpr
 
 
 def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: str) -> Tuple[float, float]:
-    """
+    r"""
     Computes a confidence interval for epsilon from equal-tailed confidence intervals for the false positive and
     false negative rates of a membership inference attack
 
@@ -43,8 +43,9 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
     # statsmodel.proportion.proportion_confint doesn't correct for the coverage of Jeffreys intervals tending to 0
     # when count=nobs or count=0.
     # For instance, the lower endpoint of `proportion_confint(count=0, nobs=100, method='jeffreys')` is not 0.
-    # We correct it here (see Astropy's implementation https://docs.astropy.org/en/stable/api/astropy.stats.binom_conf_interval.html)
-    # The approximate coverage when this is corrected is larger than the nominal coverage: e.g. 1-alpha instead of 1-2*alpha.
+    # We correct it here (see Astropy's implementation
+    # https://docs.astropy.org/en/stable/api/astropy.stats.binom_conf_interval.html). The approximate coverage when this is
+    # corrected is larger than the nominal coverage: e.g. 1-alpha instead of 1-2*alpha.
     if method == 'jeffreys':
         if count.FP == 0:
             fpr_l = 0
@@ -78,9 +79,9 @@ def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: 
 
 
 def compute_eps_lo(count: AttackResults, delta: float, alpha: float, method: str) -> float:
-    """
-    Compute a one-sided [eps_lo, ∞) confidence interval for epsilon from equal-tailed confidence intervals for the false positive and
-    false negative rates of a membership inference attack
+    r"""
+    Compute a one-sided [eps_lo, ∞) confidence interval for epsilon from equal-tailed confidence intervals for
+    the false positive and false negative rates of a membership inference attack
 
     Args:
         count (AttackResults):
