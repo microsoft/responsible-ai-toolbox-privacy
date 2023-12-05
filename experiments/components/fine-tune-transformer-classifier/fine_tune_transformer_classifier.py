@@ -77,10 +77,7 @@ def main(args: Arguments):
     def compute_metrics(p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
         preds = np.argmax(preds, axis=1)
-        if len(preds) == 0:
-            accuracy = np.nan
-        else:
-            accuracy = (preds == p.label_ids).astype(np.float32).mean().item()
+        accuracy = (preds == p.label_ids).astype(np.float32).mean().item()
         return {"accuracy": accuracy}
 
     trainer = dp_utils.OpacusDPTrainer(
@@ -96,7 +93,8 @@ def main(args: Arguments):
     try:
         trainer.train()
     finally:
-        trainer.save_model()
+        tokenizer.save_pretrained(args.training.output_dir)
+        model.save_pretrained(args.training.output_dir)
 
     if args.privacy.disable_dp:
         trainer.log({"epsilon_final": float('inf')})

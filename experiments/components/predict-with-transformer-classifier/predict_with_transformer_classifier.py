@@ -1,5 +1,4 @@
 import sys
-import pandas as pd
 import numpy as np
 import torch
 import tqdm
@@ -8,7 +7,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from dataclasses import dataclass, field
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, HfArgumentParser
-from datasets import Dataset, load_from_disk
+from datasets import Dataset, load_from_disk, features, concatenate_datasets
 from pathlib import Path
 from typing import Optional
 from azureml.core import Run
@@ -28,7 +27,7 @@ class Arguments:
     batch_size: int = field(default=128, metadata={"help": "Batch size for predictions."})
 
 
-def predict(model: nn.Module, data: Dataset, batch_size: int, device: Optional[str] = None, label_column: str = "labels") -> pd.DataFrame:
+def predict(model: nn.Module, data: Dataset, batch_size: int, device: Optional[str] = None, label_column: str = "labels") -> Dataset:
     """
     Compute predictions for a dataset using a model
 
@@ -40,9 +39,13 @@ def predict(model: nn.Module, data: Dataset, batch_size: int, device: Optional[s
     :return: DataFrame of predictions with columns: logits, labels
     """
     model.to(device)
-    empty_df = pd.DataFrame(columns=["logits", "label"])
-    empty_df["label"] = empty_df["label"].astype("Int64")
-    predictions = [empty_df]
+
+    prediction_features = features.Features({
+        "logits": features.Sequence(feature=features.Value("float32")),
+        "label": data.features["label"],
+        "loss": features.Value("float32")
+    })
+    predictions = []
     with data.formatted_as(type="torch"):
         with torch.no_grad():
             data_loader = DataLoader(data, batch_size=batch_size, shuffle=False, drop_last=False)
@@ -53,15 +56,15 @@ def predict(model: nn.Module, data: Dataset, batch_size: int, device: Optional[s
 
                 loss_fct = nn.CrossEntropyLoss(reduction="none")
                 loss = loss_fct(output.logits, labels)
-                batch_df = pd.DataFrame({
-                    "logits": [output.logits.cpu().numpy()[i] for i in range(len(labels))],
-                    "label": [labels.cpu().numpy()[i] for i in range(len(labels))],
-                    "loss": [loss.cpu().numpy()[i] for i in range(len(labels))],
-                })
-                predictions.append(batch_df)
-    df = pd.concat(predictions, ignore_index=True)
-    return df.convert_dtypes()
-
+                predictions.append(
+                    Dataset.from_dict({
+                            "logits": [output.logits.cpu().numpy()[i] for i in range(len(labels))],
+                            "label": [labels.cpu().numpy()[i] for i in range(len(labels))],
+                            "loss": [loss.cpu().numpy()[i] for i in range(len(labels))],
+                        }, features=prediction_features
+                    )
+                )
+    return concatenate_datasets(predictions)
 
 
 def main(args: Arguments):
@@ -81,7 +84,7 @@ def main(args: Arguments):
     assert len(predictions) == len(dataset), f"Expected {len(dataset)} predictions, got {len(predictions)}"
 
     if len(predictions) > 0:
-        loss_avg = predictions["loss"].mean()
+        loss_avg = np.mean(predictions["loss"])
         accuracy = (np.stack(predictions["label"]) == np.stack(predictions["logits"]).argmax(axis=1)).mean()
     else:
         loss_avg = np.nan
@@ -94,7 +97,7 @@ def main(args: Arguments):
     print(f"accuracy: {accuracy}")
 
     print(f"Writing {len(predictions)} predictions to file")
-    predictions.to_parquet(args.output, index=False)
+    predictions.save_to_disk(str(args.output))
 
 
 if __name__ == "__main__":
