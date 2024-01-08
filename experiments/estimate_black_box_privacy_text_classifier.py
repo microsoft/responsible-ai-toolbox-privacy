@@ -90,7 +90,7 @@ class Game(BlackBoxMembershipInferenceGameBase):
         attack_loader = LiraLoader()
 
         challenge_point_selection_loader = SelectNaturalCrossValidationChallengePoints(
-            attack_loader=attack_loader, num_challenge_points=game_config.num_models
+            attack_loader=attack_loader, num_challenge_points=2048
         )
 
         super().__init__(

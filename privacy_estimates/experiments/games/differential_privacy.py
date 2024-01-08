@@ -8,6 +8,7 @@ from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
 from privacy_estimates.experiments.loaders import TrainingComponentLoader, SingleGameLoader
 from privacy_estimates.experiments.components import postprocess_dpd_data, compute_privacy_estimates
 from privacy_estimates.experiments.subpipelines.run_many_games import RunManyGamesLoader
+from privacy_estimates.experiments.games.configs import PrivacyEstimationConfig
 
 
 @dataclass
@@ -18,10 +19,6 @@ class GameConfig:
     num_games: int = 1
     """Number of games to run in parallel"""
 
-
-@dataclass
-class PrivacyEstimationConfig:
-    target_delta: float = None
 
 
 class DPDSingleGame(SingleGameLoader):
@@ -55,7 +52,8 @@ class DPDSingleGame(SingleGameLoader):
 
 class DifferentialPrivacyGameBase(ExperimentBase):
     def __init__(
-            self, game_config: GameConfig, privacy_estimation_config: PrivacyEstimationConfig, workspace: WorkspaceConfig,
+            self, game_config: GameConfig, workspace: WorkspaceConfig,
+            privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
     ) -> None:
         super().__init__(workspace=workspace)
         self.game_config = game_config
@@ -101,16 +99,15 @@ class DifferentialPrivacyGameBase(ExperimentBase):
             games = self.many_games_loader.load(train_data=train_data, validation_data=validation_data,
                                                 base_seed=self.game_config.seed)
 
-            dp_parameters_kwargs = {}
-            if hasattr(games.outputs, "dp_parameters"):
-                dp_parameters_kwargs = {"dp_parameters": games.outputs.dp_parameters}
-
-            target_delta = self.privacy_estimation_config.target_delta
-            target_delta_kwargs = {} if target_delta is None else {"target_delta": target_delta}
+            optional_estimate_parameters = {}
+            if "dp_parameters" in games.outputs:
+                optional_estimate_parameters["dp_parameters"] = games.outputs.dp_parameters
+            if self.privacy_estimation_config.smallest_delta is not None:
+                optional_estimate_parameters["smallest_delta"] = self.privacy_estimation_config.smallest_delta
 
             compute_estimates = compute_privacy_estimates(
                 scores=games.outputs.scores, challenge_bits=games.outputs.challenge_bits,
-                **dp_parameters_kwargs, **target_delta_kwargs
+                **optional_estimate_parameters
             )
 
             return {

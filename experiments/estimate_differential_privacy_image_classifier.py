@@ -48,7 +48,6 @@ class Game(DifferentialPrivacyGameBase):
         super().__init__(
             workspace=workspace,
             game_config=game_config,
-            privacy_estimation_config=PrivacyEstimationConfig(target_delta=shared_training_parameters.delta)
         )
 
     @property

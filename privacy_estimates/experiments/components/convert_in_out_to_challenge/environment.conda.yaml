@@ -6,7 +6,7 @@ dependencies:
   - python=3.8.12
   - pip:
     - azure-ai-ml
-    - datasets==2.14.7
+    - datasets
     - mldesigner
     - numpy
     - tqdm-loggable

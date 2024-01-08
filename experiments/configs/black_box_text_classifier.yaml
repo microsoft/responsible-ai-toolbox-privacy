@@ -17,7 +17,7 @@ shared_inference_parameters:
   batch_size: 256
 
 game_config:
-  num_models: 10
+  num_models: 1024
   seed: 1920
   num_concurrent_jobs_per_node: 8
 

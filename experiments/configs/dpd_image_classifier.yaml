@@ -5,7 +5,7 @@ defaults:
 shared_training_parameters:
   total_train_batch_size: 512
   target_epsilon: 8.0
-  num_train_epochs: 1.0
+  num_train_epochs: 10.0
   learning_rate: 0.5
   max_physical_batch_size: 512
   per_sample_max_grad_norm: 2.6
@@ -14,4 +14,4 @@ shared_training_parameters:
 
 game_config:
   seed: 1920
-  num_games: 1
+  num_games: 2

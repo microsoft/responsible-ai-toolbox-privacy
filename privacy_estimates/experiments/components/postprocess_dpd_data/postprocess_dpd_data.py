@@ -35,23 +35,23 @@ def postprocess_dpd_data(dpd_data: Input, dp_parameters: Input, seed: int, score
     dp_parameters["subsampling_probability"] = 1.0
 
 
-    observations = Dataset.from_dict(mapping={"scores": raw_data["scores"]},
-                                     features=features.Features({"scores": features.Value("float32")}))
+    observations = Dataset.from_dict(mapping={"score": raw_data["scores"]},
+                                     features=features.Features({"score": features.Value("float32")}))
 
     if len(observations) < 500:
         logger.error(f"DPD data has only {len(observations)} observations. "
                      "Consider training for more steps to get a better signal")
 
     observations = observations.shuffle(seed=seed)
-    observations = observations.add_column("challenge_bits", np.random.default_rng(seed).integers(0, 2, size=len(observations)))
+    observations = observations.add_column("challenge_bit", np.random.default_rng(seed).integers(0, 2, size=len(observations)))
 
     observations = observations.map(
-        lambda row: {"scores": row["scores"] + sensitivity**2 if row["challenge_bits"] == 1 else row["scores"]},
+        lambda row: {"score": row["score"] + sensitivity**2 if row["challenge_bit"] == 1 else row["score"]},
         keep_in_memory=True
     )
 
-    observations.select_columns(["scores"]).save_to_disk(scores)
-    observations.select_columns(["challenge_bits"]).save_to_disk(challenge_bits)
+    observations.select_columns(["score"]).save_to_disk(scores)
+    observations.select_columns(["challenge_bit"]).save_to_disk(challenge_bits)
 
     with Path(postprocessed_dp_parameters).open("w") as f:
         dump(dp_parameters, f)

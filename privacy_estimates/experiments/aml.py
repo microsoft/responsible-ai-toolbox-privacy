@@ -16,11 +16,13 @@ from dataclasses import dataclass
 from hydra.core.hydra_config import HydraConfig
 from pathlib import Path
 from omegaconf import OmegaConf, DictConfig
-from typing import TypeVar, Type, Any, get_type_hints, Dict, Union, List
+from typing import TypeVar, Type, Any, get_type_hints, Dict, Union, List, OrderedDict
 from dataclasses import is_dataclass
 from yaml import safe_load
-from tqdm import tqdm
+from parmap import map as pmap
 from typing import Optional, Callable, Optional, Iterable
+from collections.abc import Mapping
+from subprocess import check_output
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +72,24 @@ class WorkspaceConfig:
             resource_group=cfg['resource_group'],
             cpu_compute=cfg.get('cpu_compute', None),
             gpu_compute=cfg.get('gpu_compute', None),
+            large_memory_cpu_compute=cfg.get('large_memory_cpu_compute', None),
         )
+    
+    @classmethod
+    def from_env_vars(cls, **kwargs):
+        return cls(
+            subscription_id=os.environ['AZUREML_ARM_SUBSCRIPTION'],
+            workspace_name=os.environ['AZUREML_ARM_WORKSPACE_NAME'],
+            resource_group=os.environ['AZUREML_ARM_RESOURCE_GROUP'],
+            **kwargs
+        )
+    
+    @classmethod
+    def from_az_cli(cls, **kwargs):
+        sub = json.loads(check_output(["az", "account", "show"]))["id"]
+        name = json.loads(check_output(["az", "config", "get", "defaults.workspace"]))["value"]
+        group = json.loads(check_output(["az", "config", "get", "defaults.group"]))["value"]
+        return cls(subscription_id=sub, workspace_name=name, resource_group=group, **kwargs)
 
 
 T = TypeVar("T")
@@ -294,7 +313,7 @@ class DatastoreURI(str):
 
 
 class Job:
-    def __init__(self, aml_run):
+    def __init__(self, aml_run, local_name: Optional[str] = None):
         from azureml.core import Run
         self.aml_run: Run = aml_run
         self.details = aml_run.get_details()
@@ -303,9 +322,10 @@ class Job:
             resource_group=aml_run.experiment.workspace.resource_group,
             subscription_id=aml_run.experiment.workspace.subscription_id,
         )
+        self.local_name = local_name
 
     @classmethod
-    def from_url(cls, url: str) -> "Job":
+    def from_url(cls, url: str, local_name: Optional[str] = None) -> "Job":
         from azureml.core import Run
         parsed_url = urlparse(url)
 
@@ -325,13 +345,13 @@ class Job:
 
         run = Run.get(ws.workspace, run_id=run_id)
 
-        return Job(aml_run=run)
+        return Job(aml_run=run, local_name=local_name)
     
     @classmethod
-    def from_id(cls, workspace: WorkspaceConfig, run_id: str) -> "Job":
+    def from_id(cls, workspace: WorkspaceConfig, run_id: str, local_name: Optional[str] = None) -> "Job":
         from azureml.core import Run
         run = Run.get(workspace.workspace, run_id=run_id)
-        return Job(aml_run=run)
+        return Job(aml_run=run, local_name=local_name)
 
     def get_node(self, name: str) -> "Job":
         children = self.aml_run.get_children()
@@ -341,6 +361,13 @@ class Job:
     def download_input(self, name: str, path: str, match_pattern: str = "*") -> Path:
         input_details = self.details['runDefinition']['inputAssets'][name]
         uri = DatastoreURI.from_asset_uri(uri=input_details["asset"]["assetId"],
+                                          workspace=self.ws)
+        local_path = uri.download_content(path=path, match_pattern=match_pattern)
+        return local_path
+    
+    def download_output(self, name: str, path: str, match_pattern: str = "*") -> Path:
+        output_details = self.details['runDefinition']['outputAssets'][name]
+        uri = DatastoreURI.from_asset_uri(uri=output_details["asset"]["assetId"],
                                           workspace=self.ws)
         local_path = uri.download_content(path=path, match_pattern=match_pattern)
         return local_path
@@ -364,7 +391,7 @@ class Job:
         cmd = [os.path.expandvars(c) for c in cmd]
         if output_path is not None:
             cmd = [c.replace("DatasetOutputConfig:", output_path + "/") for c in cmd]
-        cmd = [c.replace("\\\n", " ") for c in cmd]
+        cmd = [c.replace("\\\n", " ").replace("\n", " ") for c in cmd]
         os.environ = env
         return " ".join(cmd)
     
@@ -423,10 +450,12 @@ class Job:
     
     def as_row(self, columns: Optional[List[str]] = None) -> pd.DataFrame:
         if columns is None:
-            columns = ["experiment_name", "job_name", "simple_status"] + list(self.parameters.keys()) + ["url", "description"]
+            columns = ["local_name", "experiment_name", "job_name", "simple_status"] + list(self.parameters.keys()) + ["url", "description"]
         row = {}
         for c in columns:
-            if hasattr(self, c):
+            if c == "local_name" and self.local_name is not None:
+                row[c] = self.local_name
+            elif hasattr(self, c):
                 row[c] = getattr(self, c)
             elif c in self.parameters:
                 row[c] = self.parameters[c]
@@ -494,20 +523,24 @@ class JobList:
         return cls.from_ids(workspace=workspace, ids=table[id_column])
 
     @classmethod
-    def from_urls(cls, urls: List[str], disable_pbar: Optional[bool] = True) -> "JobList":
+    def from_urls(cls, urls: Union[List[str], OrderedDict[str, str]], disable_pbar: Optional[bool] = True) -> "JobList":
         """
         Creates a JobList object from a list of job URLs.
 
         Args:
-            urls (List[str]): A list of job URLs.
+            urls (Union[List[str], OrderedDict[str, str]]): A list of job URLs or a list of tuples containing the job name and URL.
 
         Returns:
             JobList: A JobList object containing the jobs specified in the list of URLs.
         """
-        return cls(jobs=list(tqdm((Job.from_url(url) for url in urls), disable=disable_pbar, total=len(urls))))
+        if isinstance(urls, Mapping):
+            jobs = pmap(Job.from_url, urls.values(), urls.keys(), pm_pbar=not disable_pbar)
+        else:
+            jobs = pmap(Job.from_url, urls, pm_pbar=not disable_pbar)
+        return cls(jobs=list(jobs))
     
     @classmethod
-    def from_ids(cls, workspace: WorkspaceConfig, ids: List[str]) -> "JobList":
+    def from_ids(cls, workspace: WorkspaceConfig, ids: Union[List[str], OrderedDict[str, str]]) -> "JobList":
         """
         Creates a JobList object from a list of job IDs.
 
@@ -518,7 +551,11 @@ class JobList:
         Returns:
             JobList: A JobList object containing the jobs specified in the list of IDs.
         """
-        return cls(jobs=[Job.from_id(workspace=workspace, run_id=id) for id in ids])
+        if isinstance(ids, Mapping):
+            jobs = pmap(Job.from_id, [workspace]*len(ids), ids.values(), ids.keys())
+        else:
+            jobs = pmap(Job.from_id, [workspace]*len(ids), ids)
+        return cls(jobs=list(jobs))
     
     def filter(self, property_name: str, property_value: Any) -> "JobList":
         """

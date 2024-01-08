@@ -45,7 +45,7 @@ def predict(model: nn.Module, data: Dataset, batch_size: int, device: Optional[s
         "label": data.features["label"],
         "loss": features.Value("float32")
     })
-    predictions = []
+    predictions = [Dataset.from_dict({"logits": [], "label": [], "loss": []}, features=prediction_features)]
     with data.formatted_as(type="torch"):
         with torch.no_grad():
             data_loader = DataLoader(data, batch_size=batch_size, shuffle=False, drop_last=False)

@@ -8,5 +8,4 @@ dependencies:
     - azure-ai-ml
     - datasets==2.14.7
     - mldesigner
-    - numpy
     - tqdm-loggable

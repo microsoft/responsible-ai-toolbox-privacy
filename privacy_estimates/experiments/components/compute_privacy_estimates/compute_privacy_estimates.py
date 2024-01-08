@@ -1,5 +1,4 @@
 import numpy as np
-import time
 
 from datasets import Dataset
 from pathlib import Path
@@ -8,7 +7,6 @@ from prv_accountant import PRVAccountant, PoissonSubsampledGaussianMechanism
 from typing import Tuple, Optional
 from pydantic_cli import run_and_exit
 from pydantic import BaseModel
-from sklearn.metrics import roc_curve as compute_roc_curve
 
 from privacy_estimates import report as priv_report, compute_privacy_curve_lo_hi
 
@@ -17,9 +15,9 @@ class Arguments(BaseModel):
     scores: Path
     challenge_bits: Path
     privacy_report: Path
+    smallest_delta: float
+    alpha: float
     dp_parameters: Optional[Path] = None
-    target_delta: Optional[float] = None
-    alpha: float = 0.05
 
 
 def setup_accountant(dp_parameters: Path) -> Tuple[PRVAccountant, int]:
@@ -37,20 +35,26 @@ def main(args: Arguments) -> int:
     scores_ds = Dataset.load_from_disk(args.scores)
     challenge_bits_ds = Dataset.load_from_disk(args.challenge_bits)
 
-    accountant, num_steps = setup_accountant(args.dp_parameters)
+    # Add MI score distribution
+    report.mi_score_distribution = priv_report.MIScoreDistribution(
+        scores=scores_ds["score"], challenge_bits=challenge_bits_ds["challenge_bit"]
+    )
 
     # Compute theoretical privacy guarantees
-    fprs_th, fnrs_th = accountant.compute_trade_off_curve(num_self_compositions=[num_steps], bound="estimate")
-    to_curve_th = priv_report.TradeOffCurve(fpr=fprs_th, fnr=fnrs_th, name="theoretical")
-    report.add_trade_off_curve(to_curve_th)
+    if args.dp_parameters is not None:
+        accountant, num_steps = setup_accountant(args.dp_parameters)
+
+        fprs_th, fnrs_th = accountant.compute_trade_off_curve(num_self_compositions=[num_steps], bound="estimate")
+        to_curve_th = priv_report.TradeOffCurve(fpr=fprs_th, fnr=fnrs_th, name="theoretical")
+        report.add_trade_off_curve(to_curve_th)
 
     # Compute empirical privacy guarantees
-    deltas = np.logspace(np.log10(args.target_delta), 0, num=100, endpoint=False)
+    deltas = np.logspace(np.log10(args.smallest_delta), 0, num=100, endpoint=False)
     epsilons_lo, epsilons_hi = compute_privacy_curve_lo_hi(
-        attack_scores=scores_ds["scores"], challenge_bits=challenge_bits_ds["challenge_bits"], alpha=args.alpha, method="beta",
+        attack_scores=scores_ds["score"], challenge_bits=challenge_bits_ds["challenge_bit"], alpha=args.alpha, method="beta",
         deltas=deltas
     )
-    to_curve_emp = priv_report.TradeOffCurveBounds.from_privacy_curves(
+    to_curve_emp = priv_report.EmpiricalTradeOffCurve.from_privacy_curves(
         epsilons_lo=epsilons_lo, epsilons_hi=epsilons_hi, deltas=deltas, name=f"empirical_{1-args.alpha}"
     )
     report.add_trade_off_curve(to_curve_emp)
@@ -59,7 +63,7 @@ def main(args: Arguments) -> int:
     loggers = [
         priv_report.AMLLogger(),
         priv_report.MatplotlibLogger(path=args.privacy_report),
-#        priv_report.PDFLogger(path=args.privacy_report/"privacy_report.pdf"), Not yet implemented
+        priv_report.PDFLogger(path=args.privacy_report),
     ]
 
     for logger in loggers:
@@ -68,5 +72,9 @@ def main(args: Arguments) -> int:
     return 0
 
 
+def exception_handler(exception: Exception) -> int:
+    raise RuntimeError("An exception occurred") from exception
+
+
 if __name__ == "__main__":
-    run_and_exit(Arguments, main)
+    run_and_exit(Arguments, main, exception_handler=exception_handler)

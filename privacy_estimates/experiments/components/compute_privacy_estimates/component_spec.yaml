@@ -14,12 +14,15 @@ inputs:
   dp_parameters:
     type: uri_file
     description: JSON encoded differential privacy parameters
-  target_delta:
+    optional: true
+  smallest_delta:
     type: number
-    description: Target delta
+    description: The smallest delta used in the privacy trade-off curve conversion.
+    default: 1e-9
   alpha:
     type: number
     description: Significance level
+    default: 0.05
 outputs:
   privacy_report:
     type: uri_folder
@@ -32,11 +35,11 @@ additional_includes:
         - "../../../../README.md"
         - "../../../../scripts"
 command: >-
-  python -m pip install -e . && python compute_privacy_estimates.py \
-    --dp_parameters ${{inputs.dp_parameters}} \
+  python -m pip install -e .[report] && python compute_privacy_estimates.py \
+    $[[ --dp_parameters ${{inputs.dp_parameters}} ]] \
     --scores ${{inputs.scores}} \
     --challenge_bits ${{inputs.challenge_bits}} \
-    --target_delta ${{inputs.target_delta}} \
+    --smallest_delta ${{inputs.smallest_delta}} \
     --alpha ${{inputs.alpha}} \
     --privacy_report ${{outputs.privacy_report}}
 environment:

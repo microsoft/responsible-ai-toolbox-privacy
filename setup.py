@@ -35,7 +35,9 @@ setup(
     extras_require={
         "dev": [
             "pytest",
-            "sympy"
+            "sympy",
+            "opacus",
+            "tensorflow-privacy",
         ],
         "pipelines": [
             "azure-ai-ml",

@@ -3,6 +3,7 @@ import numpy as np
 from torch.optim import Optimizer
 from typing import Dict, List, Iterable
 from enum import Enum
+from warnings import warn
 
 
 class CanaryGradientMethod(Enum):
@@ -62,6 +63,10 @@ class CanaryGradient:
         """Generate a new canary gradient"""
         if self.method == CanaryGradientMethod.DIRAC:
             return self._generate_dirac_canary_gradient()
+        elif self.method == CanaryGradientMethod.RANDOM:
+            return self._generate_random_canary_gradient()
+        else:
+            raise ValueError(f"Unsupported canary gradient method: {self.method}")
         
     def _generate_dirac_canary_gradient(self) -> List[List[torch.Tensor]]:
         """Generate a new canary gradient using the Dirac method"""
@@ -151,6 +156,7 @@ class CanaryTrackingOptimizer(Optimizer):
                                 "not the `DPOptimizer`.")
         except ImportError:
             # opacus not installed, no need to worry about DPOptimizer
+            warn("opacus not installed, `CanaryTrackingOptimizer` only works with `DPOptimizer`")
             pass
 
         # Make sure canary_gradient is compatible with optimizer's parameters

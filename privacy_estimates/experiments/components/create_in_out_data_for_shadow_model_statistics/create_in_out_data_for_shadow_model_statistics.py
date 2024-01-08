@@ -1,11 +1,18 @@
 import logging
 import datetime
+import numpy as np
 from mldesigner import command_component, Input, Output
-from datasets import load_from_disk, Dataset, features, concatenate_datasets
-from sklearn.model_selection import train_test_split
+from datasets import load_from_disk, Dataset, DatasetDict, concatenate_datasets
+from datasets import features as dataset_features
+from fractions import Fraction
+from dataclasses import dataclass
 from enum import Enum
 from tqdm_loggable.auto import tqdm
 from tqdm_loggable.tqdm_logging import tqdm_logging
+from typing import Sequence, Tuple, Optional
+from multiprocessing import cpu_count
+from functools import partial, reduce
+from collections import Counter
 
 
 logging.basicConfig()
@@ -13,122 +20,226 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class SplitSizeType(Enum):
-    EQUAL_IN_OUT = "equal_in_out"
-    SAME_AS_TRAIN_TEST = "same_as_train_test"
-    SPECIFY_TRAIN_FRACTION = "specify_train_fraction"
+class SplitType(Enum):
+    RANDOM_SPLITS = "random_splits" 
+    ROTATING_SPLITS = "rotating_splits" 
 
 
-def empty_dataset(features: features.Features) -> Dataset:
+def empty_dataset(features: dataset_features.Features) -> Dataset:
     return Dataset.from_dict({k: [] for k in features}, features=features)
+
+
+@dataclass
+class InOutIndices:
+    """
+    Class representing input-output indices for shadow model statistics.
+    """
+
+    in_: Sequence[Tuple[str, int]]
+    out: Sequence[Tuple[str, int]]
+
+    @classmethod
+    def from_sequences(cls, in_: Sequence[Tuple[str, int]], out: Sequence[Tuple[str, int]], pad_to_length: Optional[int] = None):
+        """
+        Create an instance of InOutIndices from input and output sequences.
+
+        Args:
+            in_: Input sequence.
+            out: Output sequence.
+            pad_to_length: Optional length to pad the sequences to.
+
+        Returns:
+            An instance of InOutIndices.
+        """
+        if pad_to_length is not None:
+            assert len(in_) <= pad_to_length
+            assert len(out) <= pad_to_length
+            in_ = list(in_)
+            out = list(out)
+            in_.extend([(None, None)] * (pad_to_length - len(in_)))
+            out.extend([(None, None)] * (pad_to_length - len(out)))
+        return cls(in_=in_, out=out)
+
+    def __post_init__(self):
+        assert len(self.in_) == len(self.out)
+
+    def extend(self, other: "InOutIndices"):
+        """
+        Extend the current instance with another InOutIndices instance.
+
+        Args:
+            other: Another InOutIndices instance to extend with.
+        """
+        self.in_.extend(other.in_)
+        self.out.extend(other.out)
+    
+    def __len__(self):
+        return len(self.in_)
+
+    def as_dataset(self, features: Optional[dataset_features.Features] = None) -> DatasetDict:
+        return DatasetDict({
+            "in": Dataset.from_dict({"split": [s for s, _ in self.in_], "sample_index": [i for _, i in self.in_]}, features=features),
+            "out": Dataset.from_dict({"split": [s for s, _ in self.out], "sample_index": [i for _, i in self.out]}, features=features),
+        })
+    
+
+def get_least_common_element(sequence: Sequence[Tuple[str, int]]) -> Tuple[Tuple[str, int], int]:
+    """
+    Get the least common element in a sequence.
+
+    Args:
+        sequence (Sequence): The input sequence.
+
+    Returns:
+        Tuple: The least common element and its number of occurrences.
+    """
+    sequence = [e for e in sequence if e != (None, None)]
+    return Counter(sequence).most_common()[-1]
+
+
+def check_in_out_indices(in_: Dataset, out: Dataset):
+    in_indices = list(zip(in_["split"], in_["sample_index"]))
+    out_indices = list(zip(out["split"], out["sample_index"]))
+
+    if set(in_indices).difference([(None, None)]) != set(out_indices).difference([(None, None)]):
+        # calculate missing indices
+        missing_indices = set(in_indices).symmetric_difference(out_indices)
+        raise ValueError(f"Some indices are missing: {missing_indices}")
+
+    least_common_in, least_common_in_occ = get_least_common_element(in_indices)
+    logger.info(f"Least common in element: {least_common_in} ({least_common_in_occ} times)")
+    if least_common_in_occ < 4:
+        raise ValueError(f"Lest common element occurs less than 4 times: {least_common_in} ({least_common_in_occ} times)")
+    if least_common_in_occ < 10:
+        logger.warning(f"Lest common element occurs less than 10 times: {least_common_in} ({least_common_in_occ} times)")
+
+    least_common_out, least_common_out_occ = get_least_common_element(out_indices)
+    logger.info(f"Least common out element: {least_common_out} ({least_common_out_occ} times)")
+    if least_common_out_occ < 4:
+        raise ValueError(f"Lest common element occurs less than 4 times: {least_common_out} ({least_common_out_occ} times)")
+    if least_common_out_occ < 10:
+        logger.warning(f"Lest common element occurs less than 10 times: {least_common_out} ({least_common_out_occ} times)")
+
+
+def compute_in_out_indices_using_cross_validation(indices: Sequence, in_fraction: float, seed: int) -> Tuple[InOutIndices, int]:
+    """
+    Compute in and out indices using cross-validation.
+
+    Args:
+        indices (Sequence): The input indices.
+        in_fraction (float): The fraction of indices to be used for training.
+        seed (int): The random seed for shuffling the indices.
+
+    Returns:
+        Tuple[InOutIndices, int]: A tuple containing the cross-validation sets and the number of samples per model.
+    """
+    assert 0 < in_fraction < 1, "in_fraction must be between 0 and 1"
+    in_fraction = Fraction(in_fraction)
+    assert in_fraction.denominator - in_fraction.numerator == 1, (
+        "in_fraction must be (n-1)/n for some n for rotating splits"
+    )
+
+    # shuffle indices with seed
+    np.random.default_rng(seed+128023).shuffle(indices)
+
+    folds = [[indices[i] for i in f] for f in np.array_split(range(len(indices)), in_fraction.denominator)]
+
+    n_samples_per_model = sum(sorted((len(fold) for fold in folds), reverse=True)[:in_fraction.numerator])
+
+    assert len(folds) == in_fraction.denominator
+
+    cross_validation_sets = InOutIndices(in_=[], out=[])
+    for fold_i in range(in_fraction.denominator):
+        rolled_indices = [folds[(fold_i + i) % len(folds)] for i in range(len(folds))]
+
+        cross_validation_sets.extend(
+            InOutIndices.from_sequences(
+                in_=reduce(lambda a, b: a+b, rolled_indices[1:]),
+                out=rolled_indices[0],
+                pad_to_length=n_samples_per_model
+            )
+        )
+    return cross_validation_sets, n_samples_per_model
 
 
 @command_component(environment="environment.aml.yaml")
 def create_in_out_data_for_shadow_model_statistics(
-    train_data: Input,
-    validation_data: Input,
-    train_base_data: Output,
-    validation_base_data: Output,
-    in_out_data: Output,
+    in_out_data: Input,
     in_indices: Output,
     out_indices: Output,
     num_points_per_model: Output(type="integer"),
     seed: int,
-    split_size_type: str,
-    train_size_fraction: float = 0.0,
-    max_num_models: int = 5_000,
+    split_type: str,
+    in_fraction: float,
+    max_num_models: int = 1_024,
 ):
-    """Create in and out indices for loss statistics computation.
-
-    This component creates in and out indices for loss statistics computation. It takes in train and test data, and
-    outputs train and test base data, in and out indices, and the component itself. The in and out indices are used to
-    split the data into in and out samples for loss statistics computation. The split size can be specified using the
-    split_size_type parameter, which can take one of three values: "equal_in_out", "same_as_train_test", or
-    "specify_train_fraction". If "equal_in_out" is selected, the in and out samples will be of equal size. If
-    "same_as_train_test" is selected, the in and out samples will be split in the same way as the train and test data.
-    If "specify_train_fraction" is selected, the train_size_fraction parameter must be set to a value between 0.0 and
-    1.0, and the in and out samples will be split according to this fraction. The max_num_models parameter specifies
-    the maximum number of models to train on the data.
+    """
+    Creates in and out indices for shadow model statistics.
 
     Args:
-        train_data (Input): Train data.
-        validation_data (Input): Validation data.
-        train_base_data (Output): Train base data.
-        validation_base_data (Output): Validation base data.
-        in_out_data (Output): In out data that contains in and out samples.
-        in_indices (Output): In indices.
-        out_indices (Output): Out indices.
-        seed (int): Seed for random number generator.
-        split_size_type (str): Split size type.
-        num_points_per_model (Output): Number of points per model.
-        train_size_fraction (float, optional): Train size fraction. Defaults to 0.0.
-        max_num_models (Integer, optional): Maximum number of models to train. Defaults to 5_000.
+        in_out_data (Input): The input data.
+        in_indices (Output): The output file path to save the in indices.
+        out_indices (Output): The output file path to save the out indices.
+        num_points_per_model (Output): The output file path to save the number of in samples per model.
+        seed (int): The seed for random number generation.
+        split_type (str): The type of split to use.
+        in_fraction (float): The fraction of in samples.
+        max_num_models (int, optional): The maximum number of models. Defaults to 1_024.
     """
     fmt = f"%(filename)-20s:%(lineno)-4d %(asctime)s %(message)s"
     logging.basicConfig(level=logging.INFO, format=fmt, handlers=[logging.StreamHandler()])
     tqdm_logging.set_level(logging.INFO)
     tqdm_logging.set_log_rate(datetime.timedelta(seconds=10))  
 
+    # Load the input data
+    ds = load_from_disk(in_out_data)
+    logger.info(f"Loaded data with {len(ds)} points")
+    index_features = dataset_features.Features({
+        "split": ds.features["split"],
+        "sample_index": ds.features["sample_index"],
+    })
+    logger.info(f"Loaded index features: {index_features}")
 
-    train_ds = load_from_disk(train_data)
-    validation_ds = load_from_disk(validation_data)
-    logger.info(f"Loaded train data with {len(train_ds)} points, test data with {len(validation_ds)} points")
+    # Check if required columns exist in the dataset
+    assert "sample_index" in ds.column_names, "ds must have a column named 'sample_index'"
+    assert "split" in ds.column_names, "ds must have a column named 'split'"
 
-    assert "sample_index" in train_ds.column_names, "train_ds must have a column named 'sample_index'"
-    assert "split" in train_ds.column_names, "train_ds must have a column named 'split'"
-    assert "sample_index" in validation_ds.column_names, "validation_ds must have a column named 'sample_index'"
-    assert "split" in validation_ds.column_names, "validation_ds must have a column named 'split'"
+    # Create indices from split and sample_index columns
+    indices = [(split, i) for split, i in zip(ds["split"], ds["sample_index"])]
 
-    indices = (
-        [(split, i) for split, i in zip(train_ds["split"], train_ds["sample_index"])] + 
-        [(split, i) for split, i in zip(validation_ds["split"], validation_ds["sample_index"])]
-    )
-        
-    split_size_type = SplitSizeType(split_size_type)
+    split_type = SplitType(split_type)
 
-    if split_size_type == SplitSizeType.EQUAL_IN_OUT:
-        train_size_fraction = 0.5
-    elif split_size_type == SplitSizeType.SAME_AS_TRAIN_TEST:
-        train_size_fraction = len(train_ds) / (len(train_ds) + len(validation_ds))
-    elif split_size_type == SplitSizeType.SPECIFY_TRAIN_FRACTION:
-        assert train_size_fraction > 0.0, "train_size_fraction must be greater than 0.0"
-        train_size_fraction = train_size_fraction
+    if split_type == SplitType.RANDOM_SPLITS:
+        raise NotImplementedError("Random splits not implemented")
+    elif split_type == SplitType.ROTATING_SPLITS:
+        compute_in_out_indices_for_models = partial(compute_in_out_indices_using_cross_validation, in_fraction=in_fraction)
 
-    in_indices_dict = {"split": [], "sample_index": []}
-    out_indices_dict = {"split": [], "sample_index": []}
-    for i in tqdm(range(max_num_models), desc="Creating in and out indices", unit="model", total=max_num_models):
-        in_indices_i, out_indices_i = train_test_split(indices, train_size=train_size_fraction, random_state=seed+9239+i)
-        points_per_model = len(in_indices_i)
-        
-    	# Ensure in_indices and out_indices are of the same length and fill with None if not
-        if len(in_indices_i) > len(out_indices_i):
-            out_indices_i += [(None, None)] * (len(in_indices_i) - len(out_indices_i))
-        elif len(out_indices_i) > len(in_indices_i):
-            in_indices_i += [(None, None)] * (len(out_indices_i) - len(in_indices_i))
+    rng = np.random.default_rng(seed+129120)
+    in_out_indices_i, points_per_model = compute_in_out_indices_for_models(indices=indices, seed=rng.integers(0, 2**32-1))
+    models_per_iter = len(in_out_indices_i)//points_per_model
+    in_out_indices_dsd = [in_out_indices_i.as_dataset()]
+    for _ in tqdm(range(models_per_iter, max_num_models, models_per_iter), desc="Computing in-out indices"):
+        in_out_indices_i, points_per_model_i = compute_in_out_indices_for_models(indices=indices, seed=rng.integers(0, 2**32-1))
+        assert points_per_model == points_per_model_i, "Number of points per model must be the same for all models"
+        in_out_indices_dsd.append(in_out_indices_i.as_dataset(features=index_features))
 
-        in_indices_dict["split"] += [x[0] for x in in_indices_i]
-        in_indices_dict["sample_index"] += [x[1] for x in in_indices_i]
-        out_indices_dict["split"] += [x[0] for x in out_indices_i]
-        out_indices_dict["sample_index"] += [x[1] for x in out_indices_i]
+    indices_in_ds = concatenate_datasets([dsd["in"] for dsd in in_out_indices_dsd])
+    indices_out_ds = concatenate_datasets([dsd["out"] for dsd in in_out_indices_dsd])
 
-    logger.info(f"Number of in samples per model: {points_per_model}")
+    logger.info("Number of in samples per model: %s", points_per_model)
+    logger.info("Number of total samples: %s", len(indices_in_ds))
+
+    # Save the number of in samples per model to a file
     with open(num_points_per_model, "w") as f:
         f.write(str(points_per_model))
 
-    index_features = features.Features({
-        "split": features.Value(dtype="string"),
-        "sample_index": features.Value(dtype="int32")
-    })
-    in_indices_ds = Dataset.from_dict(mapping=in_indices_dict, features=index_features)
-    in_indices_ds.save_to_disk(in_indices)
-    out_indices_ds = Dataset.from_dict(mapping=out_indices_dict, features=index_features)
-    out_indices_ds.save_to_disk(out_indices)
-    logger.info(f"Saved {len(in_indices_ds)} in indices and {len(out_indices_ds)} out indices")
+    check_in_out_indices(in_=indices_in_ds, out=indices_out_ds)
 
-    in_out_ds = concatenate_datasets([train_ds, validation_ds])
-    in_out_ds.save_to_disk(in_out_data)
+    # Create a dataset for in indices and save it to disk
+    indices_in_ds.save_to_disk(in_indices)
+    logger.info(f"Saved {len(indices_in_ds)} in indices to {in_indices}")
 
-    # train_base_data and validation_base_data are empty since every model is trained on different
-    # data
-    empty_dataset(features=train_ds.features).save_to_disk(train_base_data)
-    empty_dataset(features=validation_ds.features).save_to_disk(validation_base_data)
+    # Create a dataset for out indices and save it to disk
+    indices_out_ds.save_to_disk(out_indices)
+    logger.info(f"Saved {len(indices_out_ds)} out indices to {out_indices}")
+

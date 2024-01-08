@@ -5,6 +5,13 @@ from privacy_estimates.experiments.attacks.lira.lira import LiRA
 from datasets import Dataset, features
 
 
+def skip_if_no_tf():
+    try:
+        import tensorflow
+    except ImportError:
+        pytest.skip("Skipping because tensorflow is not installed")
+
+
 class TestLiRA:
     @pytest.mark.parametrize("median_or_mean", ['median', 'mean'])
     def test_lira_tf(self, median_or_mean):
@@ -60,6 +67,7 @@ class TestLiRA:
 
 def lira_e2e_tf(logits_in: List[np.ndarray], logits_out: List[np.ndarray], logits_target: List[np.ndarray], labels: List[int],
                 median_or_mean: str, fix_variance: bool):
+    skip_if_no_tf()
     from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import advanced_mia as amia
     assert len(logits_in) == len(logits_out) == len(logits_target) == len(labels)
     assert all(l_t.ndim == 1 for l_t in logits_target) == True
