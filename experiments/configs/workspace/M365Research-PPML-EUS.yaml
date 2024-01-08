@@ -1,8 +1,0 @@
-{
-  "workspace_name": "M365Research-PPML-EUS",
-  "resource_group": "PPML",
-  "subscription_id": "acc09744-1ee3-4242-b375-93421c63af0c",
-  "cpu_compute": "D13v2",
-  "gpu_compute": "ND40rsv2",
-  "large_memory_cpu_compute": "D64sv3",
-}
