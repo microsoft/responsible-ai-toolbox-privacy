@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
     environment="environment.aml.yaml",
 )
 def postprocess_dpd_data(dpd_data: Input, dp_parameters: Input, seed: int, scores: Output, challenge_bits: Output,
-                         postprocessed_dp_parameters: Output(type="uri_file")):
+                         postprocessed_dp_parameters: Output(type="uri_file")):  # noqa: F821
     """
     Post-processing for differential privacy distinguisher
 

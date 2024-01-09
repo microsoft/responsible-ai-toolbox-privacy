@@ -184,9 +184,9 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
 def prepare_data_for_aml_parallel(
     train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
     model_index_start: int, model_index_end: int, group_base_seed: int, num_points_per_model: int,
-    in_data_for_models: Output(mode="rw_mount"), out_data_for_models: Output(mode="rw_mount"),
-    train_data_for_models: Output(mode="rw_mount"), validation_data_for_models: Output(mode="rw_mount"), sample_selection: str,
-    merge_unused_samples: str, seeds_for_models: Output(mode="rw_mount")
+    in_data_for_models: Output(mode="rw_mount"), out_data_for_models: Output(mode="rw_mount"),  # noqa: F821
+    train_data_for_models: Output(mode="rw_mount"), validation_data_for_models: Output(mode="rw_mount"), sample_selection: str,  # noqa: F821
+    merge_unused_samples: str, seeds_for_models: Output(mode="rw_mount")  # noqa: F821
 ):
     for model_index in range(model_index_start, model_index_end):
         model_index_str = f"model_index-{model_index:04}"

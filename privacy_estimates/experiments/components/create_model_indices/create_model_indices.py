@@ -7,7 +7,7 @@ from pathlib import Path
 @command_component(environment="environment.aml.yaml")
 def create_model_indices_for_aml_parallel(
     model_index_start: int, model_index_end: int,
-    model_indices: Output(mode="rw_mount")
+    model_indices: Output(mode="rw_mount")  # noqa: F821
 ):
     for model_index in range(model_index_start, model_index_end):
         model_index_str = f"model_index-{model_index:04}"

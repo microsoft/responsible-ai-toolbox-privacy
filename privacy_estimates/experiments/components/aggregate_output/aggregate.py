@@ -78,24 +78,24 @@ AGGREGATOR_OUTPUTS = {
 
 
 @command_component(display_name="Aggregate 2 output directories", environment="environment.aml.yaml")
-def aggregate_2_output_dirs(data0: Input(type="uri_folder"), data1: Input(type="uri_folder"),
-                            output: Output(type="uri_folder"), aggregator: str):
+def aggregate_2_output_dirs(data0: Input(type="uri_folder"), data1: Input(type="uri_folder"),  # noqa: F821
+                            output: Output(type="uri_folder"), aggregator: str):  # noqa: F821
     AGGREGATORS[aggregator]([data0, data1], output=output)
 
 
 @command_component(display_name="Aggregate 2 output files", environment="environment.aml.yaml")
-def aggregate_2_output_files(data0: Input(type="uri_file"), data1: Input(type="uri_file"),
-                             output: Output(type="uri_file"), aggregator: str):
+def aggregate_2_output_files(data0: Input(type="uri_file"), data1: Input(type="uri_file"),  # noqa: F821
+                             output: Output(type="uri_file"), aggregator: str):  # noqa: F821
     AGGREGATORS[aggregator]([data0, data1], output=output)
 
 
 @command_component(display_name="Aggregate 16 output directories", environment="environment.aml.yaml")
 def aggregate_16_output_dirs(
-    data0: Input(type="uri_folder"), data1: Input(type="uri_folder"), data2: Input(type="uri_folder"), data3: Input(type="uri_folder"),
-    data4: Input(type="uri_folder"), data5: Input(type="uri_folder"), data6: Input(type="uri_folder"), data7: Input(type="uri_folder"),
-    data8: Input(type="uri_folder"), data9: Input(type="uri_folder"), data10: Input(type="uri_folder"), data11: Input(type="uri_folder"),
-    data12: Input(type="uri_folder"), data13: Input(type="uri_folder"), data14: Input(type="uri_folder"), data15: Input(type="uri_folder"),
-    output: Output(type="uri_folder"), aggregator: str
+    data0: Input(type="uri_folder"), data1: Input(type="uri_folder"), data2: Input(type="uri_folder"), data3: Input(type="uri_folder"),  # noqa: F821
+    data4: Input(type="uri_folder"), data5: Input(type="uri_folder"), data6: Input(type="uri_folder"), data7: Input(type="uri_folder"),  # noqa: F821
+    data8: Input(type="uri_folder"), data9: Input(type="uri_folder"), data10: Input(type="uri_folder"), data11: Input(type="uri_folder"),  # noqa: F821
+    data12: Input(type="uri_folder"), data13: Input(type="uri_folder"), data14: Input(type="uri_folder"), data15: Input(type="uri_folder"),  # noqa: F821
+    output: Output(type="uri_folder"), aggregator: str  # noqa: F821
 ):
     AGGREGATORS[aggregator]([
         data0, data1, data2, data3, data4, data5, data6, data7,
@@ -107,11 +107,11 @@ def aggregate_16_output_dirs(
 
 @command_component(display_name="Aggregate 16 output files", environment="environment.aml.yaml")
 def aggregate_16_output_files(
-    data0: Input(type="uri_file"), data1: Input(type="uri_file"), data2: Input(type="uri_file"), data3: Input(type="uri_file"),
-    data4: Input(type="uri_file"), data5: Input(type="uri_file"), data6: Input(type="uri_file"), data7: Input(type="uri_file"),
-    data8: Input(type="uri_file"), data9: Input(type="uri_file"), data10: Input(type="uri_file"), data11: Input(type="uri_file"),
-    data12: Input(type="uri_file"), data13: Input(type="uri_file"), data14: Input(type="uri_file"), data15: Input(type="uri_file"),
-    output: Output(type="uri_file"), aggregator: str
+    data0: Input(type="uri_file"), data1: Input(type="uri_file"), data2: Input(type="uri_file"), data3: Input(type="uri_file"),  # noqa: F821
+    data4: Input(type="uri_file"), data5: Input(type="uri_file"), data6: Input(type="uri_file"), data7: Input(type="uri_file"),  # noqa: F821
+    data8: Input(type="uri_file"), data9: Input(type="uri_file"), data10: Input(type="uri_file"), data11: Input(type="uri_file"),  # noqa: F821
+    data12: Input(type="uri_file"), data13: Input(type="uri_file"), data14: Input(type="uri_file"), data15: Input(type="uri_file"),  # noqa: F821
+    output: Output(type="uri_file"), aggregator: str  # noqa: F821
 ):
     AGGREGATORS[aggregator]([
         data0, data1, data2, data3, data4, data5, data6, data7,
@@ -158,14 +158,14 @@ def aggregate_output(data: List[Union[Input, Output]], aggregator: str) -> Outpu
     
 
 @command_component(display_name="Collect AML parallel to file", environment="environment.aml.yaml")
-def collect_from_aml_parallel_to_uri_file(data: Input(type="uri_folder"), output: Output(type="uri_file"), aggregator: str):
+def collect_from_aml_parallel_to_uri_file(data: Input(type="uri_folder"), output: Output(type="uri_file"), aggregator: str):  # noqa: F821
     assert AGGREGATOR_OUTPUTS[aggregator] == "uri_file"
     files = [p/"data" for p in Path(data).iterdir()]
     AGGREGATORS[aggregator](files, output=output)
 
 
 @command_component(display_name="Collect AML parallel to folder", environment="environment.aml.yaml")
-def collect_from_aml_parallel_to_uri_folder(data: Input(type="uri_folder"), output: Output(type="uri_folder"), aggregator: str):
+def collect_from_aml_parallel_to_uri_folder(data: Input(type="uri_folder"), output: Output(type="uri_folder"), aggregator: str):  # noqa: F821
     assert AGGREGATOR_OUTPUTS[aggregator] == "uri_folder"
     files = [p for p in Path(data).iterdir()]
     AGGREGATORS[aggregator](files, output=output)

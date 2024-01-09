@@ -20,7 +20,7 @@ class DPParameters:
         return cls(**data)
     
     @classmethod
-    def from_opacus(cls, privacy_engine: "opacus.PrivacyEngine") -> "DPParameters":
+    def from_opacus(cls, privacy_engine: "opacus.PrivacyEngine") -> "DPParameters":  # noqa: F821
         history = {}
         for nm, p, c in privacy_engine.accountant.history:
             history[(nm, p)] = history.get((nm, p), 0) + c

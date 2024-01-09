@@ -167,7 +167,7 @@ def create_in_out_data_for_shadow_model_statistics(
     in_out_data: Input,
     in_indices: Output,
     out_indices: Output,
-    num_points_per_model: Output(type="integer"),
+    num_points_per_model: Output(type="integer"),  # noqa: F821
     seed: int,
     split_type: str,
     in_fraction: float,

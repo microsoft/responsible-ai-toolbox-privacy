@@ -58,7 +58,7 @@ def filter_aux_data(full: Input, aux: Output, filtered: Output):
 
 
 @command_component(environment="environment.aml.yaml")
-def filter_aux_data_aml_parallel(full: Input, aux: Output(mode="rw_mount"), filtered: Output(mode="rw_mount")):
+def filter_aux_data_aml_parallel(full: Input, aux: Output(mode="rw_mount"), filtered: Output(mode="rw_mount")):  # noqa: F821
     for path in Path(full).iterdir():
         model_index_str = path.name
         assert model_index_str.startswith("model_index")
@@ -124,7 +124,7 @@ def reinsert_aux_data(filtered: Input, aux: Input, full: Output):
 
 
 @command_component(environment="environment.aml.yaml")
-def reinsert_aux_data_aml_parallel(filtered: Input(mode="rw_mount"), aux: Input(mode="rw_mount"), full: Output(mode="rw_mount")):
+def reinsert_aux_data_aml_parallel(filtered: Input(mode="rw_mount"), aux: Input(mode="rw_mount"), full: Output(mode="rw_mount")):  # noqa: F821
     for fil_path, aux_path in zip(Path(filtered).iterdir(), Path(aux).iterdir()):
         assert fil_path.name == aux_path.name
         model_index_str = fil_path.name
