@@ -31,20 +31,20 @@ class TradeOffCurve(AbstractTradeOffCurve):
     def from_privacy_curve(cls, epsilons: np.ndarray, deltas: np.ndarray, name: str) -> "TradeOffCurve":
         fpr, fnr = convert_eps_deltas_to_fpr_fnr(epsilons, deltas)
         return cls(fpr=fpr, fnr=fnr, name=name)
-    
+
     def all_fpr(self) -> np.ndarray:
         return self.fpr
-    
+
     def interpolate_curve(self, fpr: np.ndarray) -> "TradeOffCurve":
         return TradeOffCurve(fpr=fpr, fnr=np.interp(x=fpr, xp=self.fpr, fp=self.fnr), name=self.name)
-    
+
     def append_to_fpr_fnr_plot(self, fig, ax, plot_args=None):
         if plot_args is None:
             plot_args = {}
         ax.plot(self.fpr, self.fnr, label=self.name, **plot_args)
         ax.legend()
         return fig, ax
-    
+
     def append_to_fpr_tpr_plot(self, fig, ax, plot_args=None):
         if plot_args is None:
             plot_args = {}
@@ -57,7 +57,7 @@ class TradeOffCurve(AbstractTradeOffCurve):
 
     def __len__(self):
         return len(self.fpr)
-   
+
 
 class EmpiricalTradeOffCurve(AbstractTradeOffCurve):
     def __init__(self, lo: TradeOffCurve, hi: TradeOffCurve):
@@ -65,14 +65,16 @@ class EmpiricalTradeOffCurve(AbstractTradeOffCurve):
         self.hi = hi
 
     @classmethod
-    def from_privacy_curves(cls, epsilons_lo: np.ndarray, epsilons_hi: np.ndarray, deltas: np.ndarray, name: str) -> "EmpiricalTradeOffCurve":
+    def from_privacy_curves(
+        cls, epsilons_lo: np.ndarray, epsilons_hi: np.ndarray, deltas: np.ndarray, name: str
+    ) -> "EmpiricalTradeOffCurve":
         lo = TradeOffCurve.from_privacy_curve(epsilons=epsilons_hi, deltas=deltas, name=f"{name}_lo")
         hi = TradeOffCurve.from_privacy_curve(epsilons=epsilons_lo, deltas=deltas, name=f"{name}_hi")
         return cls(lo=lo, hi=hi)
-    
+
     def all_fpr(self) -> np.ndarray:
         return np.sort(np.concatenate([self.lo.fpr, self.hi.fpr]))
-    
+
     def interpolate_curve(self, fpr: np.ndarray) -> "EmpiricalTradeOffCurve":
         return EmpiricalTradeOffCurve(
             lo=self.lo.interpolate_curve(fpr),
@@ -87,7 +89,7 @@ class EmpiricalTradeOffCurve(AbstractTradeOffCurve):
         fnr_hi = self.hi.interpolate_curve(fpr).fnr
         ax.fill_between(fpr, fnr_lo, fnr_hi, alpha=0.2, color="blue")
         return fig, ax
-    
+
     def append_to_fpr_tpr_plot(self, fig, ax):
         fig, ax = self.lo.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "-."})
         fig, ax = self.hi.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "--"})
@@ -96,10 +98,10 @@ class EmpiricalTradeOffCurve(AbstractTradeOffCurve):
         tpr_lo = 1 - self.hi.interpolate_curve(fpr).fnr
         ax.fill_between(tpr_lo, fpr, tpr_hi, alpha=0.2, color="blue")
         return fig, ax
-    
+
     def fnr_as_dict(self) -> Dict[str, List[float]]:
         return {**self.lo.fnr_as_dict(), **self.hi.fnr_as_dict()}
-    
+
 
 class MIScoreDistribution:
     def __init__(self, scores: np.ndarray, challenge_bits: np.ndarray):
@@ -276,8 +278,10 @@ class PDFLogger(AbstractLogger):
         if len(report.trade_off_curves) > 0:
             md.new_header(level=2, title="Trade-off curves")
             md.new_line(md.new_inline_image(text="Trade-off curves", path=str(self.path/"trade_off_curves.png")))
-            md.new_line(md.new_inline_image(text="Trade-off curves (FPR-TPR)", path=str(self.path/"trade_off_curves_fpr_tpr.png")))
-            md.new_line(md.new_inline_image(text="Trade-off curves (FPR-TPR, log scale)", path=str(self.path/"trade_off_curves_fpr_tpr_log.png")))
+            md.new_line(md.new_inline_image(text="Trade-off curves (FPR-TPR)",
+                                            path=str(self.path/"trade_off_curves_fpr_tpr.png")))
+            md.new_line(md.new_inline_image(text="Trade-off curves (FPR-TPR, log scale)",
+                                            path=str(self.path/"trade_off_curves_fpr_tpr_log.png")))
             md.new_line("\n")
         if report.mi_score_distribution is not None:
             md.new_header(level=2, title="MI score distribution")
@@ -292,4 +296,3 @@ class PDFLogger(AbstractLogger):
         # convert html to pdf
         import pdfkit
         pdfkit.from_string(html, self.path/"privacy_report.pdf")
-        

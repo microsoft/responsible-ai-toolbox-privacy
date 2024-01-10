@@ -17,7 +17,7 @@ def create_in_out_data_for_membership_inference_challenge(
     train_data: Input, challenge_points: Input, seed: int, in_out_data: Output, in_indices: Output,
     out_indices: Output, challenge_bits: Output, train_base_data: Output, max_num_challenge_points: int = 2048,
 ):
-    """
+    r"""
     Implementing the membership inference challenge
 
     challenge_bit ~ {0,1}
@@ -69,8 +69,16 @@ def create_in_out_data_for_membership_inference_challenge(
     challenge_bits_ds.save_to_disk(challenge_bits)
 
     member_indices_ds = Dataset.from_dict({
-        "sample_index": [index if challenge_bit == MI_LABEL_TO_CHALLENGE_BIT["member"] else None for (_, index), challenge_bit in challenge_point_indices.items()],
-        "split": [split if challenge_bit == MI_LABEL_TO_CHALLENGE_BIT["member"] else None for (split, _), challenge_bit in challenge_point_indices.items()]
+        "sample_index": [
+            index if challenge_bit == MI_LABEL_TO_CHALLENGE_BIT["member"] else None
+            for (_, index), challenge_bit
+            in challenge_point_indices.items()
+        ],
+        "split": [
+            split if challenge_bit == MI_LABEL_TO_CHALLENGE_BIT["member"] else None
+            for (split, _), challenge_bit
+            in challenge_point_indices.items()
+        ]
     }, features=features.Features({
         "sample_index": challenge_points_ds.features["sample_index"], "split": challenge_points_ds.features["split"]
     }))
@@ -79,8 +87,16 @@ def create_in_out_data_for_membership_inference_challenge(
     member_indices_ds.save_to_disk(in_indices)
 
     non_member_indices_ds = Dataset.from_dict({
-        "sample_index": [index if challenge_bit == MI_LABEL_TO_CHALLENGE_BIT["no_member"] else None for (_, index), challenge_bit in challenge_point_indices.items()],
-        "split": [split if challenge_bit == MI_LABEL_TO_CHALLENGE_BIT["no_member"] else None for (split, _), challenge_bit in challenge_point_indices.items()]
+        "sample_index": [
+            index if challenge_bit == MI_LABEL_TO_CHALLENGE_BIT["no_member"] else None
+            for (_, index), challenge_bit
+            in challenge_point_indices.items()
+        ],
+        "split": [
+            split if challenge_bit == MI_LABEL_TO_CHALLENGE_BIT["no_member"] else None
+            for (split, _), challenge_bit
+            in challenge_point_indices.items()
+        ]
     },
         features=features.Features({
             "sample_index": challenge_points_ds.features["sample_index"], "split": challenge_points_ds.features["split"]

@@ -21,7 +21,7 @@ class DatasetLoader(ABC):
     @property
     def name(self) -> str:
         return f"{self.__class__.__name__}-{self.split}"
-    
+
     @property
     def description(self) -> str:
         return ""
@@ -60,15 +60,15 @@ class CIFAR10Normalized(DatasetLoader):
             )
         ds = ds.add_column("sample_index", range(0, len(ds)))
         ds = ds.add_column("split", [self.split]*len(ds))
-        
+
         ds.info.description = self.description
-        
+
         return ds
-    
+
     @property
     def description(self) -> str:
         return f"Normalized CIFAR10 dataset with mean {CIFAR10Normalized.CIFAR10_MEAN} and std {CIFAR10Normalized.CIFAR10_STD}"
-    
+
 
 class SST2(DatasetLoader):
     def __init__(self, split: str):
@@ -87,7 +87,7 @@ class SST2(DatasetLoader):
         ds = ds.add_column("split", [self.split]*len(ds))
 
         return ds
-    
+
     @property
     def description(self) -> str:
         return "GLUE SST2 dataset in the HuggingFace format"

@@ -73,10 +73,27 @@ def lira_e2e_tf(logits_in: List[np.ndarray], logits_out: List[np.ndarray], logit
     assert all(l_t.ndim == 1 for l_t in logits_target) == True
     logits_target = [l_t[np.newaxis,:] for l_t in logits_target]
 
-    stats_in = [amia.calculate_statistic(lo, np.array([la]*lo.shape[0]), sample_weight=None, is_logits=True, option='logit')[:,np.newaxis] for lo, la in zip(logits_in, labels)]
-    stats_out = [amia.calculate_statistic(lo, np.array([la]*lo.shape[0]), sample_weight=None, is_logits=True, option='logit')[:,np.newaxis] for lo, la in zip(logits_out, labels)]
-    stats_target = [amia.calculate_statistic(lo, np.array([la]*lo.shape[0]), sample_weight=None, is_logits=True, option='logit') for lo, la in zip(logits_target, labels)]
+    stats_in = [
+        amia.calculate_statistic(
+            lo, np.array([la]*lo.shape[0]), sample_weight=None, is_logits=True, option='logit'
+        )[:,np.newaxis]
+        for lo, la
+        in zip(logits_in, labels)
+    ]
+    stats_out = [
+        amia.calculate_statistic(
+            lo, np.array([la]*lo.shape[0]), sample_weight=None, is_logits=True, option='logit'
+        )[:,np.newaxis]
+        for lo, la
+        in zip(logits_out, labels)
+    ]
+    stats_target = [
+        amia.calculate_statistic(lo, np.array([la]*lo.shape[0]), sample_weight=None, is_logits=True, option='logit')
+        for lo, la
+        in zip(logits_target, labels)
+    ]
 
-    scores = amia.compute_score_lira(stats_target, stats_in, stats_out, 'both', fix_variance=fix_variance, median_or_mean=median_or_mean)
+    scores = amia.compute_score_lira(stats_target, stats_in, stats_out, 'both', fix_variance=fix_variance,
+                                     median_or_mean=median_or_mean)
 
     return scores

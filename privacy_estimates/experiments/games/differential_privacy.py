@@ -20,7 +20,6 @@ class GameConfig:
     """Number of games to run in parallel"""
 
 
-
 class DPDSingleGame(SingleGameLoader):
     def __init__(self, train_loader: TrainingComponentLoader):
         self.train_loader = train_loader
@@ -68,7 +67,7 @@ class DifferentialPrivacyGameBase(ExperimentBase):
         raise NotImplementedError(
             f"{self.__class__.__name__} needs to implement property train_data"
         )
-    
+
     @property
     @abstractmethod
     def validation_data(self):
@@ -86,7 +85,7 @@ class DifferentialPrivacyGameBase(ExperimentBase):
     @property
     def experiment_name(self) -> str:
         return "differential_privacy_game"
-    
+
     @property
     def default_compute(self) -> str:
         return self.workspace.cpu_compute
@@ -115,7 +114,7 @@ class DifferentialPrivacyGameBase(ExperimentBase):
             }
 
         return game_pipeline(train_data=train_data, validation_data=validation_data)
-    
+
     @property
     def pipeline_parameters(self) -> Dict:
         return {

@@ -24,7 +24,9 @@ def select_prediction_for_challenge(
         Dict[str, Any]: A dictionary containing the selected prediction values for the challenge.
     """
     return {
-        col: row[col + MEMBER_SUFFIX] if row["challenge_bit"] == mi_label_str2int("member") else row[col + NON_MEMBER_SUFFIX] for col in columns
+        col: row[col + MEMBER_SUFFIX] if row["challenge_bit"] == mi_label_str2int("member") else row[col + NON_MEMBER_SUFFIX]
+        for col
+        in columns
     }
 
 
@@ -52,7 +54,7 @@ def convert_in_out_to_challenge(
         assert (mi_label_int2str(challenge_bit) == "member") == out_is_none, (
             f"Challenge bit indicates {mi_label_int2str(challenge_bit)} but does not match in/out for {row_in} and {row_out}"
         )
- 
+
     in_predictions_ds = in_predictions_ds.rename_columns({k: k + MEMBER_SUFFIX for k in in_predictions_ds.column_names})
     out_predictions_ds = out_predictions_ds.rename_columns({k: k + NON_MEMBER_SUFFIX for k in out_predictions_ds.column_names})
 

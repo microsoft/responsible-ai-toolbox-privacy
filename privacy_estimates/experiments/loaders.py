@@ -110,8 +110,12 @@ class TrainSingleModelAndPredictLoader:
             predictions_out_i = reinsert_null_rows_out.outputs.full
 
             if self.arguments.tag_model_index:
-                predictions_in_i = append_column_constant(data=predictions_in_i, name="model_index", value=model_index).outputs.output
-                predictions_out_i = append_column_constant(data=predictions_out_i, name="model_index", value=model_index).outputs.output
+                predictions_in_i = append_column_constant(
+                    data=predictions_in_i, name="model_index", value=model_index
+                ).outputs.output
+                predictions_out_i = append_column_constant(
+                    data=predictions_out_i, name="model_index", value=model_index
+                ).outputs.output
 
             results = {
                 "predictions_in": predictions_in_i,

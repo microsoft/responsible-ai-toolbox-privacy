@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 with open("VERSION", "r") as f:
     VERSION = f.read().strip()
-    
+
 with open('README.md') as f:
     long_description = f.read()
 
@@ -40,7 +40,7 @@ setup(
             "tensorflow-privacy",
             "mldesigner",
             "datasets",
-            "azure-ai-ml"
+            "azure-ai-ml",
         ],
         "pipelines": [
             "azure-ai-ml",

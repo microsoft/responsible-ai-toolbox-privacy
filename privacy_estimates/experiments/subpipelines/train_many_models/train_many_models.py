@@ -49,12 +49,11 @@ class TrainManyModelsLoader:
                 single_model_arguments=self.single_model_arguments
             )
 
-
-    def load(self, train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
-             base_seed: int, num_points_per_model: int):
+    def load(self, train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input,
+             out_indices: Input, base_seed: int, num_points_per_model: int):
         @dsl.pipeline(name=f"train_{self.num_models}_models")
-        def pipeline(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
-                     base_seed: int, num_points_per_model: int):
+        def pipeline(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input,
+                     out_indices: Input, base_seed: int, num_points_per_model: int):
             predictions_in = []
             predictions_out = []
             metrics_avg = []
@@ -94,5 +93,6 @@ class TrainManyModelsLoader:
             if len(dp_parameters) > 0:
                 outputs["dp_parameters"] = aggregate_output(dp_parameters, aggregator="assert_json_equal")
             return outputs
-        return pipeline(train_base_data=train_base_data, in_out_data=in_out_data, in_indices=in_indices, out_indices=out_indices, 
-                        validation_base_data=validation_base_data, base_seed=base_seed, num_points_per_model=num_points_per_model)
+        return pipeline(train_base_data=train_base_data, in_out_data=in_out_data, in_indices=in_indices,
+                        out_indices=out_indices, validation_base_data=validation_base_data, base_seed=base_seed,
+                        num_points_per_model=num_points_per_model)

@@ -22,7 +22,7 @@ class AMLParallelLoader(ComponentLoader):
         self.component_loader = component_loader
         self.num_concurrent_jobs_per_node = num_concurrent_jobs_per_node
         self.num_nodes = num_nodes
-        
+
         self.code_dir = mkdtemp()
 
         self.batched_input = "model_indices"

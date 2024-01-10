@@ -124,7 +124,9 @@ def reinsert_aux_data(filtered: Input, aux: Input, full: Output):
 
 
 @command_component(environment="environment.aml.yaml")
-def reinsert_aux_data_aml_parallel(filtered: Input(mode="rw_mount"), aux: Input(mode="rw_mount"), full: Output(mode="rw_mount")):  # noqa: F821
+def reinsert_aux_data_aml_parallel(
+    filtered: Input(mode="rw_mount"), aux: Input(mode="rw_mount"), full: Output(mode="rw_mount")  # noqa: F821
+):
     for fil_path, aux_path in zip(Path(filtered).iterdir(), Path(aux).iterdir()):
         assert fil_path.name == aux_path.name
         model_index_str = fil_path.name

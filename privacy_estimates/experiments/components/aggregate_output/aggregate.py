@@ -20,7 +20,7 @@ def assert_json_equal(paths: List[str], output: str) -> None:
             raise ValueError(f"JSON files l:{paths[0]} and r:{paths[1]} are not equal."
                              f"Left: {json.dumps(l, sort_keys=True)}. "
                              f"Right: {json.dumps(r, sort_keys=True)}.")
-    
+
     with open(output, "w") as f:
         json.dump(data[0], f)
 
@@ -91,11 +91,12 @@ def aggregate_2_output_files(data0: Input(type="uri_file"), data1: Input(type="u
 
 @command_component(display_name="Aggregate 16 output directories", environment="environment.aml.yaml")
 def aggregate_16_output_dirs(
-    data0: Input(type="uri_folder"), data1: Input(type="uri_folder"), data2: Input(type="uri_folder"), data3: Input(type="uri_folder"),  # noqa: F821
-    data4: Input(type="uri_folder"), data5: Input(type="uri_folder"), data6: Input(type="uri_folder"), data7: Input(type="uri_folder"),  # noqa: F821
-    data8: Input(type="uri_folder"), data9: Input(type="uri_folder"), data10: Input(type="uri_folder"), data11: Input(type="uri_folder"),  # noqa: F821
-    data12: Input(type="uri_folder"), data13: Input(type="uri_folder"), data14: Input(type="uri_folder"), data15: Input(type="uri_folder"),  # noqa: F821
-    output: Output(type="uri_folder"), aggregator: str  # noqa: F821
+    data0: Input(type="uri_folder"), data1: Input(type="uri_folder"), data2: Input(type="uri_folder"),  # noqa: F821
+    data3: Input(type="uri_folder"), data4: Input(type="uri_folder"), data5: Input(type="uri_folder"),  # noqa: F821
+    data6: Input(type="uri_folder"), data7: Input(type="uri_folder"), data8: Input(type="uri_folder"),  # noqa: F821
+    data9: Input(type="uri_folder"), data10: Input(type="uri_folder"), data11: Input(type="uri_folder"),  # noqa: F821
+    data12: Input(type="uri_folder"), data13: Input(type="uri_folder"), data14: Input(type="uri_folder"),  # noqa: F821
+    data15: Input(type="uri_folder"), output: Output(type="uri_folder"), aggregator: str  # noqa: F821
 ):
     AGGREGATORS[aggregator]([
         data0, data1, data2, data3, data4, data5, data6, data7,
@@ -107,11 +108,12 @@ def aggregate_16_output_dirs(
 
 @command_component(display_name="Aggregate 16 output files", environment="environment.aml.yaml")
 def aggregate_16_output_files(
-    data0: Input(type="uri_file"), data1: Input(type="uri_file"), data2: Input(type="uri_file"), data3: Input(type="uri_file"),  # noqa: F821
-    data4: Input(type="uri_file"), data5: Input(type="uri_file"), data6: Input(type="uri_file"), data7: Input(type="uri_file"),  # noqa: F821
-    data8: Input(type="uri_file"), data9: Input(type="uri_file"), data10: Input(type="uri_file"), data11: Input(type="uri_file"),  # noqa: F821
-    data12: Input(type="uri_file"), data13: Input(type="uri_file"), data14: Input(type="uri_file"), data15: Input(type="uri_file"),  # noqa: F821
-    output: Output(type="uri_file"), aggregator: str  # noqa: F821
+    data0: Input(type="uri_file"), data1: Input(type="uri_file"), data2: Input(type="uri_file"),  # noqa: F821
+    data3: Input(type="uri_file"), data4: Input(type="uri_file"), data5: Input(type="uri_file"),  # noqa: F821
+    data6: Input(type="uri_file"), data7: Input(type="uri_file"), data8: Input(type="uri_file"),  # noqa: F821
+    data9: Input(type="uri_file"), data10: Input(type="uri_file"), data11: Input(type="uri_file"),  # noqa: F821
+    data12: Input(type="uri_file"), data13: Input(type="uri_file"), data14: Input(type="uri_file"), # noqa: F821
+    data15: Input(type="uri_file"), output: Output(type="uri_file"), aggregator: str  # noqa: F821
 ):
     AGGREGATORS[aggregator]([
         data0, data1, data2, data3, data4, data5, data6, data7,
@@ -119,7 +121,6 @@ def aggregate_16_output_files(
         ],
         output=output
     )
-
 
 
 def aggregate_output(data: List[Union[Input, Output]], aggregator: str) -> Output:
@@ -146,26 +147,30 @@ def aggregate_output(data: List[Union[Input, Output]], aggregator: str) -> Outpu
         else:
             split = half + (16 - remainder)
         return aggregate_output(
-            [aggregate_output(data[:split], aggregator=aggregator)] + [aggregate_output(data=data[split:], aggregator=aggregator)],
+            [aggregate_output(data[:split], aggregator=aggregator)] + \
+            [aggregate_output(data=data[split:], aggregator=aggregator)],
             aggregator=aggregator
         )
     else:
         split = len(data) // 2
         return aggregate_output(
-            [aggregate_output(data[:split], aggregator=aggregator)] + [aggregate_output(data=data[split:], aggregator=aggregator)],
+            [aggregate_output(data[:split], aggregator=aggregator)] + \
+            [aggregate_output(data=data[split:], aggregator=aggregator)],
             aggregator=aggregator
         )
-    
+
 
 @command_component(display_name="Collect AML parallel to file", environment="environment.aml.yaml")
-def collect_from_aml_parallel_to_uri_file(data: Input(type="uri_folder"), output: Output(type="uri_file"), aggregator: str):  # noqa: F821
+def collect_from_aml_parallel_to_uri_file(data: Input(type="uri_folder"), output: Output(type="uri_file"),  # noqa: F821
+                                          aggregator: str):
     assert AGGREGATOR_OUTPUTS[aggregator] == "uri_file"
     files = [p/"data" for p in Path(data).iterdir()]
     AGGREGATORS[aggregator](files, output=output)
 
 
 @command_component(display_name="Collect AML parallel to folder", environment="environment.aml.yaml")
-def collect_from_aml_parallel_to_uri_folder(data: Input(type="uri_folder"), output: Output(type="uri_folder"), aggregator: str):  # noqa: F821
+def collect_from_aml_parallel_to_uri_folder(data: Input(type="uri_folder"), output: Output(type="uri_folder"),  # noqa: F821
+                                            aggregator: str):
     assert AGGREGATOR_OUTPUTS[aggregator] == "uri_folder"
     files = [p for p in Path(data).iterdir()]
     AGGREGATORS[aggregator](files, output=output)

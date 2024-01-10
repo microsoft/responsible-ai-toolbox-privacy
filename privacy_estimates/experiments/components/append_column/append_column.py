@@ -9,11 +9,13 @@ def append_column_constant(data: Input, name: str, value: int, output: Output):
     ds = ds.add_column(name, (value for _ in range(len(ds))))
     ds.save_to_disk(output)
 
+
 @command_component(display_name="Append column to dataset with incrementing index", environment="environment.aml.yaml")
 def append_column_incrementing(data: Input, name: str, output: Output):
     ds = load_from_disk(data)
     ds = ds.add_column(name, (i for i in range(len(ds))))
     ds.save_to_disk(output)
+
 
 @command_component(display_name="Append model index column to dataset", environment="environment.aml.yaml")
 def append_model_index_column_aml_parallel(data: Input, output: Output):

@@ -1,5 +1,6 @@
 from datasets import Dataset, features
 
+
 def drop_null_rows(ds: Dataset):
     return ds.filter(lambda x: all(x is not None for x in x.values()), keep_in_memory=True)
 

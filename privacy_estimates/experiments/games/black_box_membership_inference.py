@@ -10,7 +10,7 @@ from privacy_estimates.experiments.loaders import InferenceComponentLoader, Trai
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.challenge_point_selectors import ChallengePointSelectionLoader
 from privacy_estimates.experiments.components import (
-	create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates
+    create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates
 )
 from privacy_estimates.experiments.games.configs import PrivacyEstimationConfig
 
@@ -33,7 +33,8 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def __init__(
             self, game_config: GameConfig, shadow_model_config: ShadowModelConfig, workspace: WorkspaceConfig,
             train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader, attack_loader: AttackLoader,
-            challenge_point_selection_loader: ChallengePointSelectionLoader, privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
+            challenge_point_selection_loader: ChallengePointSelectionLoader,
+            privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
     ) -> None:
         super().__init__(workspace=workspace)
         self.game_config = game_config
@@ -71,7 +72,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
         raise NotImplementedError(
             f"{self.__class__.__name__} needs to implement property train_data"
         )
-    
+
     @property
     @abstractmethod
     def validation_data(self):
@@ -82,7 +83,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     @property
     def experiment_name(self) -> str:
         return "black_box_membership_inference_game"
-    
+
     @property
     def default_compute(self) -> str:
         return self.workspace.cpu_compute
@@ -95,8 +96,10 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 shadow_model_statistics = self.shadow_model_statistics_loader.load(
                     train_data=train_data, validation_data=validation_data, seed=self.game_config.seed
                 ).outputs.statistics
-            
-            select_challenge_points = self.challenge_point_selection_loader.load(data=train_data, shadow_model_statistics=shadow_model_statistics)
+
+            select_challenge_points = self.challenge_point_selection_loader.load(
+                data=train_data, shadow_model_statistics=shadow_model_statistics
+            )
 
             create_challenge = create_in_out_data_for_membership_inference_challenge(
                 train_data=train_data, challenge_points=select_challenge_points.outputs.challenge_points,
@@ -138,7 +141,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             }
 
         return game_pipeline(train_data=train_data, validation_data=validation_data)
-    
+
     @property
     def pipeline_parameters(self) -> Dict:
         return {

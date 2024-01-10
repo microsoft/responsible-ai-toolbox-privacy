@@ -64,7 +64,8 @@ class Arguments(BaseModel):
         default=4, description="Number of workers for data loading. 0 means that the data will be loaded in the main process"
     )
     logging_steps: int = Field(
-        default=100, description="Prints accuracy, loss, and privacy accounting information during training every k logical batches"
+        default=100, description="Prints accuracy, loss, and privacy accounting information during training every k logical "
+                                 "batches"
     )
     output_dir: Path = Field(
         description="Output directory. If none given, will pick one based on hyperparameters"
@@ -194,8 +195,6 @@ def main(args: Arguments):
     train_data = datasets.load_from_disk(args.train_data_path)
     test_data = datasets.load_from_disk(args.test_data_path)
 
-    num_classes = len(train_data.features["label"].names)
-
     if not args.use_cpu and not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available")
     device = 'cpu' if args.use_cpu else 'cuda'
@@ -263,7 +262,6 @@ def main(args: Arguments):
     sample_rate = 1 / len(train_loader)
     if not args.disable_dp:
         privacy_engine = PrivacyEngine(accountant="prv")
-
 
         model, optimizer, train_loader = privacy_engine.make_private_with_epsilon(
             module=model,

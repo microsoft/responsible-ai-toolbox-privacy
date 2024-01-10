@@ -1,4 +1,6 @@
-from .create_in_out_data_for_shadow_model_statistics.create_in_out_data_for_shadow_model_statistics import create_in_out_data_for_shadow_model_statistics
+from .create_in_out_data_for_shadow_model_statistics.create_in_out_data_for_shadow_model_statistics import (
+    create_in_out_data_for_shadow_model_statistics
+)
 from .aggregate_output.aggregate import aggregate_output, collect_from_aml_parallel
 from .prepare_data.prepare_data import prepare_data, prepare_data_for_aml_parallel
 from .filter.filter import filter_aux_data, reinsert_aux_data, filter_aux_data_aml_parallel, reinsert_aux_data_aml_parallel

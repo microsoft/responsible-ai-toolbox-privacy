@@ -10,7 +10,12 @@ from privacy_estimates.epsilon_estimation import compute_eps_lo_hi
 def _compute_epsilon_max(delta: float, scores: np.ndarray, labels: np.ndarray, thresholds: np.ndarray, alpha: float,
                          method: str) -> Tuple[float, float]:
     return max([
-        compute_eps_lo_hi(count=AttackResults.from_scores_threshold_and_labels(attack_scores=scores, threshold=thr, challenge_bits=labels), alpha=alpha, method=method, delta=delta)
+        compute_eps_lo_hi(
+            count=AttackResults.from_scores_threshold_and_labels(attack_scores=scores, threshold=thr, challenge_bits=labels),
+            alpha=alpha,
+            method=method,
+            delta=delta,
+        )
         for thr in thresholds
     ])
 

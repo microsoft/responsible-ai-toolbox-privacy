@@ -53,7 +53,7 @@ class AttackResults:
     def FPR(self):
         """False positive rate"""
         return self.FP/(self.FP + self.TN)
-    
+
     @property
     def FNR(self):
         """False negative rate"""
@@ -80,7 +80,9 @@ class AttackResults:
         )
 
     @staticmethod
-    def from_scores_threshold_and_labels(attack_scores: Sequence[float], threshold: float, challenge_bits: Sequence[int]) -> "AttackResults":
+    def from_scores_threshold_and_labels(
+        attack_scores: Sequence[float], threshold: float, challenge_bits: Sequence[int]
+    ) -> "AttackResults":
         attack_guesses = (np.array(attack_scores) >= threshold).astype(np.int32)
         return AttackResults.from_guesses_and_labels(attack_guesses=attack_guesses, challenge_bits=challenge_bits)
 

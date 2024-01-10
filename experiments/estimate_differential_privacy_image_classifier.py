@@ -53,7 +53,7 @@ class Game(DifferentialPrivacyGameBase):
     @property
     def train_data(self) -> Input:
         return self.workspace.ml_client.data.get(name="CIFAR10Normalized-train", version="1")
-    
+
     @property
     def validation_data(self) -> Input:
         return self.workspace.ml_client.data.get(name="CIFAR10Normalized-test", version="1")
@@ -64,7 +64,7 @@ class Game(DifferentialPrivacyGameBase):
             aml_component_loader=self.aml_component_loader,
             parameters=self.shared_training_parameters
         )
-   
+
 
 if __name__ == "__main__":
     Game.main(config_path=EXPERIMENT_DIR/"configs")

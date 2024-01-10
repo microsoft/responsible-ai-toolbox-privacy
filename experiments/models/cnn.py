@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 X = TypeVar("X", bound="CNN")
 
+
 class CNN(nn.Module):
     def __init__(self):
         super().__init__()
@@ -80,7 +81,7 @@ class PredictionMetrics:
         if len(self.labels) == 0:
             return f"PredictionMetrics<n=0>"
         return f"PredictionMetrics<accuracy={self.accuracy:.4f}, loss={self.loss:.4f}, n={len(self.losses)}>"
-    
+
 
 def compute_prediction_metrics(model: CNN, device: torch.device, data_loader: DataLoader) -> PredictionMetrics:
     if len(data_loader) == 0:

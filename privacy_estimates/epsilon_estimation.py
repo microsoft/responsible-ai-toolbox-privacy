@@ -4,8 +4,11 @@ from privacy_estimates import binomial_proportion
 from privacy_estimates.joint_density import Beta, Dirichlet
 from privacy_estimates.utils import AttackResults
 
-def compute_eps_lo(count: AttackResults, delta: float, alpha: float, method: str, bracket: Tuple[float, float] = None) -> float:
-    """
+
+def compute_eps_lo(
+    count: AttackResults, delta: float, alpha: float, method: str, bracket: Tuple[float, float] = None
+) -> float:
+    r"""
     Compute a lower bound on epsilon.
 
     Returns eps_lo such that eps_lo <= eps with confidence 100*(1 - alpha)%
@@ -37,8 +40,10 @@ def compute_eps_lo(count: AttackResults, delta: float, alpha: float, method: str
         raise ValueError("Unknown method: {}".format(method))
 
 
-def compute_eps_hi(count: AttackResults, delta: float, alpha: float, method: str, bracket: Tuple[float, float] = None) -> float:
-    """
+def compute_eps_hi(
+    count: AttackResults, delta: float, alpha: float, method: str, bracket: Tuple[float, float] = None
+) -> float:
+    r"""
     Compute an upper bound on epsilon.
 
     Returns eps_hi such that eps <= eps_hi with confidence 100*(1 - alpha)%
@@ -70,8 +75,10 @@ def compute_eps_hi(count: AttackResults, delta: float, alpha: float, method: str
         raise ValueError("Unknown method: {}".format(method))
 
 
-def compute_eps_lo_hi(count: AttackResults, delta: float, alpha: float, method: str, bracket: Tuple[float, float] = None) -> Tuple[float, float]:
-    """
+def compute_eps_lo_hi(
+    count: AttackResults, delta: float, alpha: float, method: str, bracket: Tuple[float, float] = None
+) -> Tuple[float, float]:
+    r"""
     Compute lower and upper bounds on epsilon.
 
     Returns eps_lo such that eps_lo <= eps and eps <= eps_hi each with confidence 100*(1 - alpha/2)%

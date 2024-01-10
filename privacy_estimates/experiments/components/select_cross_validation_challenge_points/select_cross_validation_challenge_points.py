@@ -7,7 +7,6 @@ from sklearn.metrics import auc, roc_curve
 from tqdm_loggable.auto import tqdm
 
 
-
 @command_component(environment="environment.aml.yaml", name="select_cross_validation_challenge_points_preprocess")
 def preprocess(
     shadow_model_statistics: Input,
@@ -25,7 +24,6 @@ def preprocess(
     stats_ds = load_from_disk(shadow_model_statistics)
     print(f"Loaded {len(stats_ds)} shadow model statistics. Schema: {stats_ds.features}")
     stats: pd.DataFrame = stats_ds.to_pandas()
-
 
     stats_in = stats[[
         "sample_index", "split", "logits_in", "model_index_in", "label"
@@ -48,8 +46,8 @@ def preprocess(
     loss_statistics_out_test = stats_out[stats_out["model_index"].isin(test_models)]
 
     loss_statistics_train = loss_statistics_in_train.groupby(["split", "sample_index", "label"]).agg({"logits": list}).join(
-        loss_statistics_out_train.groupby(["split", "sample_index", "label"]).agg({"logits": list}), on=["split", "sample_index", "label"],
-        lsuffix="_in", rsuffix="_out"
+        loss_statistics_out_train.groupby(["split", "sample_index", "label"]).agg({"logits": list}),
+        on=["split", "sample_index", "label"], lsuffix="_in", rsuffix="_out"
     ).reset_index()
 
     loss_statistics_out_test = loss_statistics_out_test.assign(is_in=0)
@@ -61,8 +59,8 @@ def preprocess(
 
 
 @command_component(environment="environment.aml.yaml", name="select_cross_validation_challenge_points_postprocess")
-def postprocess(scores: Input, challenge_points_for_cross_validation: Input, data: Input, num_challenge_points: int, mi_challenge_points: Output,
-                criterion: str = "auc"):
+def postprocess(scores: Input, challenge_points_for_cross_validation: Input, data: Input, num_challenge_points: int,
+                mi_challenge_points: Output, criterion: str = "auc"):
     """
     Select the challenge points with the highest vulnerability
 
@@ -74,7 +72,7 @@ def postprocess(scores: Input, challenge_points_for_cross_validation: Input, dat
     """
     if criterion not in ["auc", "acc"]:
         raise ValueError(f"Criterion must be one of 'auc' or 'acc', but was {criterion}")
-    
+
     ds = load_from_disk(data)
     available_indices = set(zip(ds["split"], ds["sample_index"]))
 

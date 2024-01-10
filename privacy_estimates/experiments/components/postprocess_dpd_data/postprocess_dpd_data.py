@@ -34,7 +34,6 @@ def postprocess_dpd_data(dpd_data: Input, dp_parameters: Input, seed: int, score
     dp_parameters["num_steps"] = 1
     dp_parameters["subsampling_probability"] = 1.0
 
-
     observations = Dataset.from_dict(mapping={"score": raw_data["scores"]},
                                      features=features.Features({"score": features.Value("float32")}))
 

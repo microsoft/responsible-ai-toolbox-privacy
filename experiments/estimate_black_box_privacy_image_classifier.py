@@ -43,7 +43,7 @@ class TrainCNNComponentLoader(TrainingComponentLoader):
         return self.aml_loader.load_from_component_spec(
             EXPERIMENT_DIR/"components"/"train-cnn-classifier"/"component_spec.yaml", version="local"
         )
-    
+
     @property
     def parameter_dict(self):
         return asdict(self.parameters)
@@ -63,7 +63,7 @@ class CNNInferenceComponentLoader(InferenceComponentLoader):
         return self.aml_loader.load_from_component_spec(
             EXPERIMENT_DIR/"components"/"predict-with-cnn-classifier"/"component_spec.yaml", version="local"
         )
-    
+
     @property
     def parameter_dict(self):
         return asdict(self.parameters)
@@ -71,13 +71,13 @@ class CNNInferenceComponentLoader(InferenceComponentLoader):
     @property
     def compute(self) -> str:
         return self.aml_loader.workspace.gpu_compute
-    
+
 
 class Game(BlackBoxMembershipInferenceGameBase):
     def __init__(self, shared_training_parameters: SharedTrainingParameters,
                  shared_inference_parameters: SharedInferenceParameters, workspace: WorkspaceConfig,
                  game_config: GameConfig, shadow_model_config: ShadowModelConfig) -> None:
-        
+
         train_loader = TrainCNNComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),
             parameters=shared_training_parameters
@@ -107,7 +107,7 @@ class Game(BlackBoxMembershipInferenceGameBase):
     @property
     def train_data(self) -> Input:
         return self.workspace.ml_client.data.get(name="CIFAR10Normalized-train", version="2")
-    
+
     @property
     def validation_data(self) -> Input:
         return self.workspace.ml_client.data.get(name="CIFAR10Normalized-test", version="2")

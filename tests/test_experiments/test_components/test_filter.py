@@ -4,6 +4,7 @@ from datasets import Dataset, features
 from privacy_estimates.experiments.components import filter_aux_data, reinsert_aux_data
 from .test_utils import run_component, datasets_as_paths
 
+
 def test_filter_aux_data():
     full = Dataset.from_dict(
         mapping={

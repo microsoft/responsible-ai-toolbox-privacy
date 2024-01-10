@@ -25,7 +25,9 @@ def convert_logit_to_prob(logit: np.ndarray) -> np.ndarray:
     return prob
 
 
-def calculate_lira_statistics_from_logits(logits: Sequence[Sequence[float]], labels: Sequence[int], small_value: float = 1e-45) -> np.ndarray:
+def calculate_lira_statistics_from_logits(
+        logits: Sequence[Sequence[float]], labels: Sequence[int], small_value: float = 1e-45
+) -> np.ndarray:
     """
     Calculate LiRA statistics from logits.
 
@@ -33,7 +35,8 @@ def calculate_lira_statistics_from_logits(logits: Sequence[Sequence[float]], lab
     ArXiv:2112.03570 [Cs], 7 December 2021. http://arxiv.org/abs/2112.03570.
 
     Args:
-        logits (np.ndarray): The logits array. It should have shape (N, C), where N is the number of samples and C is the number of classes.
+        logits (np.ndarray): The logits array. It should have shape (N, C), where N is the number of samples and C is the number
+                             of classes.
         labels (np.ndarray): The labels array. It should have shape (N,), where N is the number of samples.
         small_value (float, optional): A small value to avoid division by zero. Defaults to 1e-45.
 
@@ -72,20 +75,20 @@ class LiRA:
     """
 
     def __init__(self, mean_in: Dict[Hashable, float], std_in: Dict[Hashable, float], mean_out: Dict[Hashable, float],
-                     std_out: Dict[Hashable, float]):
-            """
-            Initialize the Lira object.
+                 std_out: Dict[Hashable, float]):
+        """
+        Initialize the Lira object.
 
-            Args:
-                mean_in (Dict[Hashable, float]): A dictionary containing the mean values for the input data.
-                std_in (Dict[Hashable, float]): A dictionary containing the standard deviation values for the input data.
-                mean_out (Dict[Hashable, float]): A dictionary containing the mean values for the output data.
-                std_out (Dict[Hashable, float]): A dictionary containing the standard deviation values for the output data.
-            """
-            self.mean_in = mean_in
-            self.std_in = std_in
-            self.mean_out = mean_out
-            self.std_out = std_out
+        Args:
+            mean_in (Dict[Hashable, float]): A dictionary containing the mean values for the input data.
+            std_in (Dict[Hashable, float]): A dictionary containing the standard deviation values for the input data.
+            mean_out (Dict[Hashable, float]): A dictionary containing the mean values for the output data.
+            std_out (Dict[Hashable, float]): A dictionary containing the standard deviation values for the output data.
+        """
+        self.mean_in = mean_in
+        self.std_in = std_in
+        self.mean_out = mean_out
+        self.std_out = std_out
 
     @classmethod
     def from_dataset(cls, challenge_points_statistics: Dataset, mean_estimator: str = "median", fix_variance: bool = False,
@@ -98,7 +101,7 @@ class LiRA:
                 f"Found columns: {column_names}. "
                 f"Missing columns: {required_columns - set(column_names)}"
             )
-        if not mean_estimator in {"mean", "median"}:
+        if mean_estimator not in {"mean", "median"}:
             raise ValueError(f"Mean estimator must be one of 'mean' or 'median'. Got: {mean_estimator}")
 
         if not {"lira_mean_in", "lira_std_in", "lira_mean_out", "lira_std_out"}.issubset(column_names):
@@ -111,7 +114,7 @@ class LiRA:
                     f"Found columns: {challenge_points_statistics.column_names}. "
                     f"Missing columns: {required_columns - set(challenge_points_statistics.column_names)}"
                 )
-            
+
             if fix_variance:
                 raise NotImplementedError("Fixing variance is not implemented yet.")
 
@@ -153,7 +156,7 @@ class LiRA:
         scores = -(log_pr_in - log_pr_out)
         assert len(scores) == len(index), "Number of scores must be equal to the number of indices."
         return scores
-    
+
     def compute_lira_score_for_dataset(self, challenge_points: Dataset, column_name: str = "lira_score",
                                        num_proc: Optional[int] = cpu_count()) -> Dataset:
         def compute_lira_score(row):
@@ -165,7 +168,8 @@ class LiRA:
                 column_name: self.compute_lira_score(index=list(zip(row["split"], row["sample_index"])), lira_statistics=stats)
             }
 
-        challenge_points = challenge_points.map(compute_lira_score, batched=True, keep_in_memory=True, num_proc=num_proc, desc="Computing LiRA scores")
+        challenge_points = challenge_points.map(compute_lira_score, batched=True, keep_in_memory=True, num_proc=num_proc,
+                                                desc="Computing LiRA scores")
         return challenge_points
 
 
@@ -186,8 +190,8 @@ def main(args: Arguments) -> int:
 
 
 def exception_handler(ex):
-   raise RuntimeError("An error occurred while running the script.") from ex
+    raise RuntimeError("An error occurred while running the script.") from ex
 
 
 if __name__ == "__main__":
-   run_and_exit(Arguments, main, exception_handler=exception_handler)
+    run_and_exit(Arguments, main, exception_handler=exception_handler)

@@ -28,7 +28,7 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
     def __init__(self, attack_loader: Optional[AttackLoader], num_challenge_points: int):
         self.attack_loader = attack_loader
         self.num_challenge_points = num_challenge_points
-        
+
     def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
         @dsl.pipeline(name="select_natural_cross_validation_challenge_points")
         def p(data: Input, shadow_model_statistics: Input) -> Pipeline:

@@ -39,7 +39,8 @@ class InOutIndices:
     out: Sequence[Tuple[str, int]]
 
     @classmethod
-    def from_sequences(cls, in_: Sequence[Tuple[str, int]], out: Sequence[Tuple[str, int]], pad_to_length: Optional[int] = None):
+    def from_sequences(cls, in_: Sequence[Tuple[str, int]], out: Sequence[Tuple[str, int]],
+                       pad_to_length: Optional[int] = None):
         """
         Create an instance of InOutIndices from input and output sequences.
 
@@ -72,16 +73,20 @@ class InOutIndices:
         """
         self.in_.extend(other.in_)
         self.out.extend(other.out)
-    
+
     def __len__(self):
         return len(self.in_)
 
     def as_dataset(self, features: Optional[dataset_features.Features] = None) -> DatasetDict:
         return DatasetDict({
-            "in": Dataset.from_dict({"split": [s for s, _ in self.in_], "sample_index": [i for _, i in self.in_]}, features=features),
-            "out": Dataset.from_dict({"split": [s for s, _ in self.out], "sample_index": [i for _, i in self.out]}, features=features),
+            "in": Dataset.from_dict(
+                {"split": [s for s, _ in self.in_], "sample_index": [i for _, i in self.in_]}, features=features
+            ),
+            "out": Dataset.from_dict(
+                {"split": [s for s, _ in self.out], "sample_index": [i for _, i in self.out]}, features=features
+            ),
         })
-    
+
 
 def get_least_common_element(sequence: Sequence[Tuple[str, int]]) -> Tuple[Tuple[str, int], int]:
     """

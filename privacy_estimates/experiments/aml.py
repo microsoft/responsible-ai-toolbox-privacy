@@ -51,16 +51,16 @@ class WorkspaceConfig:
             credential = InteractiveBrowserCredential()
         return MLClient(credential=credential, subscription_id=self.subscription_id, resource_group_name=self.resource_group,
                         workspace_name=self.workspace_name)
-        
+
     @property
     def workspace(self):
         from azureml.core import Workspace
         return Workspace(subscription_id=self.subscription_id, resource_group=self.resource_group,
                          workspace_name=self.workspace_name)
-    
+
     def get_job(self, name: str):
         return self.ml_client.jobs.get(name=name)
-    
+
     @classmethod
     def from_yaml(cls, path: Union[str,Path]):
         path = Path(path)
@@ -74,7 +74,7 @@ class WorkspaceConfig:
             gpu_compute=cfg.get('gpu_compute', None),
             large_memory_cpu_compute=cfg.get('large_memory_cpu_compute', None),
         )
-    
+
     @classmethod
     def from_env_vars(cls, **kwargs):
         return cls(
@@ -83,7 +83,7 @@ class WorkspaceConfig:
             resource_group=os.environ['AZUREML_ARM_RESOURCE_GROUP'],
             **kwargs
         )
-    
+
     @classmethod
     def from_az_cli(cls, **kwargs):
         sub = json.loads(check_output(["az", "account", "show"]))["id"]
@@ -93,6 +93,8 @@ class WorkspaceConfig:
 
 
 T = TypeVar("T")
+
+
 def dictconfig_to_dataclass(cfg: DictConfig, dataclass_type: Type[T]) -> T:
     def convert_nested(cfg_obj: Any, dataclass_obj: Type[T]) -> T:
         if is_dataclass(dataclass_obj):
@@ -138,7 +140,7 @@ class AMLComponentLoader:
                 spec = safe_load(f)
             name = spec["name"]
             return load_component(client=self.workspace.ml_client, name=name, version=version)
-        
+
     def load_by_name(self, name: str, version: str) -> Callable[..., Component]:
         return load_component(client=self.workspace.ml_client, name=name, version=version)
 
@@ -146,7 +148,7 @@ class AMLComponentLoader:
 class ExperimentBase:
     def __init__(self, workspace: WorkspaceConfig):
         self.aml_component_loader = AMLComponentLoader(workspace=workspace)
-        self.workspace=workspace
+        self.workspace = workspace
 
         # initialize AML logging
         logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
@@ -175,27 +177,27 @@ class ExperimentBase:
             skip_validation=False
         )
         return submitted_job
-    
+
     @property
     def experiment_name(self) -> Optional[str]:
         """Name of the experiment. This will be shown in AML studio"""
         return None
-    
+
     @property
     def job_name(self) -> Optional[str]:
         """Name of the job. This will be shown in AML studio"""
         return None
-    
+
     @property
     def default_compute(self) -> str:
         """Default compute target for components if not otherwise specified"""
         raise NotImplementedError(f"Must implement {self.__class__.__name__}.default_compute")
-    
+
     @property
     def pipeline_parameters(self) -> Dict:
         """Dictionary of parameter name and value that will be passed to the pipeline"""
         raise NotImplementedError(f"Must implement {self.__class__.__name__}.pipeline_parameters")
-    
+
     @property
     def pipeline(self) -> Callable[..., PipelineJob]:
         """Returns a `azure.ml.component.dsl.pipeline` decorated function that represents the pipeline
@@ -203,21 +205,21 @@ class ExperimentBase:
         See https://componentsdk.azurewebsites.net/concepts/pipeline.html for more information 
         """
         raise NotImplementedError(f"Must implement {self.__class__.__name__}.pipeline")
-    
+
     def validate(self):
         pipeline_parameters_dict = dict(**self.pipeline_parameters)
-        job: PipelineJob = self.pipeline(**pipeline_parameters_dict)
+        self.pipeline(**pipeline_parameters_dict)
         logger.info("Pipeline validated")
 
     def load_component_from_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         return self.aml_component_loader.load_from_component_spec(path, version)
-    
+
     def load_component_by_name(self, name: str, version: str) -> Callable[..., Component]:
         return self.aml_component_loader.load_by_name(name, version)
-    
+
     def set_compute_target(self, component: Component, target: str):
         component.runsettings.configure(target=target)
-    
+
     @classmethod
     def main(cls, config_path):
         """
@@ -246,10 +248,12 @@ class ExperimentBase:
             if set(type_hints.keys()) != set(config.keys()):
                 missing_keys_in_config = set(type_hints.keys()) - set(config.keys())
                 if len(missing_keys_in_config) > 0:
-                    raise ValueError(f"The config YAML has missing keys that are required by {cls.__name__}. Missing keys: {missing_keys_in_config}")
+                    raise ValueError(f"The config YAML has missing keys that are required by {cls.__name__}. "
+                                     f"Missing keys: {missing_keys_in_config}")
                 extra_keys_in_config = set(config.keys()) - set(type_hints.keys())
                 if len(extra_keys_in_config) > 0:
-                    raise ValueError(f"The config YAML has extra keys that are not required by {cls.__name__}. Extra keys: {extra_keys_in_config}")
+                    raise ValueError(f"The config YAML has extra keys that are not required by {cls.__name__}. "
+                                     f"Extra keys: {extra_keys_in_config}")
 
             config_dc = {
                 config_name: dictconfig_to_dataclass(config[config_name], type_hints[config_name])
@@ -269,12 +273,13 @@ class ExperimentBase:
 class DatastoreURI(str):
     def __new__ (cls, uri: str):
         pattern = re.compile(
-            r"azureml://subscriptions/([^\/]+)/resourcegroups/([^\/]+)/(?:Microsoft.MachineLearningServices/)?workspaces/([^\/]+)/datastores/([^\/]+)/paths/(.*)"
+            r"azureml://subscriptions/([^\/]+)/resourcegroups/([^\/]+)/"
+            r"(?:Microsoft.MachineLearningServices/)?workspaces/([^\/]+)/datastores/([^\/]+)/paths/(.*)"
         )
         if not pattern.match(uri):
             raise ValueError(f"URI {uri} does not match pattern {pattern}")
         return str.__new__(cls, uri)
-    
+
     @classmethod
     def from_asset_uri(cls, uri: str, workspace: WorkspaceConfig) -> "DatastoreURI":
         pattern = re.compile(r"/data/([^/]+)")
@@ -289,7 +294,7 @@ class DatastoreURI(str):
 
         asset = workspace.ml_client.data.get(name=data, version=version)
         return cls(asset.path)
-    
+
     def download_content(self, path: Union[str, Path], match_pattern: str = "*") -> Path:
         try:
             from azureml.fsspec import AzureMachineLearningFileSystem
@@ -346,7 +351,7 @@ class Job:
         run = Run.get(ws.workspace, run_id=run_id)
 
         return Job(aml_run=run, local_name=local_name)
-    
+
     @classmethod
     def from_id(cls, workspace: WorkspaceConfig, run_id: str, local_name: Optional[str] = None) -> "Job":
         from azureml.core import Run
@@ -364,7 +369,7 @@ class Job:
                                           workspace=self.ws)
         local_path = uri.download_content(path=path, match_pattern=match_pattern)
         return local_path
-    
+
     def download_output(self, name: str, path: str, match_pattern: str = "*") -> Path:
         output_details = self.details['runDefinition']['outputAssets'][name]
         uri = DatastoreURI.from_asset_uri(uri=output_details["asset"]["assetId"],
@@ -394,7 +399,7 @@ class Job:
         cmd = [c.replace("\\\n", " ").replace("\n", " ") for c in cmd]
         os.environ = env
         return " ".join(cmd)
-    
+
     @property
     def simple_status(self) -> str:
         status = self.details["status"]
@@ -421,36 +426,37 @@ class Job:
             return json.loads(properties['azureml.parameters'])
         else:
             return {}
-    
+
     @property
     def experiment_name(self) -> str:
         return self.aml_run.experiment.name
-    
+
     @property
     def job_name(self) -> str:
         return self.aml_run.display_name
-    
+
     @property
     def description(self) -> str:
         return self.aml_run.description
-    
+
     @property
     def tags(self) -> Dict[str, str]:
         return self.aml_run.get_tags()
 
     def get_metrics(self) -> Dict[str, Any]:
         return self.aml_run.get_metrics()
-    
+
     @property
     def url(self) -> str:
         return self.aml_run.get_portal_url()
-    
+
     def __repr__(self) -> str:
         return f"Job({self.experiment_name}/{self.job_name})"
-    
+
     def as_row(self, columns: Optional[List[str]] = None) -> pd.DataFrame:
         if columns is None:
-            columns = ["local_name", "experiment_name", "job_name", "simple_status"] + list(self.parameters.keys()) + ["url", "description"]
+            columns = ["local_name", "experiment_name", "job_name", "simple_status"] + \
+                      list(self.parameters.keys()) + ["url", "description"]
         row = {}
         for c in columns:
             if c == "local_name" and self.local_name is not None:
@@ -462,7 +468,9 @@ class Job:
             elif c in self.tags:
                 row[c] = self.tags[c]
             else:
-                raise ValueError(f"Column {c} not found. Available columns: {list(self.parameters.keys()) + list(self.tags.keys())}")
+                raise ValueError(
+                    f"Column {c} not found. Available columns: {list(self.parameters.keys()) + list(self.tags.keys())}"
+                )
         return pd.DataFrame([row])
 
 
@@ -479,7 +487,7 @@ class JobList:
     def as_table(self, columns: Optional[List[str]] = None) -> pd.DataFrame:
         table = pd.concat((j.as_row(columns) for j in self.jobs), ignore_index=True, join="outer")
         return table
-    
+
     def as_pretty_table(self, columns: Optional[List[str]] = None) -> pd.DataFrame:
         table = self.as_table(columns)
 
@@ -504,7 +512,7 @@ class JobList:
             styled_table = styled_table.apply(status_colour, axis=1) 
 
         return styled_table
-    
+
     @classmethod
     def from_table_with_urls(cls, table: pd.DataFrame, url_column: Optional[str] = "AML",
                              filter_by_column: Optional[str] = None) -> "JobList":
@@ -514,7 +522,7 @@ class JobList:
         if filter_by_column is not None:
             table = table[bool(table[filter_by_column])]
         return cls.from_urls(table[url_column])
-    
+
     @classmethod
     def from_table_with_ids(cls, table: pd.DataFrame, id_column: str, workspace: WorkspaceConfig,
                             filter_by_column: Optional[str] = None) -> "JobList":
@@ -528,7 +536,8 @@ class JobList:
         Creates a JobList object from a list of job URLs.
 
         Args:
-            urls (Union[List[str], OrderedDict[str, str]]): A list of job URLs or a list of tuples containing the job name and URL.
+            urls (Union[List[str], OrderedDict[str, str]]): A list of job URLs or a list of tuples containing the job name and
+                                                            URL.
 
         Returns:
             JobList: A JobList object containing the jobs specified in the list of URLs.
@@ -538,7 +547,7 @@ class JobList:
         else:
             jobs = pmap(Job.from_url, urls, pm_pbar=not disable_pbar)
         return cls(jobs=list(jobs))
-    
+
     @classmethod
     def from_ids(cls, workspace: WorkspaceConfig, ids: Union[List[str], OrderedDict[str, str]]) -> "JobList":
         """
@@ -556,7 +565,7 @@ class JobList:
         else:
             jobs = pmap(Job.from_id, [workspace]*len(ids), ids)
         return cls(jobs=list(jobs))
-    
+
     def filter(self, property_name: str, property_value: Any) -> "JobList":
         """
         Filters the JobList by a given property name and value.
@@ -569,9 +578,9 @@ class JobList:
             JobList: A new JobList object containing only the jobs that match the given property name and value.
         """
         return JobList(j for j in self.jobs if getattr(j, property_name) == property_value)
-    
+
     def __len__(self) -> int:
         return len(self.jobs)
-    
+
     def __getitem__(self, index: int) -> Job:
         return self.jobs[index]

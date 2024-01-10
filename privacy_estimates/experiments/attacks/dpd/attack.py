@@ -46,7 +46,7 @@ class CanaryGradient:
             raise ValueError("All parameters must be on the same device")
         shapes = [[p.shape for p in param_group["params"]] for param_group in optimizer.param_groups]
         return CanaryGradient(shapes=shapes, method=method, norm=norm, is_static=is_static).to(devices.pop())
-    
+
     def _scale_gradient(self, g: List[List[torch.Tensor]]) -> List[List[torch.Tensor]]:
         """Scale the gradient to have the correct norm"""
         g_norm_squared = 0.0
@@ -67,7 +67,7 @@ class CanaryGradient:
             return self._generate_random_canary_gradient()
         else:
             raise ValueError(f"Unsupported canary gradient method: {self.method}")
-        
+
     def _generate_dirac_canary_gradient(self) -> List[List[torch.Tensor]]:
         """Generate a new canary gradient using the Dirac method"""
         num_params = len(self)
@@ -80,12 +80,14 @@ class CanaryGradient:
             for shape in shape_group:
                 g_i = torch.zeros(shape).to(self.device)
                 if n_elements_seen <= i_rand_element < n_elements_seen + np.prod(shape):
-                    g_i.view(-1)[i_rand_element-n_elements_seen] = torch.sqrt(torch.tensor(self.norm_squared, device=self.device))
+                    g_i.view(-1)[i_rand_element-n_elements_seen] = torch.sqrt(
+                        torch.tensor(self.norm_squared, device=self.device)
+                    )
                 g_group.append(g_i)
                 n_elements_seen += np.prod(shape)
             g.append(g_group)
         return g
-    
+
     def _generate_random_canary_gradient(self) -> List[List[torch.Tensor]]:
         """Generate a new canary gradient drawing each element from a normal distribution.
         """
@@ -97,7 +99,7 @@ class CanaryGradient:
             g.append(g_group)
         g = self._scale_gradient(g)
         return g
-    
+
     @property
     def gradient(self) -> List[List[torch.Tensor]]:
         """Get the canary gradient"""
@@ -108,11 +110,11 @@ class CanaryGradient:
         else:
             assert self._cached_static_gradient is None
             return self._generate_canary_gradient()
-        
+
     def __len__(self) -> int:
         """Compute the dimension of the canary gradient"""
         return sum(np.prod(s) for g in self.shapes for s in g)
-    
+
     def dot_gradient(self, param_groups: List[Dict[str, Iterable[torch.Tensor]]]) -> torch.Tensor:
         """Compute the dot product between the canary gradient and the gradient of parameter groups
 
@@ -125,7 +127,7 @@ class CanaryGradient:
             for canary_p, p in zip(canary_param_group, param_group["params"]):
                 o += torch.dot(canary_p.view(-1), p.grad.view(-1))
         return o
-    
+
     def shapes_agree(self, param_groups: List[Dict[str, Iterable[torch.Tensor]]]) -> bool:
         """Check if the shapes of the canary gradient and the parameter groups agree"""
         for shapes_group, param_group in zip(self.shapes, param_groups):
@@ -133,7 +135,7 @@ class CanaryGradient:
                 if shape != p.shape:
                     return False
         return True
-    
+
     def to(self, device: torch.device) -> "CanaryGradient":
         """Move the canary gradient to a new device"""
         self.device = device
@@ -162,7 +164,7 @@ class CanaryTrackingOptimizer(Optimizer):
         # Make sure canary_gradient is compatible with optimizer's parameters
         if not canary_gradient.shapes_agree(optimizer.param_groups):
             raise ValueError("Canary gradient and optimizer parameters do not agree in shape")
-        
+
         self.canary_gradient = canary_gradient
         self.original_optimizer = optimizer
         self.observations = []
@@ -179,7 +181,7 @@ class CanaryTrackingOptimizer(Optimizer):
 
     def state_dict(self):
         return self.original_optimizer.state_dict()
-    
+
     def load_state_dict(self, state_dict):
         self.original_optimizer.load_state_dict(state_dict)
 
@@ -187,15 +189,15 @@ class CanaryTrackingOptimizer(Optimizer):
         self.original_optimizer.add_param_group(param_group)
         if not self.canary_gradient.shapes_agree(self.param_groups):
             raise ValueError("Canary gradient and optimizer parameters do not agree in shape")
-    
+
     @property
     def param_groups(self):
         return self.original_optimizer.param_groups
-    
+
     @property
     def defaults(self):
         return self.original_optimizer.defaults
-    
+
     @property
     def state(self):
         return self.original_optimizer.state

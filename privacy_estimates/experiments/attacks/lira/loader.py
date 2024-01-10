@@ -12,8 +12,7 @@ class LiraLoader(AttackLoader):
         return load_component(source=Path(__file__).parent/"component_spec.yaml")(
             challenge_points=challenge_points, shadow_model_statistics=shadow_model_statistics, mean_estimator="median"
         )
-    
+
     @property
     def requires_shadow_model_statistics(self) -> bool:
         return True
-    

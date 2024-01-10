@@ -64,7 +64,7 @@ def privacy_velocity_hi(fnr: float, eps: float, delta: float) -> float:
 
 
 def eps_from_fnr_fpr(fnr: float, fpr: float, delta: float) -> float:
-    """
+    r"""
     Compute epsilon such that (fnr, fpr) is on the boundary of the (epsilon, delta)-DP region.
 
     Args:
@@ -87,7 +87,7 @@ def eps_from_fnr_fpr(fnr: float, fpr: float, delta: float) -> float:
     # Bring point into the left quadrant
     r_lo = min(fpr, fnr)
     r_hi = max(fpr, fnr)
- 
+
     if r_hi > 1-delta-r_lo:
         return 0.0
 

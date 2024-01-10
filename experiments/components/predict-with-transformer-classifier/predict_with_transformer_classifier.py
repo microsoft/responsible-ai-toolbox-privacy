@@ -27,7 +27,8 @@ class Arguments:
     batch_size: int = field(default=128, metadata={"help": "Batch size for predictions."})
 
 
-def predict(model: nn.Module, data: Dataset, batch_size: int, device: Optional[str] = None, label_column: str = "labels") -> Dataset:
+def predict(model: nn.Module, data: Dataset, batch_size: int, device: Optional[str] = None,
+            label_column: str = "labels") -> Dataset:
     """
     Compute predictions for a dataset using a model
 

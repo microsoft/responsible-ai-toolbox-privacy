@@ -55,9 +55,11 @@ def main(args: Arguments):
     model = AutoModelForSequenceClassification.from_pretrained(args.model.model_name_or_path, num_labels=num_classes)
     tokenizer = AutoTokenizer.from_pretrained(args.model.model_name_or_path)
 
-    ds_train = preprocess_text(ds_train, tokenizer=tokenizer, max_sequence_length=args.data.max_sequence_length, text_column="sentence")
+    ds_train = preprocess_text(ds_train, tokenizer=tokenizer, max_sequence_length=args.data.max_sequence_length,
+                               text_column="sentence")
     if len(ds_test) > 0:
-        ds_test = preprocess_text(ds_test, tokenizer=tokenizer, max_sequence_length=args.data.max_sequence_length, text_column="sentence")
+        ds_test = preprocess_text(ds_test, tokenizer=tokenizer, max_sequence_length=args.data.max_sequence_length,
+                                  text_column="sentence")
 
     os.makedirs(args.training.output_dir, exist_ok=True)
     with open(os.path.join(args.training.output_dir, "arguments.yml"), "w+") as f:

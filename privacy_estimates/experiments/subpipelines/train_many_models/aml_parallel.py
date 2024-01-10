@@ -1,7 +1,7 @@
 from azure.ai.ml import dsl, Input
 from privacy_estimates.experiments.loaders import TrainSingleModelAndPredictArguments
 from privacy_estimates.experiments.components import (
-	prepare_data_for_aml_parallel, filter_aux_data_aml_parallel, create_model_indices_for_aml_parallel,
+    prepare_data_for_aml_parallel, filter_aux_data_aml_parallel, create_model_indices_for_aml_parallel,
     reinsert_aux_data_aml_parallel, collect_from_aml_parallel, append_model_index_column_aml_parallel
 )
 from privacy_estimates.experiments.subpipelines.aml_parallel import AMLParallelLoader
@@ -32,7 +32,7 @@ class TrainModelGroupAMLParallelLoader(TrainModelGroupBase):
 
     def load(self, train_base_data: Input, validation_base_data, in_out_data: Input, in_indices: Input, out_indices: Input,
              base_seed: int, model_group_index: int, num_points_per_model: int):
-        
+
         @dsl.pipeline(name="train_model_group_aml_parallel")
         def p(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
               base_seed: int, model_group_index: int, num_points_per_model: int):
@@ -44,9 +44,11 @@ class TrainModelGroupAMLParallelLoader(TrainModelGroupBase):
             ).outputs.model_indices
 
             prepare_data = prepare_data_for_aml_parallel(
-                train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data, in_indices=in_indices, out_indices=out_indices,
-                model_index_start=model_index_start, model_index_end=model_index_end, group_base_seed=base_seed, num_points_per_model=num_points_per_model,
-                sample_selection=self.single_model_arguments.sample_selection, merge_unused_samples=self.single_model_arguments.merge_unused_samples,
+                train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
+                in_indices=in_indices, out_indices=out_indices, model_index_start=model_index_start,
+                model_index_end=model_index_end, group_base_seed=base_seed, num_points_per_model=num_points_per_model,
+                sample_selection=self.single_model_arguments.sample_selection,
+                merge_unused_samples=self.single_model_arguments.merge_unused_samples,
             )
 
             filter_train_data = filter_aux_data_aml_parallel(full=prepare_data.outputs.train_data_for_models)
@@ -59,13 +61,14 @@ class TrainModelGroupAMLParallelLoader(TrainModelGroupBase):
 
             filter_in_samples = filter_aux_data_aml_parallel(full=prepare_data.outputs.in_data_for_models)
             filter_out_samples = filter_aux_data_aml_parallel(full=prepare_data.outputs.out_data_for_models)
-                
 
             compute_predictions_in_parallel = self.predict_with_models_parallel_loader.load(
-                dataset=filter_in_samples.outputs.filtered, model_indices=model_indices, model=train_models_parallel.outputs.model
+                dataset=filter_in_samples.outputs.filtered, model_indices=model_indices,
+                model=train_models_parallel.outputs.model
             )
             compute_predictions_out_parallel = self.predict_with_models_parallel_loader.load(
-                dataset=filter_out_samples.outputs.filtered, model_indices=model_indices, model=train_models_parallel.outputs.model
+                dataset=filter_out_samples.outputs.filtered, model_indices=model_indices,
+                model=train_models_parallel.outputs.model
             )
 
             reinsert_in_predictions = reinsert_aux_data_aml_parallel(
@@ -88,16 +91,14 @@ class TrainModelGroupAMLParallelLoader(TrainModelGroupBase):
             }
 
             if "metrics" in train_models_parallel.outputs:
-                output["metrics_avg"] = collect_from_aml_parallel(data=train_models_parallel.outputs.metrics, aggregator="average_json")
+                output["metrics_avg"] = collect_from_aml_parallel(data=train_models_parallel.outputs.metrics,
+                                                                  aggregator="average_json")
             if "dp_parameters" in train_models_parallel.outputs:
-                output["dp_parameters"] = collect_from_aml_parallel(data=train_models_parallel.outputs.dp_parameters, aggregator="average_json")
+                output["dp_parameters"] = collect_from_aml_parallel(data=train_models_parallel.outputs.dp_parameters,
+                                                                    aggregator="average_json")
 
             return output
 
         return p(train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                  in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, model_group_index=model_group_index,
                  num_points_per_model=num_points_per_model)
-    
-
-
-

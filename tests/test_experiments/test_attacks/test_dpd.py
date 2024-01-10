@@ -27,7 +27,7 @@ class TestCanaryGradient:
             for p in group:
                 cg_norm_2 += p.norm(p=2)**2
         assert cg_norm_2 == pytest.approx(norm**2)
-        
+
 
 class TestCanaryTrackingOptimizer:
     def test_raise_on_wrapped_dp_optimizer(self):
@@ -43,7 +43,6 @@ class TestCanaryTrackingOptimizer:
 
         with pytest.raises(TypeError):
             CanaryTrackingOptimizer(dp_optimizer, canary)
-
 
     @pytest.mark.parametrize("norm", [1.0, 2.0])
     @pytest.mark.parametrize("method", [CanaryGradientMethod.DIRAC, CanaryGradientMethod.RANDOM])
@@ -89,7 +88,8 @@ class TestCanaryTrackingOptimizer:
         canary_tracking_optimizer = CanaryTrackingOptimizer(optimizer, canary)
 
         # Turn off noise and clipping
-        dp_optimizer = DPOptimizer(canary_tracking_optimizer, noise_multiplier=0.0, max_grad_norm=1e4, expected_batch_size=batch_size)
+        dp_optimizer = DPOptimizer(canary_tracking_optimizer, noise_multiplier=0.0, max_grad_norm=1e4,
+                                   expected_batch_size=batch_size)
         dp_optimizer.step()
 
         return canary_tracking_optimizer.observations[0]
@@ -101,7 +101,11 @@ class TestCanaryTrackingOptimizer:
         num_observations = 1_000
         batch_size = 9
 
-        observations = [self.get_observation(norm, method="dirac", mean=mean, std=std, batch_size=batch_size) for _ in range(num_observations)]
+        observations = [
+            self.get_observation(norm, method="dirac", mean=mean, std=std, batch_size=batch_size)
+            for _
+            in range(num_observations)
+        ]
 
         assert np.array(observations).mean() == pytest.approx(mean*norm, abs=0.1)
         assert np.array(observations).std() == pytest.approx(std*norm/np.sqrt(batch_size), abs=0.1)

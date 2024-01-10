@@ -29,6 +29,8 @@ def no_postprocessing(path: Path) -> Path:
 
 
 T = TypeVar("T")
+
+
 def run_component(component: Command, post_process_output: Callable[[Path], T] = path_as_dataset) -> Dict[str, T]:
     code_dir = component.code
     command = component.command

@@ -17,10 +17,12 @@ def drop_null_rows(ds: Dataset) -> Dataset:
 
 
 def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: Dataset) -> Dataset:
-    print(f"Computing loss statistics for {len(in_predictions)} in-sample predictions and {len(out_predictions)} out-sample predictions...")
+    print(f"Computing loss statistics for {len(in_predictions)} in-sample predictions and {len(out_predictions)} out-sample "
+          "predictions...")
     in_predictions = drop_null_rows(in_predictions)
     out_predictions = drop_null_rows(out_predictions)
-    print(f"Computing loss statistics for {len(in_predictions)} in-sample predictions and {len(out_predictions)} out-sample predictions...")
+    print(f"Computing loss statistics for {len(in_predictions)} in-sample predictions and {len(out_predictions)} out-sample "
+          "predictions...")
 
     in_samples = set(zip(in_predictions["sample_index"], in_predictions["split"]))
     out_samples = set(zip(out_predictions["sample_index"], out_predictions["split"]))
@@ -31,7 +33,6 @@ def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: D
             raise ValueError(f"Missing samples in in_predictions. Missing samples: {all_samples - in_samples}")
         if all_samples != out_samples:
             raise ValueError(f"Missing samples in out_predictions. Missing samples: {all_samples - out_samples}")
-
 
     in_df = in_predictions.to_pandas()
     out_df = out_predictions.to_pandas()

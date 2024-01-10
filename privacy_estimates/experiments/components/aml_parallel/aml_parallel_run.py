@@ -128,7 +128,6 @@ def run(mini_batch: List[str]) -> List[int]:
     print(f"aml_parallel_args: {aml_parallel_args}")
     print(f"model_index: {model_index}")
 
-
     cmd = [item for item in cmd if item.strip() and item.strip() != '\\']
 
     cmd = modify_cmd(cmd, model_index=model_index, aml_parallel_args=aml_parallel_args)

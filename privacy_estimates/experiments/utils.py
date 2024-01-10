@@ -12,13 +12,13 @@ class DPParameters:
     def save_to_disk(self, path: Path) -> None:
         with Path(path).open("w+") as f:
             dump(asdict(self), f)
-            
+
     @classmethod
     def load_from_disk(cls, path: Path) -> "DPParameters":
         with Path(path).open("r") as f:
             data = load(f)
         return cls(**data)
-    
+
     @classmethod
     def from_opacus(cls, privacy_engine: "opacus.PrivacyEngine") -> "DPParameters":  # noqa: F821
         history = {}
