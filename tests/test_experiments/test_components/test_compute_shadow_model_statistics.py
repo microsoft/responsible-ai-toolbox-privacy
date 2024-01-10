@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pytest
 
-from .compute_shadow_model_statistics import _compute_shadow_model_statistics
+from privacy_estimates.experiments.components.compute_shadow_model_statistics.compute_shadow_model_statistics import _compute_shadow_model_statistics
 
 
 @pytest.fixture()
