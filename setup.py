@@ -38,6 +38,7 @@ setup(
             "sympy",
             "opacus",
             "tensorflow-privacy",
+            "mldesigner",
         ],
         "pipelines": [
             "azure-ai-ml",
