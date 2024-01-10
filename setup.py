@@ -14,13 +14,14 @@ setup(
     description='Empirical Privacy Estimates',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/microsoft/privacy-estimates',
+    url='https://aka.ms/privacy-estimates',
     packages=find_packages(),
     include_package_data=True,
+    python_requires=">=3.9",
     package_data={'': [
         'VERSION',
         "privacy_estimates/experiments/simple_components/*/environment.aml.yaml",
-        "privacy_estimates/experiments/simple_components/*/environment.local.yaml",
+        "privacy_estimates/experiments/simple_components/*/environment.conda.yaml",
     ]},
     install_requires=[
         "statsmodels",
