@@ -38,10 +38,6 @@ setup(
             "sympy",
             "opacus",
             "tensorflow-privacy",
-            "mldesigner",
-            "datasets",
-            "azure-ai-ml",
-            "tqdm-loggable",
         ],
         "pipelines": [
             "azure-ai-ml",
