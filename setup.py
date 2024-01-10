@@ -39,6 +39,8 @@ setup(
             "opacus",
             "tensorflow-privacy",
             "mldesigner",
+            "datasets",
+            "azure-ai-ml"
         ],
         "pipelines": [
             "azure-ai-ml",
