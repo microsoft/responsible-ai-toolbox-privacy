@@ -77,6 +77,7 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     # Append a null row to the dataset to point to when a sample is not used
     in_out_ds = concatenate_datasets([in_out_ds, null_row_dataset(features=in_out_ds.features)])
 
+    # Create mapping from (split, sample_index) to row no in in_out_ds
     sample_index_to_base_index = {
         (split, sample_index): base_index
         for base_index, (split, sample_index)
@@ -91,20 +92,20 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     )
 
     if sample_selection == SampleSelectionMethod.INDEPENDENT:
-        indices_for_model = np.random.default_rng(seed=seed).choice(np.arange(len(in_sample_indices_ds)), num_points_per_model,
+        rows_for_model = np.random.default_rng(seed=seed).choice(np.arange(len(in_sample_indices_ds)), num_points_per_model,
                                                                     replace=True)
     elif sample_selection == SampleSelectionMethod.PARTITIONED:
         i_start = (model_index * num_points_per_model) % len(in_sample_indices_ds)
         i_end = ((model_index + 1) * num_points_per_model) % len(in_sample_indices_ds)
         if i_end < i_start:
-            indices_for_model = np.concatenate([np.arange(i_start, len(in_sample_indices_ds)), np.arange(0, i_end)])
+            rows_for_model = np.concatenate([np.arange(i_start, len(in_sample_indices_ds)), np.arange(0, i_end)])
         else:
-            indices_for_model = np.arange(i_start, i_end)
+            rows_for_model = np.arange(i_start, i_end)
     else:
         raise NotImplementedError(f"sample_selection={sample_selection} is not implemented")
 
-    in_sample_indices = in_sample_indices_ds.select(indices_for_model, keep_in_memory=True)
-    out_sample_indices = out_sample_indices_ds.select(indices_for_model, keep_in_memory=True)
+    in_sample_indices = in_sample_indices_ds.select(rows_for_model, keep_in_memory=True)
+    out_sample_indices = out_sample_indices_ds.select(rows_for_model, keep_in_memory=True)
 
     in_base_indices = [
         sample_index_to_base_index[(split, sample_index)]
@@ -130,7 +131,7 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
         merge_unused_samples == MergeUnusedSamplesMethod.ALL_WITH_TRAIN
     ):
         in_sample_indices_not_selected = in_sample_indices_ds.select(
-            np.setdiff1d(np.arange(len(in_sample_indices_ds)), indices_for_model), keep_in_memory=True
+            np.setdiff1d(np.arange(len(in_sample_indices_ds)), rows_for_model), keep_in_memory=True
         )
         in_base_indices_not_selected = [
             sample_index_to_base_index[(split, sample_index)]
@@ -140,7 +141,7 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
         in_data_not_selected_ds = in_out_ds.select(in_base_indices_not_selected)
 
         out_sample_indices_not_selected = out_sample_indices_ds.select(
-            np.setdiff1d(np.arange(len(out_sample_indices_ds)), indices_for_model), keep_in_memory=True
+            np.setdiff1d(np.arange(len(out_sample_indices_ds)), rows_for_model), keep_in_memory=True
         )
         out_base_indices_not_selected = [
             sample_index_to_base_index[(split, sample_index)]
