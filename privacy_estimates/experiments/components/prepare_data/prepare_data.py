@@ -93,7 +93,7 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
 
     if sample_selection == SampleSelectionMethod.INDEPENDENT:
         rows_for_model = np.random.default_rng(seed=seed).choice(np.arange(len(in_sample_indices_ds)), num_points_per_model,
-                                                                    replace=True)
+                                                                 replace=True)
     elif sample_selection == SampleSelectionMethod.PARTITIONED:
         i_start = (model_index * num_points_per_model) % len(in_sample_indices_ds)
         i_end = ((model_index + 1) * num_points_per_model) % len(in_sample_indices_ds)

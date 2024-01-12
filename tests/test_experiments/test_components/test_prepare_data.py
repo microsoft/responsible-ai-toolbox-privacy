@@ -99,7 +99,6 @@ class TestPrepareData:
             "split": ["val"]
         })
 
-
         results = _prepare_data(
             train_base_ds=train_base_data, validation_base_ds=validation_base_data, in_out_ds=in_out_data,
             in_sample_indices_ds=in_indices, out_sample_indices_ds=out_indices, seed=42, num_points_per_model=2,
