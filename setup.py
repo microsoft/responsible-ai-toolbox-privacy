@@ -1,10 +1,12 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
-VERSION='0.1.0post1'
-    
+with open("VERSION", "r") as f:
+    VERSION = f.read().strip()
+
 with open('README.md') as f:
     long_description = f.read()
+
 
 setup(
     name='privacy-estimates',
@@ -12,21 +14,42 @@ setup(
     description='Empirical Privacy Estimates',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/microsoft/privacy-estimates',
-    packages=['privacy_estimates'],
+    url='https://aka.ms/privacy-estimates',
+    packages=find_packages(),
     include_package_data=True,
+    python_requires=">=3.9",
+    package_data={'': [
+        'VERSION',
+        "privacy_estimates/experiments/simple_components/*/environment.aml.yaml",
+        "privacy_estimates/experiments/simple_components/*/environment.conda.yaml",
+    ]},
     install_requires=[
         "statsmodels",
         "numpy",
         "scipy",
         "multimethod",
-        "pydantic_cli"
+        "pydantic_cli",
+        "scikit-learn",
+        "shapely",
+        "parmap",
     ],
     extras_require={
         "dev": [
             "pytest",
-            "sympy"
-        ]
+            "sympy",
+            "opacus",
+            "tensorflow-privacy",
+        ],
+        "pipelines": [
+            "azure-ai-ml",
+            "azureml-core",
+            "datasets",
+            "hydra-core",
+            "mldesigner",
+            "mlflow-skinny",
+            "mltable",
+            "tqdm-loggable",
+        ],
     },
     scripts=[
         "scripts/estimate-epsilon.py"

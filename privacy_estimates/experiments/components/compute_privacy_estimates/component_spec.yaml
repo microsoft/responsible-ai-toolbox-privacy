@@ -1,0 +1,47 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates_experiments_compute_privacy_estimates
+display_name: Compute Privacy Estimates
+version: local1
+type: command
+description: Compute privacy estimates
+inputs:
+  scores:
+    type: uri_folder
+    description: Scores data in datasets format
+  challenge_bits:
+    type: uri_folder
+    description: Challenge bits data in datasets format
+  dp_parameters:
+    type: uri_file
+    description: JSON encoded differential privacy parameters
+    optional: true
+  smallest_delta:
+    type: number
+    description: The smallest delta used in the privacy trade-off curve conversion.
+    default: 1e-9
+  alpha:
+    type: number
+    description: Significance level
+    default: 0.05
+outputs:
+  privacy_report:
+    type: uri_folder
+    description: Privacy report
+code: .
+additional_includes:
+        - "../../../../privacy_estimates"
+        - "../../../../setup.py"
+        - "../../../../VERSION"
+        - "../../../../README.md"
+        - "../../../../scripts"
+command: >-
+  python -m pip install -e .[report] && python compute_privacy_estimates.py \
+    $[[ --dp_parameters ${{inputs.dp_parameters}} ]] \
+    --scores ${{inputs.scores}} \
+    --challenge_bits ${{inputs.challenge_bits}} \
+    --smallest_delta ${{inputs.smallest_delta}} \
+    --alpha ${{inputs.alpha}} \
+    --privacy_report ${{outputs.privacy_report}}
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
