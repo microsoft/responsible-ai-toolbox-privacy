@@ -97,9 +97,9 @@ def compute_prediction_metrics(model: CNN, device: torch.device, data_loader: Da
     labels = []
 
     with torch.no_grad():
-        for inputs, target in tqdm(data_loader, desc="Test ", unit="batch", disable=None):
-            inputs = inputs.to(device)
-            target = target.to(device)
+        for batch in tqdm(data_loader, desc="Test ", unit="batch", disable=None):
+            inputs = batch["image"].to(device)
+            target = batch["label"].to(device)
 
             output = model(inputs)
             loss = compute_loss(output, target).detach().cpu().numpy()

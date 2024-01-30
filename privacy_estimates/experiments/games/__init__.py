@@ -1,2 +1,1 @@
-from .black_box_membership_inference import BlackBoxMembershipInferenceGameBase
 from .differential_privacy import DifferentialPrivacyGameBase

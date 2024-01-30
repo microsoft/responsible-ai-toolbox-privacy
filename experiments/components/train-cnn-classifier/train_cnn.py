@@ -135,9 +135,9 @@ def train(args: Arguments,
         # We instead heuristically keep track of logical batches processed
         pbar = tqdm(data_loader, desc="Batch", unit="batch", position=1, leave=True, total=len(train_loader), disable=None)
         logical_batch_len = 0
-        for i, (inputs, target) in enumerate(data_loader):
-            inputs = inputs.to(device)
-            target = target.to(device)
+        for i, batch in enumerate(data_loader):
+            inputs = batch["image"].to(device)
+            target = batch["label"].to(device)
 
             logical_batch_len += len(target)
             if logical_batch_len >= args.total_train_batch_size:
@@ -217,22 +217,15 @@ def main(args: Arguments):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    with train_data.formatted_as(type="torch"):
-        assert not torch.isnan(train_data["image"]).any()
-        train_dataset = TensorDataset(train_data["image"], train_data["label"])
-    with test_data.formatted_as(type="torch"):
-        assert not torch.isnan(test_data["image"]).any()
-        test_dataset  = TensorDataset(test_data["image"], test_data["label"])
-
     train_loader = DataLoader(
-        train_dataset,
+        train_data.with_format("torch"),
         batch_size=args.total_train_batch_size,
         num_workers=args.dataloader_num_workers,
         pin_memory=True,
     )
 
     test_loader = DataLoader(
-        test_dataset,
+        test_data.with_format("torch"),
         batch_size=args.max_physical_batch_size,
         num_workers=args.dataloader_num_workers
     )
