@@ -305,6 +305,8 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+*.egg-info
+*.tar.gz
 
 # Cake - Uncomment if you are using it
 # tools/**
@@ -348,3 +350,12 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# VS Code
+/.vscode
+
+# AML configs
+config*.json
+
+# Hydra
+/outputs

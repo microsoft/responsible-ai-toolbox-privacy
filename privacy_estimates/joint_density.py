@@ -60,15 +60,20 @@ class DensityModel(ABC):
         """
         raise NotImplementedError("Not yet implemented")
 
-    def eps_lo(self, delta: float, alpha: float=0.05, xtol: float = 1e-2, bracket: Tuple[float, float] = None, max_eps: float = 10.0) -> float:
+    def eps_lo(
+            self, delta: float, alpha: float=0.05, xtol: float = 1e-2, bracket: Tuple[float, float] = None,
+            max_eps: float = 10.0
+        ) -> float:
         "Find the epsilon of the smallest DP region that contains (100*alpha)% density"
 
         assert(0 < alpha < 1)
         assert(0 <= delta < 1)
 
         if bracket is not None:
-            raise DeprecationWarning("This code is calling (indirectly) `privacy_games.DensitiyModel().eps_lo` with the optional `bracket` parameter "\
-                                     "which does not have any effect. Please update your code to eliminate this parameter.")
+            raise DeprecationWarning(
+                "This code is calling (indirectly) `privacy_games.DensitiyModel().eps_lo` with the optional `bracket` "
+                "parameter which does not have any effect. Please update your code to eliminate this parameter."
+            )
 
         def objective(eps):
             return self.probability_private(eps=eps, delta=delta, epsabs=xtol/2) - alpha
@@ -102,7 +107,9 @@ class DensityModel(ABC):
         "Find the epsilon of the smallest DP region that contains (100*(1-alpha))% density"
         return self.eps_lo(delta=delta, alpha=1-alpha, xtol=xtol, bracket=bracket)
 
-    def eps_lo_hi(self, delta: float, alpha: float = 0.05, xtol: float = 1e-2, bracket: Tuple[float, float] = None) -> Tuple[float, float]:
+    def eps_lo_hi(
+            self, delta: float, alpha: float = 0.05, xtol: float = 1e-2, bracket: Tuple[float, float] = None
+        ) -> Tuple[float, float]:
         eps_lo = self.eps_lo(delta=delta, alpha=alpha/2, xtol=xtol, bracket=bracket)
         eps_hi = self.eps_hi(delta=delta, alpha=alpha/2, xtol=xtol, bracket=bracket)
         return eps_lo, eps_hi
@@ -148,11 +155,13 @@ class Dirichlet(DensityModel):
     def probability_private(self, eps: float, delta: float, epsabs: float = 5e-3) -> float:
         """
         Compute the probability density over the (eps,delta)-DP region
-    
+
         Note: Overriden just to be able to set absoulte error in pdf integral
         """
         # Regions below and above the fpr = 1 - fnr line
         below = lambda fnr: privacy_boundary_lo(fnr=fnr, eps=eps, delta=delta)
         above = lambda fnr: privacy_boundary_hi(fnr=fnr, eps=eps, delta=delta)
-        probability, _ = integrate.dblquad(lambda fpr, fnr: self.pdf(fnr, fpr, epsabs=epsabs), 0, 1, below, above, epsabs=epsabs)
+        probability, _ = integrate.dblquad(
+            lambda fpr, fnr: self.pdf(fnr, fpr, epsabs=epsabs), 0, 1, below, above, epsabs=epsabs
+        )
         return probability
