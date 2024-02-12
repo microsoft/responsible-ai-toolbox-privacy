@@ -20,13 +20,21 @@ class Arguments(BaseModel):
     dp_parameters: Optional[Path] = None
 
 
-def setup_accountant(dp_parameters: Path) -> Tuple[PRVAccountant, int]:
-    with Path(dp_parameters).open() as f:
-        dp_parameters = load(f)
-    prv = PoissonSubsampledGaussianMechanism(noise_multiplier=dp_parameters["noise_multiplier"],
-                                             sampling_probability=dp_parameters["subsampling_probability"])
-    accountant = PRVAccountant(prv, max_self_compositions=dp_parameters["num_steps"], eps_error=0.1, delta_error=1e-9)
-    return accountant, dp_parameters["num_steps"]
+class DPParameters(BaseModel):
+    noise_multiplier: float
+    subsampling_probability: float
+    num_steps: int
+
+
+def setup_accountant(dp_parameters_path: Path) -> Tuple[PRVAccountant, int]:
+    with Path(dp_parameters_path).open() as f:
+        # Load the dp parameters from a json and parse them into a DPParameters object
+        dp_parameters = DPParameters(**(load(f)))
+
+    prv = PoissonSubsampledGaussianMechanism(noise_multiplier=dp_parameters.noise_multiplier,
+                                             sampling_probability=dp_parameters.subsampling_probability)
+    accountant = PRVAccountant(prv, max_self_compositions=dp_parameters.num_steps, eps_error=0.1, delta_error=1e-9)
+    return accountant, dp_parameters.num_steps
 
 
 def main(args: Arguments) -> int:

@@ -355,8 +355,7 @@ MigrationBackup/
 /.vscode
 
 # AML configs
-config.json
-config-*.json
+config*.json
 
 # Hydra
 /outputs
