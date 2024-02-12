@@ -161,6 +161,7 @@ class Dirichlet(DensityModel):
         # Regions below and above the fpr = 1 - fnr line
         below = lambda fnr: privacy_boundary_lo(fnr=fnr, eps=eps, delta=delta)
         above = lambda fnr: privacy_boundary_hi(fnr=fnr, eps=eps, delta=delta)
-        probability, _ = integrate.dblquad(lambda fpr, fnr: self.pdf(fnr, fpr, epsabs=epsabs), 0, 1, below, above,
-                                           epsabs=epsabs)
+        probability, _ = integrate.dblquad(
+            lambda fpr, fnr: self.pdf(fnr, fpr, epsabs=epsabs), 0, 1, below, above, epsabs=epsabs
+        )
         return probability
