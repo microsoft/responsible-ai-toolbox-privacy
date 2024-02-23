@@ -5,7 +5,7 @@
 import torch
 import numpy as np
 from torch.optim import Optimizer
-from typing import Dict, List, Iterable
+from typing import Dict, List, Iterable, Optional
 from enum import Enum
 from warnings import warn
 
@@ -17,7 +17,7 @@ class CanaryGradientMethod(Enum):
 
 class CanaryGradient:
     def __init__(self, shapes: List[List[torch.Size]], method: CanaryGradientMethod, norm: float,
-                 is_static: bool = True) -> None:
+                 is_static: bool = True, rng: Optional[torch.Generator] = None) -> None:
         """Create a canary gradient.
 
         Args:
@@ -27,6 +27,7 @@ class CanaryGradient:
             norm: The norm of the canary gradient.
             is_static: If True, the canary gradient is generated once and then cached. If False, the canary gradient is
                           generated each time it is accessed.
+            rng: The random number generator to use. If None, the default generator is used.
         """
         self.shapes = shapes
         self.method = CanaryGradientMethod(method)
@@ -34,6 +35,7 @@ class CanaryGradient:
         self._cached_static_gradient = None
         self.device = torch.device("cpu")
         self.norm_squared = norm**2
+        self.rng = rng if rng is not None else torch.default_generator
 
     @classmethod
     def from_optimizer(cls, optimizer: Optimizer, method: str, norm: float, is_static: bool = True) -> "CanaryGradient":
@@ -76,7 +78,7 @@ class CanaryGradient:
     def _generate_dirac_canary_gradient(self) -> List[List[torch.Tensor]]:
         """Generate a new canary gradient using the Dirac method"""
         num_params = len(self)
-        i_rand_element = torch.randint(num_params, size=(1,))
+        i_rand_element = self.rng.randint(num_params, size=(1,))
 
         g = []
         n_elements_seen = 0
@@ -100,7 +102,7 @@ class CanaryGradient:
         for shape_group in self.shapes:
             g_group = []
             for shape in shape_group:
-                g_group.append(torch.randn(shape).to(self.device))
+                g_group.append(self.rng.normal(0, 1, shape).to(self.device))
             g.append(g_group)
         g = self._scale_gradient(g)
         return g
