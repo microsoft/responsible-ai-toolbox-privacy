@@ -72,8 +72,7 @@ class TestCanaryTrackingOptimizer:
         assert canary_tracking_optimizer.observations[0] == pytest.approx(score.item())
 
     def get_observation(self, norm: float, method: str, mean: float, std: float, batch_size: int):
-        model = nn.Linear(10, 1, bias=False)
-        model = GradSampleModule(model)
+        model = GradSampleModule(nn.Linear(10, 1, bias=False))
 
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
