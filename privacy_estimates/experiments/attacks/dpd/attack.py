@@ -79,7 +79,7 @@ class CanaryGradient:
     def _generate_dirac_canary_gradient(self) -> List[List[torch.Tensor]]:
         """Generate a new canary gradient using the Dirac method"""
         num_params = len(self)
-        i_rand_element = self.rng.randint(num_params, size=(1,))
+        i_rand_element = torch.randint(num_params, size=(1,), generator=self.rng).item()
 
         g = []
         n_elements_seen = 0
@@ -103,7 +103,7 @@ class CanaryGradient:
         for shape_group in self.shapes:
             g_group = []
             for shape in shape_group:
-                g_group.append(self.rng.normal(0, 1, shape).to(self.device))
+                g_group.append(torch.randn(shape, generator=self.rng).to(self.device))
             g.append(g_group)
         g = self._scale_gradient(g)
         return g
