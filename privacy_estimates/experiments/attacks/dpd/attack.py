@@ -1,3 +1,7 @@
+""" Implements the white-box attack of the paper "Tight Auditing of Differentially Private Machine Learning"
+
+[1] Nasr, Milad, Jamie Hayes, Thomas Steinke, Borja Balle, Florian Tramèr, Matthew Jagielski, Nicholas Carlini, and Andreas Terzis. "Tight Auditing of Differentially Private Machine Learning." arXiv preprint arXiv:2302.07956 (2023).
+"""
 import torch
 import numpy as np
 from torch.optim import Optimizer

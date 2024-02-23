@@ -39,14 +39,13 @@ def main(args: Arguments):
 
     print(f"Loaded dataset: {data.features}")
 
-    if len(data) == 0:
-        dataset = TensorDataset(torch.tensor([]), torch.tensor([]))
-    else:
-        dataset = TensorDataset(torch.tensor(data["image"]), torch.tensor(data["label"]))
-
     model = CNN.load(args.experiment_dir / args.model_rel_path / "model.pt")
 
-    data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
+    data_loader = DataLoader(
+        data.with_format("torch"),
+        batch_size=args.batch_size,
+        shuffle=False
+    )
 
     device = "cpu" if args.use_cpu else "cuda"
 
