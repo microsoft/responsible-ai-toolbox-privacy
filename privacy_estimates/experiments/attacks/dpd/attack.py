@@ -35,7 +35,8 @@ class CanaryGradient:
         self.device = torch.device("cpu")
         self.norm_squared = norm**2
 
-    def from_optimizer(optimizer: Optimizer, method: str, norm: float, is_static: bool = True) -> "CanaryGradient":
+    @classmethod
+    def from_optimizer(cls, optimizer: Optimizer, method: str, norm: float, is_static: bool = True) -> "CanaryGradient":
         """Create a canary gradient from an optimizer.
 
         Args:
@@ -49,7 +50,7 @@ class CanaryGradient:
         if len(devices) != 1:
             raise ValueError("All parameters must be on the same device")
         shapes = [[p.shape for p in param_group["params"]] for param_group in optimizer.param_groups]
-        return CanaryGradient(shapes=shapes, method=method, norm=norm, is_static=is_static).to(devices.pop())
+        return cls(shapes=shapes, method=method, norm=norm, is_static=is_static).to(devices.pop())
 
     def _scale_gradient(self, g: List[List[torch.Tensor]]) -> List[List[torch.Tensor]]:
         """Scale the gradient to have the correct norm"""
