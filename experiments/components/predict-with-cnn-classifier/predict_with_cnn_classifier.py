@@ -66,7 +66,7 @@ def main(args: Arguments):
     )
 
     print(f"Writing {len(predictions)} predictions to file")
-    assert len(predictions) == len(dataset)
+    assert len(predictions) == len(data)
     predictions.save_to_disk(args.output)
 
     return 0
