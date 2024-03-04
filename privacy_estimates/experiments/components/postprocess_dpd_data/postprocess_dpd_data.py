@@ -16,12 +16,17 @@ logger = logging.getLogger(__name__)
 def postprocess_dpd_data(dpd_data: Input, dp_parameters: Input, seed: int, scores: Output, challenge_bits: Output,
                          postprocessed_dp_parameters: Output(type="uri_file")):  # noqa: F821
     """
-    Post-processing for differential privacy distinguisher
+    Post-processing for differential privacy distinguisher.
 
     We follow Algorithm 2 in https://arxiv.org/abs/2302.07956. We rearrange
     <g'|\nabla'[t] + g'> to <g'|\nabla'[t]> + <g'|g'> which allows us to pull
     <g'|g'> = C^2 (which is the gradient clipping norm) out of the training algorithm.
     Instead we add the C^2 term in this script.
+
+    The insertion of the canary gradient is independent of the training algorithm. In particular, it is independent of the 
+    batch creation in the data loader. Therefore, we can add the canary signal to the data after the training is done and
+    maximize the MI samples we get from a single training run.
+    The downside is that we can't audit the subsampling with the DP distinguisher.
     """
     with Path(dpd_data).open() as f:
         raw_data = load(f)
