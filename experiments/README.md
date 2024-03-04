@@ -18,7 +18,7 @@ The threat model of Differentially Private Stochastic Gradient Descent (DP-SGD) 
 In order to instantiate a matching adversary, we need to collect membership information during the training process.
 We provide a wrapper (`privacy_estimates.experiments.attack.dpd.CanaryTrackingOptimizer`) for a PyTorch optimizer that can be used with Opacus.
 
-`privacy_estimates.experiments.games.differential_privacy_distinguisher` contains code to run the differentially private distinguisher game.``
+`privacy_estimates.experiments.games.DifferentialPrivacyGameBase` contains code to run the differentially private distinguisher game.``
 
 ## Installation and setup
 
