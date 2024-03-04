@@ -135,9 +135,15 @@ def train(args: Arguments,
         # We instead heuristically keep track of logical batches processed
         pbar = tqdm(data_loader, desc="Batch", unit="batch", position=1, leave=True, total=len(train_loader), disable=None)
         logical_batch_len = 0
+<<<<<<< HEAD
         for i, batch in enumerate(data_loader):
             inputs = batch["image"].to(device)
             target = batch["label"].to(device)
+=======
+        for i, (inputs, target) in enumerate(data_loader):
+            inputs = inputs.to(device)
+            target = target.to(device)
+>>>>>>> experiments
 
             logical_batch_len += len(target)
             if logical_batch_len >= args.total_train_batch_size:

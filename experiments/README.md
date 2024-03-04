@@ -3,7 +3,7 @@
 This folder contains code to run experiments end-to-end in Azure Machine Learning.
 
 We differentiate three types of threat models:
-1. Black-box membership inference (coming soon)
+1. Black-box membership inference
 2. White-box membership inference (coming soon)
 3. Differential privacy distinguisher
 
@@ -18,7 +18,7 @@ The threat model of Differentially Private Stochastic Gradient Descent (DP-SGD) 
 In order to instantiate a matching adversary, we need to collect membership information during the training process.
 We provide a wrapper (`privacy_estimates.experiments.attack.dpd.CanaryTrackingOptimizer`) for a PyTorch optimizer that can be used with Opacus.
 
-`privacy_estimates.experiments.games.DifferentialPrivacyGameBase` contains code to run the differentially private distinguisher game.``
+`privacy_estimates.experiments.games.differential_privacy_distinguisher` contains code to run the differentially private distinguisher game.``
 
 ## Installation and setup
 
@@ -38,6 +38,24 @@ Add `gpu_compute` and `cpu_compute` to the `config.json` indicating where to run
 The values should match with compute clusters in your workspace.
 
 
+## Example 1: Black box membership inference for image classification
+
+Upload the dataset:
+
+```bash
+python scripts/upload-dataset.py --workspace-config configs/workspace/config.json --dataset-name CIFAR10Normalized --split train
+python scripts/upload-dataset.py --workspace-config configs/workspace/config.json --dataset-name CIFAR10Normalized --split test
+```
+
+Run the end-to-end pipeline:
+
+``` bash
+python estimate_black_box_privacy_image_classifier.py --config-name black_box_image_classifier +submit=True
+```
+
+Upon completion, the results should indicate that the model is significantly more private than the theoretical bound suggests.
+This is due to the weaker threat model of the attack compared to the theoretical bound.
+
 ## Example 2: Differential Privacy Distinguisher for image classification
 
 We can increase the threat model to match the theoretical bound by using a different attack.
@@ -46,6 +64,7 @@ We follow the gradient canary attack by Nasr et al. (2023) to match the differen
 ```bash
 python estimate_differential_privacy_image_classifier.py --config-name dpd_image_classifier +submit=True
 ```
+
 
 ## References
 

@@ -41,7 +41,11 @@ class TestCanaryTrackingOptimizer:
 
         dp_optimizer = DPOptimizer(optimizer, noise_multiplier=0.1, max_grad_norm=1, expected_batch_size=16)
 
+<<<<<<< HEAD
         with pytest.raises(TypeError, match=r".*should be wrapped around the original optimizer.*"):
+=======
+        with pytest.raises(TypeError):
+>>>>>>> experiments
             CanaryTrackingOptimizer(dp_optimizer, canary)
 
     @pytest.mark.parametrize("norm", [1.0, 2.0])
@@ -72,7 +76,12 @@ class TestCanaryTrackingOptimizer:
         assert canary_tracking_optimizer.observations[0] == pytest.approx(score.item())
 
     def get_observation(self, norm: float, method: str, mean: float, std: float, batch_size: int):
+<<<<<<< HEAD
         model = GradSampleModule(nn.Linear(10, 1, bias=False))
+=======
+        model = nn.Linear(10, 1, bias=False)
+        model = GradSampleModule(model)
+>>>>>>> experiments
 
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 

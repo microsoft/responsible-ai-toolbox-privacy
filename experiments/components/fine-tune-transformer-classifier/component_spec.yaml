@@ -1,0 +1,89 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates_experiments_fine_tune_transformer_classifier
+display_name: Fine-tune transformer classifier
+version: local1
+type: command
+description: Fine-tune transformer classifier
+inputs:
+  train_data:
+    type: uri_folder
+    description: Training data in Huggingface dataset format
+    optional: false
+  validation_data:
+    type: uri_folder
+    description: Validation data in Huggingface dataset format
+    optional: false
+  seed:
+    type: integer
+    description: Random seed
+    default: 123891
+    optional: false
+  model_name:
+    type: string
+    description: Model name.
+    optional: false
+  num_train_epochs:
+    type: number
+    description: Number of training epochs.
+    optional: false
+  target_epsilon:
+    type: number 
+    description: Target epsilon at the end of training.
+    optional: false
+  delta:
+    type: number
+    description: Target delta at the end of training.
+    optional: false
+  learning_rate:
+    type: number 
+    description: Learning rate.
+    optional: false
+  per_device_train_batch_size:
+    type: integer
+    description: Per device train batch size.
+    optional: false
+  gradient_accumulation_steps:
+    type: integer
+    description: Number of gradient accumulation steps.
+    optional: false
+  per_sample_max_grad_norm:
+    type: number
+    description: Per sample max grad norm for DP training.
+    optional: false
+  max_sequence_length:
+    type: integer
+    description: Max sequence length of input samples. 
+outputs:
+  model:
+    type: uri_folder
+    description: Trained models.
+code: .
+additional_includes:
+  - "../../data"
+command: >-
+  python fine_tune_transformer_classifier.py \
+    --train_data_path ${{inputs.train_data}} \
+    --test_data_path ${{inputs.validation_data}} \
+    --model_name_or_path ${{inputs.model_name}} \
+    --target_epsilon ${{inputs.target_epsilon}} \
+    --target_delta ${{inputs.delta}} \
+    --lr_scheduler_type constant \
+    --learning_rate ${{inputs.learning_rate}} \
+    --num_train_epochs ${{inputs.num_train_epochs}} \
+    --logging_strategy steps \
+    --logging_steps 1 \
+    --save_strategy no \
+    --disable_tqdm 1 \
+    --evaluation_strategy epoch \
+    --dataloader_num_workers 2 \
+    --remove_unused_columns 0 \
+    --label_names label \
+    --per_device_train_batch_size ${{inputs.per_device_train_batch_size}} \
+    --gradient_accumulation_steps ${{inputs.gradient_accumulation_steps}} \
+    --per_sample_max_grad_norm ${{inputs.per_sample_max_grad_norm}} \
+    --max_sequence_length ${{inputs.max_sequence_length}} \
+    --output_dir ${{outputs.model}} \
+    --seed ${{inputs.seed}}
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.6-cudnn8-ubuntu20.04

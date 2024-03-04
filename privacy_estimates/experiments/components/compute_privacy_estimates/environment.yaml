@@ -3,8 +3,8 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - pip
-  - python=3.10
+  - pip=21.2.4
+  - python=3.8.12
   - python-pdfkit
   - pip:
     - azure-ai-ml
