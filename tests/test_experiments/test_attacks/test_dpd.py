@@ -41,7 +41,7 @@ class TestCanaryTrackingOptimizer:
 
         dp_optimizer = DPOptimizer(optimizer, noise_multiplier=0.1, max_grad_norm=1, expected_batch_size=16)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=r".*should be wrapped around the original optimizer.*"):
             CanaryTrackingOptimizer(dp_optimizer, canary)
 
     @pytest.mark.parametrize("norm", [1.0, 2.0])
