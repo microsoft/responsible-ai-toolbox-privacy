@@ -4,6 +4,7 @@ import numpy as np
 
 from datasets import load_from_disk, Dataset, Features, Sequence, Value
 from pathlib import Path
+from typing import Dict, List
 from pydantic_cli import run_and_exit
 from pydantic import BaseModel, Field
 from torch.utils.data import DataLoader, TensorDataset
@@ -34,17 +35,26 @@ class Arguments(BaseModel):
     )
 
 
+def collate(batch: Dict[str, List]) -> Dict[str, torch.Tensor]:
+    batch_pt = {
+        "image": torch.stack([torch.tensor(sample["image"]) for sample in batch]),
+        "label": torch.tensor([sample["label"] for sample in batch])
+    }
+    return batch_pt
+
+
 def main(args: Arguments):
-    data = load_from_disk(args.dataset)
+    data = load_from_disk(str(args.dataset))
 
     print(f"Loaded dataset: {data.features}")
 
     model = CNN.load(args.experiment_dir / args.model_rel_path / "model.pt")
 
     data_loader = DataLoader(
-        data.with_format("torch"),
+        data,
         batch_size=args.batch_size,
-        shuffle=False
+        shuffle=False,
+        collate_fn=collate
     )
 
     device = "cpu" if args.use_cpu else "cuda"
