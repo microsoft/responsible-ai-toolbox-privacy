@@ -65,6 +65,9 @@ class Arguments(BaseModel):
     dataloader_num_workers: int = Field(
         default=4, description="Number of workers for data loading. 0 means that the data will be loaded in the main process"
     )
+    dataloader_prefetch_factor: int = Field(
+        default=2, description="Number of batches loaded in advance by each worker"
+    )
     keep_data_in_memory: int = Field(
         default=0, description="Keep the data in memory"
     )
@@ -226,6 +229,7 @@ def main(args: Arguments):
         train_data,
         batch_size=args.total_train_batch_size,
         num_workers=args.dataloader_num_workers,
+        prefetch_factor=args.dataloader_prefetch_factor,
         pin_memory=True,
         collate_fn=partial(collate_image_batch, device="cpu"),
     )

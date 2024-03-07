@@ -48,6 +48,7 @@ command: >-
     --tokenizer_rel_path ${{inputs.tokenizer_rel_path}} \
     --params_rel_path ${{inputs.params_rel_path}} \
     $[[ --batch_size ${{inputs.batch_size}} ]] \
+    --keep_in_memory 1 \
     --output ${{outputs.predictions}}
 environment:
   conda_file: environment.yaml
