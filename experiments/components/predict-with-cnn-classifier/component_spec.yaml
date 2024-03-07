@@ -36,6 +36,7 @@ command: >-
     --experiment_dir ${{inputs.model}} \
     --model_rel_path ${{inputs.model_rel_path}} \
     --output ${{outputs.predictions}} \
+    --keep_data_in_memory 1 \
     $[[ --batch_size ${{inputs.batch_size}} ]]
 environment:
   conda_file: environment.yaml
