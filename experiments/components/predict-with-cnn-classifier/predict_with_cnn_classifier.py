@@ -34,10 +34,16 @@ class Arguments(BaseModel):
     use_cpu: int = Field(
         default=0, description="Whether to use the CPU instead of the GPU."
     )
+    keep_data_in_memory: int = Field(
+        default=0, description="Whether to keep the data in memory."
+    )
+    dataloader_num_workers: int = Field(
+        default=4, description="Number of workers for the dataloader."
+    )
 
 
 def main(args: Arguments):
-    data = load_from_disk(str(args.dataset))
+    data = load_from_disk(str(args.dataset), keep_in_memory=args.keep_data_in_memory)
 
     print(f"Loaded dataset: {data.features}")
 
@@ -50,7 +56,8 @@ def main(args: Arguments):
         batch_size=args.batch_size,
         shuffle=False,
         pin_memory=True,
-        collate_fn=partial(collate_image_batch, device="cpu")
+        collate_fn=partial(collate_image_batch, device="cpu"),
+        num_workers=args.dataloader_num_workers
     )
 
 
