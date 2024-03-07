@@ -8,10 +8,11 @@ from typing import Dict, List
 from pydantic_cli import run_and_exit
 from pydantic import BaseModel, Field
 from torch.utils.data import DataLoader, TensorDataset
+from functools import partial
 
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from models.cnn import CNN, compute_prediction_metrics
+from models.cnn import CNN, compute_prediction_metrics, collate_image_batch
 
 
 class Arguments(BaseModel):
@@ -35,14 +36,6 @@ class Arguments(BaseModel):
     )
 
 
-def collate(batch: Dict[str, List]) -> Dict[str, torch.Tensor]:
-    batch_pt = {
-        "image": torch.stack([torch.tensor(sample["image"]) for sample in batch]),
-        "label": torch.tensor([sample["label"] for sample in batch])
-    }
-    return batch_pt
-
-
 def main(args: Arguments):
     data = load_from_disk(str(args.dataset))
 
@@ -50,14 +43,16 @@ def main(args: Arguments):
 
     model = CNN.load(args.experiment_dir / args.model_rel_path / "model.pt")
 
+    device = "cpu" if args.use_cpu else "cuda"
+
     data_loader = DataLoader(
         data,
         batch_size=args.batch_size,
         shuffle=False,
-        collate_fn=collate
+        pin_memory=True,
+        collate_fn=partial(collate_image_batch, device="cpu")
     )
 
-    device = "cpu" if args.use_cpu else "cuda"
 
     metrics = compute_prediction_metrics(model=model, device=device, data_loader=data_loader)
     print(metrics)

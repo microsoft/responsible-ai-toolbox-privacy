@@ -4,7 +4,7 @@ import os
 from torch import nn
 from tqdm import tqdm
 
-from typing import OrderedDict, Union, TypeVar, Type, Dict
+from typing import OrderedDict, Union, TypeVar, Type, Dict, List
 from torch.utils.data import DataLoader
 from dataclasses import dataclass
 
@@ -113,3 +113,10 @@ def compute_prediction_metrics(model: CNN, device: torch.device, data_loader: Da
         labels=np.concatenate(labels)
     )
     return metrics
+
+
+def collate_image_batch(batch: List[Dict], device: torch.device) -> Dict[str, torch.Tensor]:
+    return {
+        "image": torch.stack([torch.tensor(sample["image"]) for sample in batch]).to(device),
+        "label": torch.tensor([sample["label"] for sample in batch], dtype=torch.long).to(device)
+    }
