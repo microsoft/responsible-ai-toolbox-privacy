@@ -1,7 +1,6 @@
-import os
 import pytest
 from datasets import Dataset
-from privacy_estimates.experiments.components.prepare_data.prepare_data import _prepare_data, SampleSelectionMethod
+from privacy_estimates.experiments.components.prepare_data.prepare_data import _prepare_data
 
 
 class TestPrepareData:
@@ -62,9 +61,9 @@ class TestPrepareData:
         })
 
         results = _prepare_data(in_out_ds=in_out_data, in_sample_indices_ds=in_indices, out_sample_indices_ds=out_indices,
-                               train_base_ds=train_base_data, validation_base_ds=validation_base_data, seed=42,
-                               num_points_per_model=2, model_index=0, sample_selection="partitioned",
-                               merge_unused_samples="none")
+                                train_base_ds=train_base_data, validation_base_ds=validation_base_data, seed=42,
+                                num_points_per_model=2, model_index=0, sample_selection="partitioned",
+                                merge_unused_samples="none")
         assert results.train_data_for_model["sample_index"] == [None, 0]
         assert results.train_data_for_model["split"] == [None, "val"]
         assert results.in_data_for_model["sample_index"] == [0, None]

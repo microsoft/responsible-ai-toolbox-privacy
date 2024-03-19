@@ -60,7 +60,6 @@ def main(args: Arguments):
         num_workers=args.dataloader_num_workers
     )
 
-
     metrics = compute_prediction_metrics(model=model, device=device, data_loader=data_loader)
     print(metrics)
 

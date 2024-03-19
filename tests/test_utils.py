@@ -16,7 +16,7 @@ class TestAttackResults:
         assert r.FN == 1
         assert r.FP == 1
         assert r.TN == 1
-        assert r.TP == 1 
+        assert r.TP == 1
 
     def test_serialization(self):
         r = AttackResults(FN=92, FP=3, TN=4, TP=5)
@@ -24,4 +24,3 @@ class TestAttackResults:
             r.to_json(Path(tmpdir) / "results.json")
             r2 = AttackResults.from_json(Path(tmpdir) / "results.json")
             assert r == r2
-

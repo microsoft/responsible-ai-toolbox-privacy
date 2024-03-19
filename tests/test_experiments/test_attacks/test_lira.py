@@ -25,25 +25,25 @@ class TestLiRA:
         })
 
         challenge_points_stats = Dataset.from_dict(
-            mapping = {
+            mapping={
                 "sample_index": range(num_samples),
                 "split": [0]*num_samples,
-                "logits_in": [[[l for l in m]  for m in s] for s in logits_in],
-                "logits_out": [[[l for l in m]  for m in s] for s in logits_out],
+                "logits_in": [[[l for l in m] for m in s] for s in logits_in],
+                "logits_out": [[[l for l in m] for m in s] for s in logits_out],
                 "label": labels
             },
-            features = stats_features
+            features=stats_features
         )
         lira = LiRA.from_dataset(challenge_points_stats, mean_estimator=median_or_mean, fix_variance=False, num_proc=None)
 
         challenge_points = Dataset.from_dict(
-            mapping = {
+            mapping={
                 "sample_index": range(num_samples),
                 "split": [0]*num_samples,
                 "logits": logits_target,
                 "label": labels
             },
-            features = features.Features({
+            features=features.Features({
                 "sample_index": features.Value("int64"),
                 "split": features.Value("int64"),
                 "logits": features.Sequence(features.Value(dtype="float64")),
@@ -67,20 +67,20 @@ def lira_e2e_tf(logits_in: List[np.ndarray], logits_out: List[np.ndarray], logit
     except ImportError:
         pytest.skip("tensorflow_privacy not installed")
     assert len(logits_in) == len(logits_out) == len(logits_target) == len(labels)
-    assert all(l_t.ndim == 1 for l_t in logits_target) == True
-    logits_target = [l_t[np.newaxis,:] for l_t in logits_target]
+    assert all(l_t.ndim == 1 for l_t in logits_target)
+    logits_target = [l_t[np.newaxis, :] for l_t in logits_target]
 
     stats_in = [
         amia.calculate_statistic(
             lo, np.array([la]*lo.shape[0]), sample_weight=None, is_logits=True, option='logit'
-        )[:,np.newaxis]
+        )[:, np.newaxis]
         for lo, la
         in zip(logits_in, labels)
     ]
     stats_out = [
         amia.calculate_statistic(
             lo, np.array([la]*lo.shape[0]), sample_weight=None, is_logits=True, option='logit'
-        )[:,np.newaxis]
+        )[:, np.newaxis]
         for lo, la
         in zip(logits_out, labels)
     ]
