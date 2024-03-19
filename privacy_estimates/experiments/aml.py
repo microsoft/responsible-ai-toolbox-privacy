@@ -23,6 +23,7 @@ from parmap import map as pmap
 from typing import Optional, Callable, Optional, Iterable
 from collections.abc import Mapping
 from subprocess import check_output
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -543,9 +544,9 @@ class JobList:
             JobList: A JobList object containing the jobs specified in the list of URLs.
         """
         if isinstance(urls, Mapping):
-            jobs = pmap(Job.from_url, urls.values(), urls.keys(), pm_pbar=not disable_pbar)
+            jobs = [Job.from_url(url=url, local_name=name) for name, url in tqdm(urls.items(), disable=disable_pbar)]
         else:
-            jobs = pmap(Job.from_url, urls, pm_pbar=not disable_pbar)
+            jobs = [Job.from_url(url=url) for url in tqdm(urls, disable=disable_pbar)]
         return cls(jobs=list(jobs))
 
     @classmethod

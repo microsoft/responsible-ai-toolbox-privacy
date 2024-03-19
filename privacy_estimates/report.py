@@ -81,22 +81,22 @@ class EmpiricalTradeOffCurve(AbstractTradeOffCurve):
             hi=self.hi.interpolate_curve(fpr),
         )
 
-    def append_to_fpr_fnr_plot(self, fig, ax, color: str = "blue"):
-        fig, ax = self.lo.append_to_fpr_fnr_plot(fig, ax, plot_args={"color": color, "linestyle": "-."})
-        fig, ax = self.hi.append_to_fpr_fnr_plot(fig, ax, plot_args={"color": color, "linestyle": "--"})
+    def append_to_fpr_fnr_plot(self, fig, ax):
+        fig, ax = self.lo.append_to_fpr_fnr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "-."})
+        fig, ax = self.hi.append_to_fpr_fnr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "--"})
         fpr = self.all_fpr()
         fnr_lo = self.lo.interpolate_curve(fpr).fnr
         fnr_hi = self.hi.interpolate_curve(fpr).fnr
-        ax.fill_between(fpr, fnr_lo, fnr_hi, alpha=0.2, color=color)
+        ax.fill_between(fpr, fnr_lo, fnr_hi, alpha=0.2, color="blue")
         return fig, ax
 
-    def append_to_fpr_tpr_plot(self, fig, ax, color: str = "blue"):
-        fig, ax = self.lo.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": color, "linestyle": "-."})
-        fig, ax = self.hi.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": color, "linestyle": "--"})
+    def append_to_fpr_tpr_plot(self, fig, ax):
+        fig, ax = self.lo.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "-."})
+        fig, ax = self.hi.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "--"})
         fpr = self.all_fpr()
         tpr_hi = 1 - self.lo.interpolate_curve(fpr).fnr
         tpr_lo = 1 - self.hi.interpolate_curve(fpr).fnr
-        ax.fill_between(tpr_lo, fpr, tpr_hi, alpha=0.2, color=color)
+        ax.fill_between(tpr_lo, fpr, tpr_hi, alpha=0.2, color="blue")
         return fig, ax
 
     def fnr_as_dict(self) -> Dict[str, List[float]]:
