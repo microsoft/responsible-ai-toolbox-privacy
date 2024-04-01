@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional
 from azure.ai.ml import dsl, Input
 from azure.ai.ml.entities import PipelineJob
 from abc import abstractmethod
@@ -59,6 +59,13 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
         else:
             self.shadow_model_statistics_loader = None
 
+        if self.attack_loader.requires_reference_statistics:
+            self.reference_statistics_loader = ComputeReferenceModelStatisticsLoader(
+                train_loader=self.train_loader, inference_loader=self.inference_loader, workspace=workspace
+            )
+        else:
+            self.reference_statistics_loader = None
+
         self.train_many_models_loader = TrainManyModelsLoader(
             num_models=self.game_config.num_models, train_loader=train_loader, inference_loader=inference_loader,
             sample_selection="partitioned", merge_unused_samples="all_with_train",
@@ -88,9 +95,9 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def default_compute(self) -> str:
         return self.workspace.cpu_compute
 
-    def pipeline(self, train_data: Input, validation_data: Input) -> PipelineJob:
+    def pipeline(self, train_data: Input, validation_data: Input, canary_data: Optional[Input] = None) -> PipelineJob:
         @dsl.pipeline(default_compute=self.default_compute)
-        def game_pipeline(train_data: Input, validation_data: Input):
+        def game_pipeline(train_data: Input, validation_data: Input, canary_data: Input(optional=True) = None) -> PipelineJob:
             shadow_model_statistics = None
             if self.shadow_model_statistics_loader is not None:
                 shadow_model_statistics = self.shadow_model_statistics_loader.load(
@@ -100,6 +107,9 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             select_challenge_points = self.challenge_point_selection_loader.load(
                 data=train_data, shadow_model_statistics=shadow_model_statistics
             )
+
+            strategy.load_preprocessing()
+
 
             create_challenge = create_in_out_data_for_membership_inference_challenge(
                 train_data=train_data, challenge_points=select_challenge_points.outputs.challenge_points,
@@ -139,7 +149,6 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             return {
                 "privacy_report": estimate_privacy.outputs.privacy_report,
             }
-
         return game_pipeline(train_data=train_data, validation_data=validation_data)
 
     @property
