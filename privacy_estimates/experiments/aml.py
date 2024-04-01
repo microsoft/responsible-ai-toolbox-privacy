@@ -6,6 +6,7 @@ import re
 import shlex
 import fnmatch
 import pandas as pd
+import requests
 
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
@@ -24,6 +25,10 @@ from typing import Optional, Callable, Optional, Iterable
 from collections.abc import Mapping
 from subprocess import check_output
 from tqdm import tqdm
+from tempfile import TemporaryDirectory
+
+from utils import is_url
+
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +131,14 @@ class AMLComponentLoader:
     def load_from_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         version = self.override_version or version
 
+        if path.exists():
+            return self.load_from_local_component_spec(path, version)
+        elif is_url(path):
+            return self.load_from_remote_component_spec(path, version)
+        else:
+            raise FileNotFoundError(f"Could not find component spec at {path}. Path does not exist.")
+
+    def load_from_local_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         if not path.exists():
             raise FileNotFoundError(f"Could not find component spec at {path}. Path does not exist.")
 
@@ -141,6 +154,10 @@ class AMLComponentLoader:
                 spec = safe_load(f)
             name = spec["name"]
             return load_component(client=self.workspace.ml_client, name=name, version=version)
+        
+    def load_from_remote_component_spec(self, url: str, version: str = "local") -> Callable[..., Component]:
+        raise NotImplementedError("Loading components from remote URLs is not yet supported")
+
 
     def load_by_name(self, name: str, version: str) -> Callable[..., Component]:
         return load_component(client=self.workspace.ml_client, name=name, version=version)
@@ -319,9 +336,11 @@ class DatastoreURI(str):
 
 
 class Job:
-    def __init__(self, aml_run, local_name: Optional[str] = None):
+    def __init__(self, aml_run, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None):
         from azureml.core import Run
         self.aml_run: Run = aml_run
+        if add_tags is not None:
+            add_tags = dict()
         self.details = aml_run.get_details()
         self.ws = WorkspaceConfig(
             workspace_name=aml_run.experiment.workspace.name,
@@ -330,8 +349,14 @@ class Job:
         )
         self.local_name = local_name
 
+        existing_tags = self.aml_run.get_tags()
+        duplicate_keys = set(existing_tags.keys()).intersection(add_tags.keys())
+        if len(duplicate_keys) > 0:
+            raise ValueError(f"Tags {duplicate_keys} already exist in the job. Cannot add tags with duplicate keys.")
+        self.aml_run.set_tags({**existing_tags, **add_tags})
+
     @classmethod
-    def from_url(cls, url: str, local_name: Optional[str] = None) -> "Job":
+    def from_url(cls, url: str, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None) -> "Job":
         from azureml.core import Run
         parsed_url = urlparse(url)
 
@@ -351,7 +376,7 @@ class Job:
 
         run = Run.get(ws.workspace, run_id=run_id)
 
-        return Job(aml_run=run, local_name=local_name)
+        return Job(aml_run=run, local_name=local_name, add_tags=add_tags)
 
     @classmethod
     def from_id(cls, workspace: WorkspaceConfig, run_id: str, local_name: Optional[str] = None) -> "Job":
@@ -516,13 +541,15 @@ class JobList:
 
     @classmethod
     def from_table_with_urls(cls, table: pd.DataFrame, url_column: Optional[str] = "AML",
-                             filter_by_column: Optional[str] = None) -> "JobList":
+                             add_tags_from_columns: Optional[List[str]] = None) -> "JobList":
         """
         Creates a JobList object from a pandas DataFrame.
         """
-        if filter_by_column is not None:
-            table = table[bool(table[filter_by_column])]
-        return cls.from_urls(table[url_column])
+        if add_tags_from_columns is None:
+            tags = None
+        else:
+            tags = {c: table[c] for c in add_tags_from_columns}
+        return cls.from_urls(table[url_column], add_tags=tags)
 
     @classmethod
     def from_table_with_ids(cls, table: pd.DataFrame, id_column: str, workspace: WorkspaceConfig,
@@ -532,7 +559,8 @@ class JobList:
         return cls.from_ids(workspace=workspace, ids=table[id_column])
 
     @classmethod
-    def from_urls(cls, urls: Union[List[str], OrderedDict[str, str]], disable_pbar: Optional[bool] = True) -> "JobList":
+    def from_urls(cls, urls: Union[List[str], OrderedDict[str, str]], disable_pbar: Optional[bool] = True,
+                  add_tags: Optional[Dict[str, List[str]]] = None) -> "JobList":
         """
         Creates a JobList object from a list of job URLs.
 
@@ -543,10 +571,15 @@ class JobList:
         Returns:
             JobList: A JobList object containing the jobs specified in the list of URLs.
         """
-        if isinstance(urls, Mapping):
-            jobs = [Job.from_url(url=url, local_name=name) for name, url in tqdm(urls.items(), disable=disable_pbar)]
+        if add_tags is not None:
+            tags = [{k: v} for i, (k, v) in enumerate(add_tags.items()) if i == j for j in range(len(urls))]
         else:
-            jobs = [Job.from_url(url=url) for url in tqdm(urls, disable=disable_pbar)]
+            tags = [{} for _ in range(len(urls))]
+
+        if isinstance(urls, Mapping):
+            jobs = [Job.from_url(url=url, local_name=name, add_tags=tags) for (name, url), tags in tqdm(zip(urls.items(), tags), disable=disable_pbar)]
+        else:
+            jobs = [Job.from_url(url=url, add_tags=tag) for url, tag in tqdm(zip(urls, tags), disable=disable_pbar)]
         return cls(jobs=list(jobs))
 
     @classmethod
