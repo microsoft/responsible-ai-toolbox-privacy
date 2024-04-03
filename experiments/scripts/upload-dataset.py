@@ -58,9 +58,6 @@ class CIFAR10Normalized(DatasetLoader):
                 lambda: ({"image": img, "label": label} for img, label in dataset),
                 features=Features({"image": Array3D(dtype="float32", shape=(3, 32, 32)), "label": ClassLabel(num_classes=10)})
             )
-        ds = ds.add_column("sample_index", range(0, len(ds)))
-        ds = ds.add_column("split", [self.split]*len(ds))
-
         ds.info.description = self.description
 
         return ds
@@ -83,14 +80,28 @@ class SST2(DatasetLoader):
             datasets_split = "validation"
 
         ds = load_dataset("glue", "sst2", split=datasets_split)
-        ds = ds.add_column("sample_index", range(0, len(ds)))
-        ds = ds.add_column("split", [self.split]*len(ds))
 
         return ds
 
     @property
     def description(self) -> str:
         return "GLUE SST2 dataset in the HuggingFace format"
+    
+
+class AmazonPolarity5k(DatasetLoader):
+    def __init__(self, split: str):
+        super().__init__(split=split)
+
+    def as_dataset(self) -> Dataset:
+        assert self.split in ["train", "test"]
+
+        ds = load_dataset("amazon_polarity", split=self.split  + "[:5000]")
+
+        return ds
+    
+    @property
+    def description(self) -> str:
+        return "Amazon Polarity 5k dataset in the HuggingFace format"
 
 
 AVAILABLE_DATASETS = { c.__name__: c for c in DatasetLoader.__subclasses__() }

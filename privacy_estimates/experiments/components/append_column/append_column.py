@@ -4,10 +4,17 @@ from pathlib import Path
 
 
 @command_component(display_name="Append column to dataset", environment="environment.aml.yaml")
-def append_column_constant(data: Input, name: str, value: int, output: Output):
+def append_column_constant_int(data: Input, name: str, value: int, output: Output):
     ds = load_from_disk(data)
     ds = ds.add_column(name, (value for _ in range(len(ds))))
     ds.save_to_disk(output)
+
+
+@command_component(display_name="Append column to dataset", environment="environment.aml.yaml")
+def append_column_constant_str(data: Input, name: str, value: str, output: Output):
+    ds = load_from_disk(data)
+    ds = ds.add_column(name, (value for _ in range(len(ds))))
+    ds.save_to_disk(output) 
 
 
 @command_component(display_name="Append column to dataset with incrementing index", environment="environment.aml.yaml")

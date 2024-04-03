@@ -1,0 +1,40 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates_experiments_compute_mi_signal_from_logprobs
+display_name: compute_mi_signal_from_logprobs
+version: local1
+type: command
+description: Compute MI signal from logprobs
+inputs:
+  logprobs:
+    type: uri_folder
+    description: Logprobs
+  logprobs_column:
+    type: string
+    description: Logprobs column
+  labels:
+    type: uri_folder
+    description: Labels
+  labels_column:
+    type: string
+    description: Labels column
+  method:
+    type: string
+    description: Method
+outputs:
+  signal:
+    type: uri_folder
+    description: MI Signal
+command: >-
+  python compute_mi_signal_from_logprobs.py \
+    --logprobs ${{inputs.logprobs}} \
+    --logprobs_column ${{inputs.logprobs_column}} \
+    --method ${{inputs.method}} \
+    --labels ${{inputs.labels}} \
+    --labels_column ${{inputs.labels_column}}
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+
+code: "."
+additional_includes:
+  - "../../attacks/signals.py"

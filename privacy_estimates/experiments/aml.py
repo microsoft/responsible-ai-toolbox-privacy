@@ -25,9 +25,6 @@ from typing import Optional, Callable, Optional, Iterable
 from collections.abc import Mapping
 from subprocess import check_output
 from tqdm import tqdm
-from tempfile import TemporaryDirectory
-
-from utils import is_url
 
 
 logger = logging.getLogger(__name__)

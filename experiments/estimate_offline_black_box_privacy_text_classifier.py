@@ -3,8 +3,8 @@ from pathlib import Path
 from dataclasses import dataclass, asdict
 
 from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainingComponentLoader, AMLComponentLoader
-from privacy_estimates.experiments.games.black_box_membership_inference import (
-    BlackBoxMembershipInferenceGameBase, ShadowModelConfig, GameConfig
+from privacy_estimates.experiments.games.offline_black_box_membership_inference import (
+    OfflineBlackBoxMembershipInferenceGameBase, GameConfig, AttackConfig
 )
 from privacy_estimates.experiments.attacks import RmiaLoader
 from privacy_estimates.experiments.aml import WorkspaceConfig
@@ -72,10 +72,10 @@ class TransformerInferneceComponentLoader(InferenceComponentLoader):
         return self.aml_loader.workspace.gpu_compute
 
 
-class Game(BlackBoxMembershipInferenceGameBase):
+class Game(OfflineBlackBoxMembershipInferenceGameBase):
     def __init__(self, shared_training_parameters: SharedTrainingParameters,
                  shared_inference_parameters: SharedInferenceParameters, workspace: WorkspaceConfig,
-                 game_config: GameConfig, shadow_model_config: ShadowModelConfig) -> None:
+                 game_config: GameConfig, attack_config: AttackConfig) -> None:
 
         train_loader = TrainTransformerComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),
@@ -97,7 +97,7 @@ class Game(BlackBoxMembershipInferenceGameBase):
         super().__init__(
             workspace=workspace,
             game_config=game_config,
-            shadow_model_config=shadow_model_config,
+            attack_config=attack_config,
             train_loader=train_loader,
             inference_loader=inference_loader,
             attack_loader=attack_loader,
@@ -106,15 +106,15 @@ class Game(BlackBoxMembershipInferenceGameBase):
 
     @property
     def train_data(self) -> Input:
-        return self.workspace.ml_client.data.get(name="SST2-train", version="3")
+        return self.workspace.ml_client.data.get(name="SST2-train", version="4")
 
     @property
     def validation_data(self) -> Input:
-        return self.workspace.ml_client.data.get(name="SST2-test", version="3")
+        return self.workspace.ml_client.data.get(name="SST2-test", version="4")
     
     @property
     def canary_data(self) -> Input:
-        return self.workspace.ml_client.data.get(name="SST2-test", version="3")
+        return self.workspace.ml_client.data.get(name="AmazonPolarity5k-train", version="1")
 
 
 if __name__ == "__main__":

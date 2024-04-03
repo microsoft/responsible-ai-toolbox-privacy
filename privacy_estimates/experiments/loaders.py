@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from privacy_estimates.experiments.aml import AMLComponentLoader
 from privacy_estimates.experiments.components import (
-    prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant
+    prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_int
 )
 
 
@@ -110,10 +110,10 @@ class TrainSingleModelAndPredictLoader:
             predictions_out_i = reinsert_null_rows_out.outputs.full
 
             if self.arguments.tag_model_index:
-                predictions_in_i = append_column_constant(
+                predictions_in_i = append_column_constant_int(
                     data=predictions_in_i, name="model_index", value=model_index
                 ).outputs.output
-                predictions_out_i = append_column_constant(
+                predictions_out_i = append_column_constant_int(
                     data=predictions_out_i, name="model_index", value=model_index
                 ).outputs.output
 

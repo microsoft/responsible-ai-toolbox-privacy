@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.loaders import ComponentLoader
-from privacy_estimates.experiments.components import select_cross_validation_challenge_points
+from privacy_estimates.experiments.components import select_cross_validation_challenge_points, append_column_constant_str, append_column_incrementing
 
 
 class ChallengePointSelectionLoader(ComponentLoader):
@@ -45,3 +45,19 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
                 "challenge_points": postprocess.outputs.mi_challenge_points,
             }
         return p(data=data, shadow_model_statistics=shadow_model_statistics)
+    
+
+class ExternalCanaryDataset(ChallengePointSelectionLoader):
+    def __init__(self, canary_data: Input, num_challenge_points: int):
+        self.canary_data = canary_data
+        self.num_challenge_points = num_challenge_points
+
+    def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
+        @dsl.pipeline(name="select_challenge_points_from_external_canary_dataset")
+        def p() -> Pipeline:
+            canaries = append_column_constant_str(data=self.canary_data, name="split", value="canary").outputs.output
+            canaries = append_column_incrementing(data=canaries, name="sample_index").outputs.output
+            return {
+                "challenge_points": canaries,
+            }
+        return p()

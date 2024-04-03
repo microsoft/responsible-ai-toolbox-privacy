@@ -4,7 +4,9 @@ from .create_in_out_data_for_shadow_model_statistics.create_in_out_data_for_shad
 from .aggregate_output.aggregate import aggregate_output, collect_from_aml_parallel
 from .prepare_data.prepare_data import prepare_data, prepare_data_for_aml_parallel
 from .filter.filter import filter_aux_data, reinsert_aux_data, filter_aux_data_aml_parallel, reinsert_aux_data_aml_parallel
-from .append_column.append_column import append_column_constant, append_column_incrementing
+from .append_column.append_column import (
+	append_column_constant_int, append_column_constant_str, append_column_incrementing
+)
 from .postprocess_dpd_data.postprocess_dpd_data import postprocess_dpd_data
 from .compute_privacy_estimates.loader import compute_privacy_estimates
 from .create_in_out_data_for_mi_challenge.mi_challenge import create_in_out_data_for_membership_inference_challenge
