@@ -336,7 +336,7 @@ class Job:
     def __init__(self, aml_run, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None):
         from azureml.core import Run
         self.aml_run: Run = aml_run
-        if add_tags is not None:
+        if add_tags is None:
             add_tags = dict()
         self.details = aml_run.get_details()
         self.ws = WorkspaceConfig(

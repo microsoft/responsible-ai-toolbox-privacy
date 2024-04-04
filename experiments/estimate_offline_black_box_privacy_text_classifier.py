@@ -106,15 +106,15 @@ class Game(OfflineBlackBoxMembershipInferenceGameBase):
 
     @property
     def train_data(self) -> Input:
-        return self.workspace.ml_client.data.get(name="SST2-train", version="4")
+        return self.workspace.ml_client.data.get(name="SST2-train", version="5")
 
     @property
     def validation_data(self) -> Input:
-        return self.workspace.ml_client.data.get(name="SST2-test", version="4")
+        return self.workspace.ml_client.data.get(name="SST2-test", version="5")
     
     @property
     def canary_data(self) -> Input:
-        return self.workspace.ml_client.data.get(name="AmazonPolarity5k-train", version="1")
+        return self.workspace.ml_client.data.get(name="AmazonPolarity5k-train", version="2")
 
 
 if __name__ == "__main__":

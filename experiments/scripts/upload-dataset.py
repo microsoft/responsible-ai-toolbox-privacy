@@ -80,6 +80,7 @@ class SST2(DatasetLoader):
             datasets_split = "validation"
 
         ds = load_dataset("glue", "sst2", split=datasets_split)
+        ds = ds.select_columns(["sentence", "label"])
 
         return ds
 
@@ -96,6 +97,7 @@ class AmazonPolarity5k(DatasetLoader):
         assert self.split in ["train", "test"]
 
         ds = load_dataset("amazon_polarity", split=self.split  + "[:5000]")
+        ds = ds.rename_columns({"content": "sentence"}).select_columns(["sentence", "label"])
 
         return ds
     

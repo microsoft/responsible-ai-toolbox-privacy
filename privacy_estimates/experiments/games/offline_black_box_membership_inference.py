@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Optional
 from azure.ai.ml import dsl, Input
-from azure.ai.ml.entities import PipelineJob
 from abc import abstractmethod
 
 from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
@@ -85,9 +84,9 @@ class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):
     def default_compute(self) -> str:
         return self.workspace.cpu_compute
 
-    def pipeline(self, train_data: Input, validation_data: Input, canary_data: Optional[Input] = None) -> PipelineJob:
+    def pipeline(self, train_data: Input, validation_data: Input, canary_data: Optional[Input] = None):
         @dsl.pipeline(default_compute=self.default_compute)
-        def game_pipeline(train_data: Input, validation_data: Input, canary_data: Input) -> PipelineJob:
+        def game_pipeline(train_data: Input, validation_data: Input, canary_data: Input):
             train_data = add_index_to_dataset(data=train_data, split="train").outputs.output
             validation_data = add_index_to_dataset(data=validation_data, split="validation").outputs.output
             canary_data = add_index_to_dataset(data=canary_data, split="canary").outputs.output
