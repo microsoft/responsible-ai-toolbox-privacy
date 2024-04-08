@@ -97,13 +97,17 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     elif sample_selection == SampleSelectionMethod.PARTITIONED:
         i_start = (model_index * num_points_per_model) % len(in_sample_indices_ds)
         i_end = ((model_index + 1) * num_points_per_model) % len(in_sample_indices_ds)
-        if i_end < i_start:
+        if i_end <= i_start:
             rows_for_model = np.concatenate([np.arange(i_start, len(in_sample_indices_ds)), np.arange(0, i_end)])
         else:
             rows_for_model = np.arange(i_start, i_end)
     else:
         raise NotImplementedError(f"sample_selection={sample_selection} is not implemented")
-
+    
+    assert len(rows_for_model) == num_points_per_model, (
+        f"rows_for_model must have length {num_points_per_model}, but has length {len(rows_for_model)}"
+    )
+    
     in_sample_indices = in_sample_indices_ds.select(rows_for_model, keep_in_memory=True)
     out_sample_indices = out_sample_indices_ds.select(rows_for_model, keep_in_memory=True)
 
@@ -120,6 +124,12 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
 
     in_data_for_model_ds = in_out_ds.select(in_base_indices)
     out_data_for_model_ds = in_out_ds.select(out_base_indices)
+    assert len(in_data_for_model_ds) == len(in_sample_indices), (
+        "in_data_for_model_ds must have the same length as in_base_indices"
+    )
+    assert len(out_data_for_model_ds) == len(out_sample_indices), (
+        "out_data_for_model_ds must have the same length as out_base_indices"
+    )
 
     logger.info(f"Length of train_base_ds: {len(train_base_ds)}")
     train_data_for_model_ds: Dataset = concatenate_datasets([train_base_ds, in_data_for_model_ds])

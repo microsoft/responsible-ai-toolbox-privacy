@@ -120,6 +120,10 @@ def dictconfig_to_dataclass(cfg: DictConfig, dataclass_type: Type[T]) -> T:
     return convert_nested(cfg, dataclass_type)
 
 
+def is_url(path: str) -> bool:
+    return str(path).startswith("http://") or str(path).startswith("https://")
+
+
 class AMLComponentLoader:
     def __init__(self, workspace: WorkspaceConfig):
         self.workspace = workspace

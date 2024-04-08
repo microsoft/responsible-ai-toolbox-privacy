@@ -20,12 +20,12 @@ setup(
     python_requires=">=3.9",
     package_data={'': [
         'VERSION',
-        "privacy_estimates/experiments/simple_components/*/environment.aml.yaml",
-        "privacy_estimates/experiments/simple_components/*/environment.aml.yml",
-        "privacy_estimates/experiments/simple_components/*/environment.conda.yaml",
-        "privacy_estimates/experiments/simple_components/*/environment.conda.yml",
-        "privacy_estimates/experiments/simple_components/*/component_spec.yaml",
-        "privacy_estimates/experiments/simple_components/*/component_spec.yml",
+        "privacy_estimates/experiments/components/*/environment.aml.yaml",
+        "privacy_estimates/experiments/components/*/environment.aml.yml",
+        "privacy_estimates/experiments/components/*/environment.conda.yaml",
+        "privacy_estimates/experiments/components/*/environment.conda.yml",
+        "privacy_estimates/experiments/components/*/component_spec.yaml",
+        "privacy_estimates/experiments/components/*/component_spec.yml",
     ]},
     install_requires=[
         "statsmodels",

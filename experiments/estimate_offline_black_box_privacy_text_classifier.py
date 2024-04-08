@@ -89,11 +89,6 @@ class Game(OfflineBlackBoxMembershipInferenceGameBase):
 
         attack_loader = RmiaLoader()
 
-        challenge_point_selection_loader = ExternalCanaryDataset(
-            canary_data=workspace.ml_client.data.get(name="SST2-test", version="3"),
-            num_challenge_points=2048,
-        )
-
         super().__init__(
             workspace=workspace,
             game_config=game_config,
@@ -101,7 +96,6 @@ class Game(OfflineBlackBoxMembershipInferenceGameBase):
             train_loader=train_loader,
             inference_loader=inference_loader,
             attack_loader=attack_loader,
-            challenge_point_selection_loader=challenge_point_selection_loader
         )
 
     @property

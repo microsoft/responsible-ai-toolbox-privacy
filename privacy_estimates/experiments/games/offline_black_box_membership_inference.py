@@ -34,7 +34,6 @@ class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):
     def __init__(
             self, game_config: GameConfig, attack_config: AttackConfig, workspace: WorkspaceConfig,
             train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader, attack_loader: AttackLoader,
-            challenge_point_selection_loader: ChallengePointSelectionLoader,
             privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
     ) -> None:
         super().__init__(workspace=workspace)
@@ -42,7 +41,6 @@ class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):
         self.attack_config = attack_config
 
         self.attack_loader = attack_loader
-        self.challenge_point_selection_loader = challenge_point_selection_loader
         self.train_loader = train_loader
         self.inference_loader = inference_loader
         self.privacy_estimation_config = privacy_estimation_config
@@ -57,24 +55,6 @@ class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):
             num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
             num_models_per_group=self.game_config.num_models_per_group, tag_model_index=False
         )
-
-    @property
-    @abstractmethod
-    def train_data(self):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} needs to implement property train_data"
-        )
-
-    @property
-    @abstractmethod
-    def validation_data(self):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} needs to implement property validation_data"
-        )
-    
-    @property
-    def canary_data(self):
-        return None
 
     @property
     def experiment_name(self) -> str:
@@ -97,7 +77,7 @@ class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):
 
             create_challenge = create_in_out_data_for_membership_inference_challenge(
                 train_data=train_data, challenge_points=canary_data,
-                seed=self.game_config.seed, max_num_challenge_points=self.challenge_point_selection_loader.num_challenge_points
+                seed=self.game_config.seed, max_num_challenge_points=self.game_config.num_models*self.game_config.num_challenge_points_per_model,
             )
 
             train_many_models = self.train_many_models_loader.load(
