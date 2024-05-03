@@ -14,6 +14,7 @@ inputs:
   extra_args:
     type: string
     description: Extra arguments for the signal computation. (E.g. 'arg=val1 arg2=val2')
+    optional: true 
 outputs:
   mi_signal:
     type: uri_folder

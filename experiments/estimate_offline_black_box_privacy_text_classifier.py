@@ -60,13 +60,13 @@ class TransformerInferenceComponentLoader(InferenceComponentLoader):
 
     def load(self, model, dataset):
         @dsl.pipeline()
-        def inference_pipeline(model, dataset):
+        def inference_pipeline(model: Input, dataset: Input):
             compute_inference = self.aml_loader.load_from_component_spec(
                 EXPERIMENT_DIR/"components"/"predict-with-transformer-classifier"/"component_spec.yaml", version="local"
             )(model=model, dataset=dataset, **(asdict(self.parameters)))
             compute_inference.compute = self.aml_loader.workspace.gpu_compute
             compute_signal = compute_mi_signals(logits_and_labels=compute_inference.outputs.predictions, method=self.mi_signal_method)
-            return {"mi_signal": compute_signal.outputs.mi_signal}
+            return {"predictions": compute_signal.outputs.mi_signal}
         p = inference_pipeline(model=model, dataset=dataset)
         return p
 
