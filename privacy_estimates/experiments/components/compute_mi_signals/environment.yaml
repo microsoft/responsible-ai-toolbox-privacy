@@ -1,0 +1,21 @@
+name: ComponentEnvironment
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - pip
+  - python=3.10
+  - python-pdfkit
+  - pip:
+    - azure-ai-ml
+    - azureml-core
+    - datasets
+    - matplotlib
+    - markdown2
+    - mdutils
+    - mldesigner
+    - numpy
+    - pdfkit
+    - git+https://github.com/microsoft/prv_accountant.git@535a9f0e417580bd28fd74579119fa4f269a16af
+    - pydantic-cli
+    - tqdm-loggable

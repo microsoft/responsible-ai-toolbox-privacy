@@ -9,6 +9,7 @@ from privacy_estimates.experiments.games.offline_black_box_membership_inference 
 from privacy_estimates.experiments.attacks import RmiaLoader
 from privacy_estimates.experiments.aml import WorkspaceConfig
 from privacy_estimates.experiments.challenge_point_selectors import ExternalCanaryDataset
+from privacy_estimates.experiments.components import compute_mi_signals
 
 
 EXPERIMENT_DIR = Path(__file__).parent
@@ -57,19 +58,17 @@ class TransformerInferneceComponentLoader(InferenceComponentLoader):
         super().__init__(aml_component_loader=aml_component_loader)
         self.parameters = parameters
 
-    @property
-    def component(self):
-        return self.aml_loader.load_from_component_spec(
-            EXPERIMENT_DIR/"components"/"predict-with-transformer-classifier"/"component_spec.yaml", version="local"
-        )
-
-    @property
-    def parameter_dict(self):
-        return asdict(self.parameters)
-
-    @property
-    def compute(self) -> str:
-        return self.aml_loader.workspace.gpu_compute
+    def load(self, model, dataset):
+        @dsl.pipeline(default_compute=self.default_compute)
+        def inference_pipeline(model, dataset):
+            compute_inference = self.aml_loader.load_from_component_spec(
+                EXPERIMENT_DIR/"components"/"predict-with-transformer-classifier"/"component_spec.yaml", version="local"
+            )(model=model, dataset=dataset)
+            compute_inference.compute = self.aml_loader.workspace.gpu_compute
+            compute_signal = compute_mi_signal(logits_and_labels=compute_inference.outputs.predictions)
+            return {"mi_signal": compute_signal.outputs.mi_signal}
+        p = inference_pipeline(model=model, dataset=dataset)
+        return p
 
 
 class Game(OfflineBlackBoxMembershipInferenceGameBase):
