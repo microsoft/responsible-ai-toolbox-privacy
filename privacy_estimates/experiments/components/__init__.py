@@ -19,3 +19,4 @@ from .select_cross_validation_challenge_points import select_cross_validation_ch
 from .modify_dataset.modify import append_model_index_column_aml_parallel
 from .create_empty_dataset.create_empty_dataset import create_empty_dataset
 from .convert_in_out_to_challenge.convert_to_challenge import convert_in_out_to_challenge
+from .compute_mi_signals.loader import compute_mi_signals

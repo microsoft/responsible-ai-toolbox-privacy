@@ -1,4 +1,4 @@
-from azure.ai.ml import Input
+from azure.ai.ml import Input, dsl
 from pathlib import Path
 from dataclasses import dataclass, asdict
 
@@ -8,7 +8,6 @@ from privacy_estimates.experiments.games.offline_black_box_membership_inference 
 )
 from privacy_estimates.experiments.attacks import RmiaLoader
 from privacy_estimates.experiments.aml import WorkspaceConfig
-from privacy_estimates.experiments.challenge_point_selectors import ExternalCanaryDataset
 from privacy_estimates.experiments.components import compute_mi_signals
 
 
@@ -53,19 +52,20 @@ class TrainTransformerComponentLoader(TrainingComponentLoader):
         return self.aml_loader.workspace.gpu_compute
 
 
-class TransformerInferneceComponentLoader(InferenceComponentLoader):
-    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedInferenceParameters):
+class TransformerInferenceComponentLoader(InferenceComponentLoader):
+    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedInferenceParameters, mi_signal_method: str):
         super().__init__(aml_component_loader=aml_component_loader)
         self.parameters = parameters
+        self.mi_signal_method = mi_signal_method
 
     def load(self, model, dataset):
-        @dsl.pipeline(default_compute=self.default_compute)
+        @dsl.pipeline()
         def inference_pipeline(model, dataset):
             compute_inference = self.aml_loader.load_from_component_spec(
                 EXPERIMENT_DIR/"components"/"predict-with-transformer-classifier"/"component_spec.yaml", version="local"
-            )(model=model, dataset=dataset)
+            )(model=model, dataset=dataset, **(asdict(self.parameters)))
             compute_inference.compute = self.aml_loader.workspace.gpu_compute
-            compute_signal = compute_mi_signal(logits_and_labels=compute_inference.outputs.predictions)
+            compute_signal = compute_mi_signals(logits_and_labels=compute_inference.outputs.predictions, method=self.mi_signal_method)
             return {"mi_signal": compute_signal.outputs.mi_signal}
         p = inference_pipeline(model=model, dataset=dataset)
         return p
@@ -81,9 +81,10 @@ class Game(OfflineBlackBoxMembershipInferenceGameBase):
             parameters=shared_training_parameters
         )
 
-        inference_loader = TransformerInferneceComponentLoader(
+        inference_loader = TransformerInferenceComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),
-            parameters=shared_inference_parameters
+            parameters=shared_inference_parameters,
+            mi_signal_method=attack_config.mi_signal_method
         )
 
         attack_loader = RmiaLoader()
