@@ -11,6 +11,9 @@ inputs:
   mi_statistics:
     type: uri_folder
     description: MI statistics in Huggingface dataset format
+  offline_a:
+    type: number
+    description: RMIA Offline parameter
 outputs:
   scores:
     type: uri_folder
@@ -19,7 +22,8 @@ code: .
 command: >-
   python rmia.py \
     --challenge_points ${{inputs.challenge_points}} \
-    --shadow_model_statistics ${{inputs.mi_statistics}} \
+    --mi_statistics ${{inputs.mi_statistics}} \
+    --offline_a ${{inputs.offline_a}} \
     --scores ${{outputs.scores}}
 environment:
   conda_file: environment.yaml

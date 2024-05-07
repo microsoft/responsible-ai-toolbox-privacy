@@ -26,20 +26,19 @@ class GameConfig:
 
 
 @dataclass
-class AttackConfig:
-    mi_signal_method: str
-    mi_signal_extra_args: Optional[Dict] = None
+class MISignalConfig:
+    method: str
+    extra_args: Optional[Dict] = None
 
 
 class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):
     def __init__(
-            self, game_config: GameConfig, attack_config: AttackConfig, workspace: WorkspaceConfig,
+            self, game_config: GameConfig, workspace: WorkspaceConfig,
             train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader, attack_loader: AttackLoader,
             privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
     ) -> None:
         super().__init__(workspace=workspace)
         self.game_config = game_config
-        self.attack_config = attack_config
 
         self.attack_loader = attack_loader
         self.train_loader = train_loader

@@ -4,9 +4,9 @@ from dataclasses import dataclass, asdict
 
 from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainingComponentLoader, AMLComponentLoader
 from privacy_estimates.experiments.games.offline_black_box_membership_inference import (
-    OfflineBlackBoxMembershipInferenceGameBase, GameConfig, AttackConfig
+    OfflineBlackBoxMembershipInferenceGameBase, GameConfig, MISignalConfig
 )
-from privacy_estimates.experiments.attacks import RmiaLoader
+from privacy_estimates.experiments.attacks import RmiaLoader, RmiaConfig
 from privacy_estimates.experiments.aml import WorkspaceConfig
 from privacy_estimates.experiments.components import compute_mi_signals
 
@@ -69,8 +69,13 @@ class TransformerInferenceComponentLoader(InferenceComponentLoader):
                 EXPERIMENT_DIR/"components"/"predict-with-transformer-classifier"/"component_spec.yaml", version="local"
             )(model=model, dataset=dataset, **(asdict(self.parameters)))
             compute_inference.compute = self.aml_loader.workspace.gpu_compute
-            compute_signal = compute_mi_signals(logits_and_labels=compute_inference.outputs.predictions,
-                                                method=self.mi_signal_method, **self.mi_signal_extra_args)
+            compute_signal = compute_mi_signals(
+                predictions_and_labels=compute_inference.outputs.predictions,
+                method=self.mi_signal_method,
+                prediction_column="logits",
+                prediction_format="logit",
+                **self.mi_signal_extra_args
+            )
             return {"predictions": compute_signal.outputs.mi_signal}
         p = inference_pipeline(model=model, dataset=dataset)
         return p
@@ -79,7 +84,7 @@ class TransformerInferenceComponentLoader(InferenceComponentLoader):
 class Game(OfflineBlackBoxMembershipInferenceGameBase):
     def __init__(self, shared_training_parameters: SharedTrainingParameters,
                  shared_inference_parameters: SharedInferenceParameters, workspace: WorkspaceConfig,
-                 game_config: GameConfig, attack_config: AttackConfig) -> None:
+                 game_config: GameConfig, mi_signal_config: MISignalConfig, rmia_config: RmiaConfig) -> None:
 
         train_loader = TrainTransformerComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),
@@ -89,16 +94,15 @@ class Game(OfflineBlackBoxMembershipInferenceGameBase):
         inference_loader = TransformerInferenceComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),
             parameters=shared_inference_parameters,
-            mi_signal_method=attack_config.mi_signal_method,
-            mi_signal_extra_args=attack_config.mi_signal_extra_args
+            mi_signal_method=mi_signal_config.method,
+            mi_signal_extra_args=mi_signal_config.extra_args
         )
 
-        attack_loader = RmiaLoader()
+        attack_loader = RmiaLoader(offline_a=rmia_config.offline_a)
 
         super().__init__(
             workspace=workspace,
             game_config=game_config,
-            attack_config=attack_config,
             train_loader=train_loader,
             inference_loader=inference_loader,
             attack_loader=attack_loader,

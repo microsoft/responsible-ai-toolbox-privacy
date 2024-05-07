@@ -57,7 +57,7 @@ class TaylorSoftMargin(Signal):
         self.temp = temp
 
     @property
-    def valid_predictions_fromats(self) -> List[PredictionFormat]:
+    def valid_prediction_formats(self) -> List[PredictionFormat]:
         return [PredictionFormat.LOGIT]
 
     def compute_mi_signal(self, predictions: np.ndarray, labels: np.ndarray) -> np.ndarray:
@@ -75,7 +75,7 @@ class TaylorSoftMargin(Signal):
         taylor_logit_sum = taylor_logit_sum + soft_taylor_true_logit
         signal = (soft_taylor_true_logit / taylor_logit_sum).reshape(-1)
         return signal
-
+    
 
 SIGNALS = {cls.__name__: cls for cls in Signal.__subclasses__()}
 
