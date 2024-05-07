@@ -23,4 +23,8 @@ game_config:
   num_challenge_points_per_model: 1024
 
 attack_config:
-  mi_signal_method: tylor
+  mi_signal_method: TaylorSoftMargin
+  mi_signal_extra_args:
+    temp: 2.0 
+    taylor_m: 0.6
+    taylor_n: 4

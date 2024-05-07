@@ -10,6 +10,8 @@ from privacy_estimates.experiments.attacks import RmiaLoader
 from privacy_estimates.experiments.aml import WorkspaceConfig
 from privacy_estimates.experiments.components import compute_mi_signals
 
+from typing import Dict, Optional
+
 
 EXPERIMENT_DIR = Path(__file__).parent
 
@@ -53,10 +55,12 @@ class TrainTransformerComponentLoader(TrainingComponentLoader):
 
 
 class TransformerInferenceComponentLoader(InferenceComponentLoader):
-    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedInferenceParameters, mi_signal_method: str):
+    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedInferenceParameters, mi_signal_method: str,
+                 mi_signal_extra_args: Optional[Dict] = None):
         super().__init__(aml_component_loader=aml_component_loader)
         self.parameters = parameters
         self.mi_signal_method = mi_signal_method
+        self.mi_signal_extra_args = mi_signal_extra_args or {}
 
     def load(self, model, dataset):
         @dsl.pipeline()
@@ -65,7 +69,8 @@ class TransformerInferenceComponentLoader(InferenceComponentLoader):
                 EXPERIMENT_DIR/"components"/"predict-with-transformer-classifier"/"component_spec.yaml", version="local"
             )(model=model, dataset=dataset, **(asdict(self.parameters)))
             compute_inference.compute = self.aml_loader.workspace.gpu_compute
-            compute_signal = compute_mi_signals(logits_and_labels=compute_inference.outputs.predictions, method=self.mi_signal_method)
+            compute_signal = compute_mi_signals(logits_and_labels=compute_inference.outputs.predictions,
+                                                method=self.mi_signal_method, **self.mi_signal_extra_args)
             return {"predictions": compute_signal.outputs.mi_signal}
         p = inference_pipeline(model=model, dataset=dataset)
         return p
@@ -84,7 +89,8 @@ class Game(OfflineBlackBoxMembershipInferenceGameBase):
         inference_loader = TransformerInferenceComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),
             parameters=shared_inference_parameters,
-            mi_signal_method=attack_config.mi_signal_method
+            mi_signal_method=attack_config.mi_signal_method,
+            mi_signal_extra_args=attack_config.mi_signal_extra_args
         )
 
         attack_loader = RmiaLoader()

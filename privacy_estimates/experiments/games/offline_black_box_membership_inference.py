@@ -28,6 +28,7 @@ class GameConfig:
 @dataclass
 class AttackConfig:
     mi_signal_method: str
+    mi_signal_extra_args: Optional[Dict] = None
 
 
 class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):

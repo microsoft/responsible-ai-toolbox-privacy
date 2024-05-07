@@ -27,7 +27,7 @@ command: >-
     --logits_and_labels ${{inputs.logits_and_labels}} \
     $[[ --extra_args '${{inputs.extra_args}}' ]] \
     --method ${{inputs.method}} \
-    --output_dir ${{outputs.mi_signal}}
+    --mi_signals ${{outputs.mi_signal}}
 environment:
   conda_file: environment.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
