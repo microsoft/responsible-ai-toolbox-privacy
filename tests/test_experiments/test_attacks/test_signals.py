@@ -42,6 +42,26 @@ def test_taylor_soft_margin(temp, m, n):
 
     reference_signal = compute_signal_reference(logits, labels, temp=temp, m=m, n=n)
 
-    signal = signal_method.compute_mi_signal(logits=logits, labels=labels)
+    signal = signal_method.compute_mi_signal_from_logits(logits=logits, labels=labels)
 
     np.testing.assert_array_almost_equal(signal, reference_signal, decimal=5)
+
+
+def test_taylor_soft_margin_sequence():
+    temp = 2.0
+    m = 0.6
+    n = 4
+
+    seq_len = 3
+    batch_size = 10
+    num_classes = 5
+
+    signal_method = TaylorSoftMargin(temp=temp, taylor_m=m, taylor_n=n)
+
+    logits = np.random.rand(batch_size, seq_len, num_classes)
+    labels = np.random.randint(0, num_classes, (batch_size, seq_len))
+
+    signal_all = signal_method.compute_mi_signal_from_logits(logits=logits, labels=labels)
+    for i in range(seq_len):
+        signal_i = signal_method.compute_mi_signal_from_logits(logits=logits[:, i, :], labels=labels[:, i])
+        np.testing.assert_array_almost_equal(signal_all[:, i], signal_i)

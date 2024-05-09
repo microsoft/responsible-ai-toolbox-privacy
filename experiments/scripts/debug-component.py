@@ -29,15 +29,17 @@ def download_inputs_to_temp_dir(job: Job) -> Dict[str, Path]:
 
 
 def main(args: Arguments):
-    workspace_and_run_id = bool(args.workspace_config) and bool(args.run_id)
-    if workspace_and_run_id == bool(args.url):
+    if bool(args.run_id) == bool(args.url):
         raise ValueError(
-            "Must specify either --workspace-config and --run-id or --url"
+            "Must specify either --run-id or --url"
         )
     if args.url:
         job = Job.from_url(args.url)
-    if workspace_and_run_id:
-        ws = WorkspaceConfig.from_yaml(args.workspace_config)
+    if args.run_id:
+        if args.workspace_config:
+            ws = WorkspaceConfig.from_yaml(args.workspace_config)
+        else:
+            ws = WorkspaceConfig.from_az_cli()
         job = Job.from_id(ws, run_id=args.run_id)
 
     with download_inputs_to_temp_dir(job) as input_paths:

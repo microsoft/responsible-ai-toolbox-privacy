@@ -23,7 +23,7 @@ from yaml import safe_load
 from parmap import map as pmap
 from typing import Optional, Callable, Optional, Iterable
 from collections.abc import Mapping
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
 from tqdm import tqdm
 
 
@@ -80,6 +80,11 @@ class WorkspaceConfig:
 
     @classmethod
     def from_env_vars(cls, **kwargs):
+        subscription = os.environ.get('AZUREML_ARM_SUBSCRIPTION', None)
+        workspace = os.environ.get('AZUREML_ARM_WORKSPACE_NAME', None)
+        group = os.environ.get('AZUREML_ARM_RESOURCE_GROUP', None)
+        if not all([subscription, workspace, group]):
+            return None
         return cls(
             subscription_id=os.environ['AZUREML_ARM_SUBSCRIPTION'],
             workspace_name=os.environ['AZUREML_ARM_WORKSPACE_NAME'],
@@ -89,9 +94,12 @@ class WorkspaceConfig:
 
     @classmethod
     def from_az_cli(cls, **kwargs):
-        sub = json.loads(check_output(["az", "account", "show"]))["id"]
-        name = json.loads(check_output(["az", "config", "get", "defaults.workspace"]))["value"]
-        group = json.loads(check_output(["az", "config", "get", "defaults.group"]))["value"]
+        try:
+            sub = json.loads(check_output(["az", "account", "show"]))["id"]
+            name = json.loads(check_output(["az", "config", "get", "defaults.workspace"]))["value"]
+            group = json.loads(check_output(["az", "config", "get", "defaults.group"]))["value"]
+        except CalledProcessError:
+            return None
         return cls(subscription_id=sub, workspace_name=name, resource_group=group, **kwargs)
 
 
