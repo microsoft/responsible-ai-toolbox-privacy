@@ -27,6 +27,12 @@ setup(
             "*/environment.conda.yml",
             "*/component_spec.yaml",
             "*/component_spec.yml",
+        ],
+        "privacy_estimates.experiments.attacks": [
+            "*/environment.yaml",
+            "*/environment.yml",
+            "*/component_spec.yml",
+            "*/component_spec.yaml",
         ]
     },
     install_requires=[
