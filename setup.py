@@ -18,15 +18,17 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.9",
-    package_data={'': [
-        'VERSION',
-        "privacy_estimates/experiments/components/*/environment.aml.yaml",
-        "privacy_estimates/experiments/components/*/environment.aml.yml",
-        "privacy_estimates/experiments/components/*/environment.conda.yaml",
-        "privacy_estimates/experiments/components/*/environment.conda.yml",
-        "privacy_estimates/experiments/components/*/component_spec.yaml",
-        "privacy_estimates/experiments/components/*/component_spec.yml",
-    ]},
+    package_data={
+        '': ['VERSION'],
+        "privacy_estimates.experiments.components": [
+            "*/environment.aml.yaml",
+            "*/environment.aml.yml",
+            "*/environment.conda.yaml",
+            "*/environment.conda.yml",
+            "*/component_spec.yaml",
+            "*/component_spec.yml",
+        ]
+    },
     install_requires=[
         "statsmodels",
         "numpy",
