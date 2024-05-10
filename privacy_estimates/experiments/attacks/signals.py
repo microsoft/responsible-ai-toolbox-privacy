@@ -3,7 +3,7 @@ import numpy as np
 from math import factorial
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 
 def get_taylor(logit_signals, n: int):
@@ -22,7 +22,8 @@ class PredictionFormat(Enum):
 
 
 class Signal(ABC):
-    def compute_mi_signal_from_logits(self, logits: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    def compute_mi_signal_from_logits(self, logits: np.ndarray, labels: np.ndarray,
+                                      attention_mask: Optional[np.ndarray] = None):
         """
         Compute the membership inference signal from the logits and labels.
 
@@ -36,7 +37,8 @@ class Signal(ABC):
         """
         raise NotImplementedError("This method should be implemented by the subclass")
 
-    def compute_mi_signal_from_logprobs(self, logprobs: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    def compute_mi_signal_from_logprobs(self, logprobs: np.ndarray, labels: np.ndarray,
+                                        attention_mask: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Compute the membership inference signal from the log probabilities and labels.
 
@@ -46,7 +48,8 @@ class Signal(ABC):
         """
         raise NotImplementedError("This method should be implemented by the subclass")
     
-    def compute_mi_signal_from_probs(self, probs: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    def compute_mi_signal_from_probs(self, probs: np.ndarray, labels: np.ndarray,
+                                     attention_mask: Optional[np.ndarray]) -> np.ndarray:
         """
         Compute the membership inference signal from the probabilities and labels.
 
@@ -56,15 +59,15 @@ class Signal(ABC):
         """
         raise NotImplementedError("This method should be implemented by the subclass")
 
-    def assert_inputs_valid(self, logits: np.ndarray, labels: np.ndarray):
+    def assert_inputs_valid(self, logits: np.ndarray, labels: np.ndarray, attention_mask: Optional[np.ndarray]):
         assert logits.ndim > 1
         assert np.abs(logits.sum(axis=-1)-1).max() > 1e-3, "Logits should be unnormalized, i.e., not softmaxed"
         assert np.abs(np.exp(logits).sum(axis=-1)-1).max() > 1e-3, (
             "log(logits) should be unnormalized, make sure you are not using logprobs"
         )
         assert labels.ndim == logits.ndim - 1
-        assert labels.max() < logits.shape[-1]
-        assert labels.min() >= 0
+        assert labels[attention_mask].max() < logits.shape[-1]
+        assert labels[attention_mask].min() >= 0
 
 
 class TaylorSoftMargin(Signal):
@@ -73,7 +76,8 @@ class TaylorSoftMargin(Signal):
         self.n = taylor_n
         self.temp = temp
 
-    def compute_mi_signal_from_logits(self, logits: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    def compute_mi_signal_from_logits(self, logits: np.ndarray, labels: np.ndarray,
+                                      attention_mask: Optional[np.ndarray] = None) -> np.ndarray:
         """
         For large `taylor_n` the return values are in [0,1]
         Args:
@@ -83,7 +87,11 @@ class TaylorSoftMargin(Signal):
         Returns:
             The signal for the membership inference attack. of shape [n_samples, (seq_len)]
         """
-        self.assert_inputs_valid(logits=logits, labels=labels)
+        if attention_mask is None:
+            attention_mask = np.ones_like(labels)
+        attention_mask = attention_mask.astype(bool)
+        labels[~attention_mask] = 0
+        self.assert_inputs_valid(logits=logits, labels=labels, attention_mask=attention_mask)
         logit_signals = logits/self.temp
         taylor_logits = get_taylor(logit_signals, self.n)
         taylor_logit_sum = taylor_logits.sum(axis=-1)
@@ -93,6 +101,7 @@ class TaylorSoftMargin(Signal):
         soft_taylor_true_logit = get_taylor(true_logit - self.m, self.n)
         taylor_logit_sum = taylor_logit_sum + soft_taylor_true_logit
         signal = (soft_taylor_true_logit / taylor_logit_sum)
+        signal[~attention_mask] = np.nan
         return signal
     
 
@@ -100,15 +109,18 @@ SIGNALS = {cls.__name__: cls for cls in Signal.__subclasses__()}
 
 
 def compute_mi_signals(predictions: np.ndarray, labels: np.ndarray, method: str, prediction_format: PredictionFormat,
-                       **kwargs) -> np.ndarray:
+                       attention_mask: Optional[np.ndarray] = None, **kwargs) -> np.ndarray:
     if method not in SIGNALS:
         raise ValueError(f"Method {method} not found. Available methods: {SIGNALS.keys()}")
     signal_method = SIGNALS[method](**kwargs)
     if prediction_format == PredictionFormat.LOGIT:
-        return signal_method.compute_mi_signal_from_logits(predictions=predictions, labels=labels)
+        return signal_method.compute_mi_signal_from_logits(predictions=predictions, labels=labels,
+                                                           attention_mask=attention_mask)
     elif prediction_format == PredictionFormat.LOGPROB:
-        return signal_method.compute_mi_signal_from_logprobs(predictions=predictions, labels=labels)
+        return signal_method.compute_mi_signal_from_logprobs(predictions=predictions, labels=labels,
+                                                             attention_mask=attention_mask)
     elif prediction_format == PredictionFormat.PROB:
-        return signal_method.compute_mi_signal_from_probs(predictions=predictions, labels=labels)
+        return signal_method.compute_mi_signal_from_probs(predictions=predictions, labels=labels,
+                                                          attention_mask=attention_mask)
     else:
         raise ValueError(f"Prediction format {prediction_format} not found. Available formats: {PredictionFormat}")
