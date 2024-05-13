@@ -14,7 +14,7 @@ class AbstractTradeOffCurve(ABC):
         pass
 
     @abstractmethod
-    def append_to_fpr_tpr_plot(self, fig, ax):
+    def append_to_fpr_tpr_plot(self, fig, ax, plot_zeros: bool = True):
         pass
 
 
@@ -45,10 +45,17 @@ class TradeOffCurve(AbstractTradeOffCurve):
         ax.legend()
         return fig, ax
 
-    def append_to_fpr_tpr_plot(self, fig, ax, plot_args=None):
+    def append_to_fpr_tpr_plot(self, fig, ax, plot_zeros: bool = True, plot_args=None):
         if plot_args is None:
             plot_args = {}
-        ax.plot(self.fpr, 1 - self.fnr, label=self.name, **plot_args)
+        x = self.fpr
+        y = 1 - self.fnr
+        if not plot_zeros:
+            # if either x or y is zero, remove the point
+            mask = (x > 0) & (y > 0)
+            x = x[mask]
+            y = y[mask]
+        ax.plot(x, y, label=self.name, **plot_args)
         ax.legend()
         return fig, ax
 
@@ -90,13 +97,18 @@ class EmpiricalTradeOffCurve(AbstractTradeOffCurve):
         ax.fill_between(fpr, fnr_lo, fnr_hi, alpha=0.2, color="blue")
         return fig, ax
 
-    def append_to_fpr_tpr_plot(self, fig, ax):
-        fig, ax = self.lo.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "-."})
-        fig, ax = self.hi.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "--"})
+    def append_to_fpr_tpr_plot(self, fig, ax, plot_zeros: bool = True):
+        fig, ax = self.lo.append_to_fpr_tpr_plot(fig, ax, plot_zeros=plot_zeros, plot_args={"color": "blue", "linestyle": "-."})
+        fig, ax = self.hi.append_to_fpr_tpr_plot(fig, ax, plot_zeros=plot_zeros, plot_args={"color": "blue", "linestyle": "--"})
         fpr = self.all_fpr()
         tpr_hi = 1 - self.lo.interpolate_curve(fpr).fnr
         tpr_lo = 1 - self.hi.interpolate_curve(fpr).fnr
-        ax.fill_between(tpr_lo, fpr, tpr_hi, alpha=0.2, color="blue")
+        if not plot_zeros:
+            mask = (tpr_lo > 0) & (tpr_hi > 0)
+            fpr = fpr[mask]
+            tpr_lo = tpr_lo[mask]
+            tpr_hi = tpr_hi[mask]
+        ax.fill_between(fpr, tpr_lo, tpr_hi, alpha=0.2, color="blue")
         return fig, ax
 
     def fnr_as_dict(self) -> Dict[str, List[float]]:
@@ -163,6 +175,8 @@ class MatplotlibLogger(AbstractLogger):
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
                 fig, ax = curve.append_to_fpr_fnr_plot(fig, ax)
+            ax.set_xlim([0, 1])
+            ax.set_ylim([0, 1])
             ax.set_xlabel("FPR")
             ax.set_ylabel("FNR")            
             ax.set_aspect("equal")
@@ -171,6 +185,8 @@ class MatplotlibLogger(AbstractLogger):
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
                 fig, ax = curve.append_to_fpr_tpr_plot(fig, ax)
+            ax.set_xlim([0, 1])
+            ax.set_ylim([0, 1])
             ax.set_xlabel("FPR")
             ax.set_ylabel("TPR")
             ax.set_aspect("equal")
@@ -178,7 +194,7 @@ class MatplotlibLogger(AbstractLogger):
 
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
-                fig, ax = curve.append_to_fpr_tpr_plot(fig, ax)
+                fig, ax = curve.append_to_fpr_tpr_plot(fig, ax, plot_zeros=False)
             ax.set_xlabel("TPR")
             ax.set_ylabel("FPR")
             ax.set_xscale("log")
