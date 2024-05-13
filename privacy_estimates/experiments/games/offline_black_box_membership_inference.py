@@ -28,6 +28,7 @@ class GameConfig:
 @dataclass
 class MISignalConfig:
     method: str
+    aggregation: Optional[str] = None
     extra_args: Optional[Dict] = None
 
 
