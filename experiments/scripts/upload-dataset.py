@@ -8,7 +8,7 @@ from datasets import Dataset, Features, ClassLabel, Array3D, load_dataset
 from azure.ai.ml.entities import Data
 from azure.ai.ml.constants import AssetTypes
 
-from privacy_estimates.experiments.aml import WorkspaceConfig
+from privacy_estimates.experiments.aml import WorkspaceConfig, RegistryConfig
 
 
 class DatasetLoader(ABC):
@@ -128,14 +128,36 @@ class Arguments(BaseModel):
         description="Split of the dataset to load",
     )
     workspace_config: Path = Field(
+        default=None,
         cli=["--workspace-config"],
         description="Path to the workspace config file",
+    )
+    registry_name: str = Field(
+        default=None,
+        cli=["--registry-name"],
+        description="Name of the registry to use [Optional]",
+    )
+    registry_location: str = Field(
+        default=None,
+        cli=["--registry-location"],
+        description="Location of the registry to use [Optional]",
+    )
+    version: str = Field(
+        default=None,
+        cli=["--version"],
+        description="Version of the dataset to upload",
     )
 
 
 def main(args: Arguments):
     loader = get_dataset_loader(dataset_name=args.dataset_name, split=args.split)
-    client = WorkspaceConfig.from_yaml(args.workspace_config).ml_client
+    if args.workspace_config is None == (args.registry_name is None and args.registry_location is None):
+        raise ValueError("Either workspace_config or registry_name and registry_location must be provided")
+    if args.workspace_config is not None:
+        client = WorkspaceConfig.from_yaml(args.workspace_config).ml_client
+    else:
+        client = RegistryConfig(registry_name=args.registry_name, location=args.registry_location).ml_client
+
 
     with TemporaryDirectory() as dataset_dir:
         loader.as_dataset().save_to_disk(dataset_dir)
@@ -144,6 +166,7 @@ def main(args: Arguments):
             type=AssetTypes.URI_FOLDER,
             description=loader.description,
             name=loader.name,
+            version=args.version,
         )
         client.data.create_or_update(data)
 

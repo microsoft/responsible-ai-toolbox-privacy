@@ -29,6 +29,23 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+@dataclass
+class RegistryConfig:
+    registry_name: str
+    location: str
+
+    def __post_init__(self) -> None:
+        self.ml_client = self._get_ml_client()
+
+    def _get_ml_client(self) -> MLClient:
+        try:
+            credential = DefaultAzureCredential()
+            # Check if given credential can get token successfully.
+            credential.get_token("https://management.azure.com/.default")
+        except ClientAuthenticationError:
+            # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
+            credential = InteractiveBrowserCredential()
+        return MLClient(credential=credential, registry_name=self.registry_name, registry_location=self.location)
 
 @dataclass
 class WorkspaceConfig:
@@ -271,7 +288,8 @@ class ExperimentBase:
             submit = config.pop("submit", False)
             name = config.pop("name", None)
 
-            type_hints.pop("return")
+            if "return" in type_hints:
+                type_hints.pop("return")
             if set(type_hints.keys()) != set(config.keys()):
                 missing_keys_in_config = set(type_hints.keys()) - set(config.keys())
                 if len(missing_keys_in_config) > 0:
