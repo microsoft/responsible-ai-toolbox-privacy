@@ -6,13 +6,13 @@ from abc import abstractmethod
 
 from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
 from privacy_estimates.experiments.subpipelines import (
-	ComputeShadowModelStatisticsLoader, TrainManyModelsLoader,
+	ComputeShadowModelStatisticsLoader, TrainManyModelsLoader, add_index_to_dataset
 )
 from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainingComponentLoader
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.challenge_point_selectors import ChallengePointSelectionLoader
 from privacy_estimates.experiments.components import (
-    create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates
+    create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates,
 )
 from privacy_estimates.experiments.games.configs import PrivacyEstimationConfig
 
@@ -105,6 +105,11 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def pipeline(self, train_data: Input, validation_data: Input, canary_data: Optional[Input] = None) -> PipelineJob:
         @dsl.pipeline(default_compute=self.default_compute)
         def game_pipeline(train_data: Input, validation_data: Input, canary_data: Input) -> PipelineJob:
+
+            train_data = add_index_to_dataset(data=train_data, split="train").outputs.output
+            validation_data = add_index_to_dataset(data=validation_data, split="validation").outputs.output
+            canary_data = add_index_to_dataset(data=canary_data, split="canary").outputs.output
+
             mi_statistics = None
             if self.mi_statistics_loader is not None:
                 mi_statistics = self.mi_statistics_loader.load(

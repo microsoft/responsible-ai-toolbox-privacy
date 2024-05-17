@@ -30,7 +30,7 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
         self.num_challenge_points = num_challenge_points
 
     def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
-        @dsl.pipeline(name="select_natural_cross_validation_challenge_points")
+        @dsl.pipeline(name="Select natural cross validation challenge points")
         def p(data: Input, shadow_model_statistics: Input) -> Pipeline:
             preprocess = select_cross_validation_challenge_points.preprocess(shadow_model_statistics=shadow_model_statistics)
             attack = self.attack_loader.load(
@@ -52,7 +52,7 @@ class TopKChallengePoints(ChallengePointSelectionLoader):
         self.num_challenge_points = num_challenge_points
 
     def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
-        @dsl.pipeline(name="select_top_k_challenge_points")
+        @dsl.pipeline(name="Select top-k challenge points")
         def p(data: Input, shadow_model_statistics: Input) -> Pipeline:
             return {"challenge_points": select_top_k_rows(data=data, k=self.num_challenge_points).outputs.output}
         return p(data=data, shadow_model_statistics=shadow_model_statistics)
