@@ -1,7 +1,7 @@
 from azure.ai.ml import dsl, Input
 
 from privacy_estimates.experiments.loaders import TrainSingleModelAndPredictLoader
-from privacy_estimates.experiments.components import aggregate_output
+from privacy_estimates.experiments.components import aggregate_output, append_column_constant_int
 from .base import TrainModelGroupBase, TrainSingleModelAndPredictArguments
 
 
@@ -27,15 +27,24 @@ class TrainModelGroupDistributedLoader(TrainModelGroupBase):
                     in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, model_index=model_index,
                     num_points_per_model=num_points_per_model
                 )
-                predictions_in.append(train_model_and_predict.outputs.predictions_in)
-                predictions_out.append(train_model_and_predict.outputs.predictions_out)
+
+                predictions_in_i = train_model_and_predict.outputs.predictions_in
+                predictions_out_i = train_model_and_predict.outputs.predictions_out
+
+                if self.single_model_arguments.tag_model_index is True:
+                    predictions_in_i = append_column_constant_int(
+                        data=predictions_in_i, name="model_index", value=model_index
+                    ).outputs.output
+                    predictions_out_i = append_column_constant_int(
+                        data=predictions_out_i, name="model_index", value=model_index
+                    ).outputs.output
+
+                predictions_in.append(predictions_in_i)
+                predictions_out.append(predictions_out_i)
                 if hasattr(train_model_and_predict.outputs, "metrics"):
                     metrics.append(train_model_and_predict.outputs.metrics)
                 if hasattr(train_model_and_predict.outputs, "dp_parameters"):
                     dp_parameters.append(train_model_and_predict.outputs.dp_parameters)
-
-            if self.single_model_arguments.tag_model_index is True:
-                raise NotImplementedError("tag_model_index is not implemented for distributed training")
 
             output = {
                 "predictions_in": aggregate_output(predictions_in, aggregator="concatenate_datasets"), 
@@ -46,8 +55,8 @@ class TrainModelGroupDistributedLoader(TrainModelGroupBase):
                 output["metrics_avg"] = aggregate_output(metrics, aggregator="average_json")
             if len(dp_parameters) > 0:
                 output["dp_parameters"] = aggregate_output(dp_parameters, aggregator="assert_json_equal")
-
             return output
+
         return p(train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                  in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, model_group_index=model_group_index,
                  num_points_per_model=num_points_per_model)

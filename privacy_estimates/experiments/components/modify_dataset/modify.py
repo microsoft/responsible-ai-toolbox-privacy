@@ -48,3 +48,9 @@ def rename_columns(data: Input, columns_old: str, columns_new: str, output: Outp
     ds = load_from_disk(data)
     ds = ds.rename_columns(column_mapping)
     ds.save_to_disk(output)
+
+
+@command_component(display_name="Move dataset", environment="environment.aml.yaml")
+def move_dataset(data: Input, output: Output):
+    ds = load_from_disk(data)
+    ds.save_to_disk(output)
