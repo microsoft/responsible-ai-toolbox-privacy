@@ -106,22 +106,31 @@ def check_in_out_indices(in_: Dataset, out: Dataset):
     in_indices = list(zip(in_["split"], in_["sample_index"]))
     out_indices = list(zip(out["split"], out["sample_index"]))
 
-    if set(in_indices).difference([(None, None)]) != set(out_indices).difference([(None, None)]):
+    is_offline_setting = (set(in_indices) == {(None, None)})
+    # offline setting is if we don't have any shadow models with canaries present
+    # we need to infer all mi info from out samples
+    if is_offline_setting:
+        logger.info("Offline setting detected. All samples are out samples. This will reduce the number of checks")
+
+    if set(in_indices).difference([(None, None)]) != set(out_indices).difference([(None, None)]) and not is_offline_setting:
         # calculate missing indices
         missing_indices = set(in_indices).symmetric_difference(out_indices)
         raise ValueError(f"Some indices are missing: {missing_indices}")
 
     least_common_in, least_common_in_occ = get_least_common_element(in_indices)
     logger.info(f"Least common in element: {least_common_in} ({least_common_in_occ} times)")
-    if least_common_in_occ < 4:
-        raise ValueError(f"Lest common element occurs less than 4 times: {least_common_in} ({least_common_in_occ} times)")
-    if least_common_in_occ < 10:
-        logger.warning(f"Lest common element occurs less than 10 times: {least_common_in} ({least_common_in_occ} times)")
+    if not is_offline_setting:
+        if least_common_in_occ < 4:
+            logger.error(f"Lest common element occurs less than 4 times: {least_common_in} ({least_common_in_occ} times). "
+                         "This might lead to a weak attack")
+        if least_common_in_occ < 10:
+            logger.warning(f"Lest common element occurs less than 10 times: {least_common_in} ({least_common_in_occ} times)")
 
     least_common_out, least_common_out_occ = get_least_common_element(out_indices)
     logger.info(f"Least common out element: {least_common_out} ({least_common_out_occ} times)")
     if least_common_out_occ < 4:
-        raise ValueError(f"Lest common element occurs less than 4 times: {least_common_out} ({least_common_out_occ} times)")
+        logger.error(f"Lest common element occurs less than 4 times: {least_common_out} ({least_common_out_occ} times). "
+                     "This might lead to a weak attack")
     if least_common_out_occ < 10:
         logger.warning(f"Lest common element occurs less than 10 times: {least_common_out} ({least_common_out_occ} times)")
 
