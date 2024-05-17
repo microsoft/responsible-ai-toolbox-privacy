@@ -71,7 +71,7 @@ class Signal(ABC):
 
 
 class TaylorSoftMargin(Signal):
-    def __init__(self, temp: float, taylor_m: float, taylor_n: int):
+    def __init__(self, taylor_m: float, taylor_n: int, temp: float = 1.0):
         self.m = taylor_m
         self.n = taylor_n
         self.temp = temp
@@ -101,6 +101,37 @@ class TaylorSoftMargin(Signal):
         soft_taylor_true_logit = get_taylor(true_logit - self.m, self.n)
         taylor_logit_sum = taylor_logit_sum + soft_taylor_true_logit
         signal = (soft_taylor_true_logit / taylor_logit_sum)
+        signal[~attention_mask] = np.nan
+        return signal
+    
+
+class CrossEntropy(Signal):
+    def __init__(self, temp: float = 1.0):
+        self.temp = temp
+        from torch.nn import CrossEntropyLoss
+        self.ignored_index = -100
+        self.compute_loss = CrossEntropyLoss(ignore_index=self.ignored_index)
+
+    def compute_mi_signal_from_logits(self, logits: np.ndarray, labels: np.ndarray,
+                                      attention_mask: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Args:
+            logits: The logits of the model. 2 or 3 dimensional tensor.
+                    Shape of [n_samples, (seq_len,) n_classes] where seq_len could be 0
+
+        Returns:
+            The signal for the membership inference attack. of shape [n_samples, (seq_len)]
+        """
+        if attention_mask is None:
+            attention_mask = np.ones_like(labels)
+        attention_mask = attention_mask.astype(bool)
+        labels[~attention_mask] = self.ignored_index
+        self.assert_inputs_valid(logits=logits, labels=labels, attention_mask=attention_mask)
+        logits = logits/self.temp
+
+        import torch
+        signal = self.compute_loss(torch.tensor(logits), torch.tensor(labels)).numpy()
+
         signal[~attention_mask] = np.nan
         return signal
     
