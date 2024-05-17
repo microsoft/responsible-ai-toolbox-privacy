@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
 from privacy_estimates.experiments.subpipelines import (
-	ComputeShadowModelStatisticsLoader, TrainManyModelsLoader, ComputeSingleOfflineReferenceModelStatisticsLoader
+	ComputeShadowModelStatisticsLoader, TrainManyModelsLoader,
 )
 from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainingComponentLoader
 from privacy_estimates.experiments.attacks import AttackLoader
@@ -29,6 +29,14 @@ class GameConfig:
 @dataclass
 class ShadowModelConfig:
     num_models: int
+    in_fraction: float
+
+
+@dataclass
+class MISignalConfig:
+    method: str
+    aggregation: Optional[str] = None
+    extra_args: Optional[Dict] = None
 
 
 class BlackBoxMembershipInferenceGameBase(ExperimentBase):
@@ -54,13 +62,9 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
         ):
             self.mi_statistics_loader = ComputeShadowModelStatisticsLoader(
                 train_loader=self.train_loader, inference_loader=self.inference_loader,
-                num_models=self.shadow_model_config.num_models,
+                num_models=self.shadow_model_config.num_models, in_fraction=self.shadow_model_config.in_fraction,
                 num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
                 num_models_per_group=self.game_config.num_models_per_group, workspace=workspace
-            )
-        elif self.attack_loader.requires_reference_statistics:
-            self.mi_statistics_loader = ComputeSingleOfflineReferenceModelStatisticsLoader(
-                train_loader=self.train_loader, inference_loader=self.inference_loader
             )
         else:
             self.mi_statistics_loader = None

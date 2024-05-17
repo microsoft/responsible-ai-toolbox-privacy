@@ -47,17 +47,14 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
         return p(data=data, shadow_model_statistics=shadow_model_statistics)
     
 
-class ExternalCanaryDataset(ChallengePointSelectionLoader):
-    def __init__(self, canary_data: Input, num_challenge_points: int):
-        self.canary_data = canary_data
-        self.num_challenge_points = num_challenge_points
+class AllChallengePoints(ChallengePointSelectionLoader):
+    def __init__(self):
+        pass
 
     def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
         @dsl.pipeline(name="select_challenge_points_from_external_canary_dataset")
-        def p() -> Pipeline:
-            canaries = append_column_constant_str(data=self.canary_data, name="split", value="canary").outputs.output
-            canaries = append_column_incrementing(data=canaries, name="sample_index").outputs.output
+        def p(data: Input, shadow_model_statistics: Input) -> Pipeline:
             return {
-                "challenge_points": canaries,
+                "challenge_points": data
             }
-        return p()
+        return p(data=data, shadow_model_statistics=shadow_model_statistics)

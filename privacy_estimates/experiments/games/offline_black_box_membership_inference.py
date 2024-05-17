@@ -5,7 +5,8 @@ from abc import abstractmethod
 
 from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
 from privacy_estimates.experiments.subpipelines import (
-	TrainManyModelsLoader, ComputeSingleOfflineReferenceModelStatisticsLoader, add_index_to_dataset
+	TrainManyModelsLoader, ComputeSingleOfflineReferenceModelStatisticsLoader, add_index_to_dataset,
+    ComputeShadowModelStatisticsLoader
 )
 from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainingComponentLoader
 from privacy_estimates.experiments.attacks import AttackLoader
@@ -25,12 +26,6 @@ class GameConfig:
     num_concurrent_jobs_per_node: int = 1
 
 
-@dataclass
-class MISignalConfig:
-    method: str
-    aggregation: Optional[str] = None
-    extra_args: Optional[Dict] = None
-
 
 class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):
     def __init__(
@@ -46,10 +41,11 @@ class OfflineBlackBoxMembershipInferenceGameBase(ExperimentBase):
         self.inference_loader = inference_loader
         self.privacy_estimation_config = privacy_estimation_config
 
-        self.mi_statistics_loader = ComputeSingleOfflineReferenceModelStatisticsLoader(
-            train_loader=self.train_loader, inference_loader=self.inference_loader
+        self.mi_statistics_loader = ComputeShadowModelStatisticsLoader(
+            train_loader=self.train_loader, inference_loader=self.inference_loader,
+            num_models=self.game_config.num_models, workspace=self.workspace,
         )
-
+        
         self.train_many_models_loader = TrainManyModelsLoader(
             num_models=self.game_config.num_models, train_loader=train_loader, inference_loader=inference_loader,
             sample_selection="partitioned", merge_unused_samples="all_with_train",
