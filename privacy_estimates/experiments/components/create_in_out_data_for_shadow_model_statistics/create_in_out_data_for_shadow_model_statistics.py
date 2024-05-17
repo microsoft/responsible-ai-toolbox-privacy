@@ -138,18 +138,19 @@ def compute_in_out_indices_using_cross_validation(indices: Sequence, in_fraction
     Returns:
         Tuple[InOutIndices, int]: A tuple containing the cross-validation sets and the number of samples per model.
     """
-    assert 0 < in_fraction < 1, "in_fraction must be between 0 and 1"
+    assert 0 <= in_fraction <= 1, "in_fraction must be between 0 and 1"
     in_fraction = Fraction(in_fraction)
-    assert in_fraction.denominator - in_fraction.numerator == 1, (
-        "in_fraction must be (n-1)/n for some n for rotating splits"
-    )
+    assert in_fraction.denominator < 10, "in_fraction denominator must be less than 10. Select a more divisible number."
 
     # shuffle indices with seed
     np.random.default_rng(seed+128023).shuffle(indices)
 
     folds = [[indices[i] for i in f] for f in np.array_split(range(len(indices)), in_fraction.denominator)]
 
-    n_samples_per_model = sum(sorted((len(fold) for fold in folds), reverse=True)[:in_fraction.numerator])
+    n_samples_per_model = max(
+        sum(sorted((len(fold) for fold in folds), reverse=True)[:in_fraction.numerator]),
+        sum(sorted((len(fold) for fold in folds), reverse=True)[in_fraction.numerator:])
+    )
 
     assert len(folds) == in_fraction.denominator
 
@@ -159,7 +160,7 @@ def compute_in_out_indices_using_cross_validation(indices: Sequence, in_fraction
 
         cross_validation_sets.extend(
             InOutIndices.from_sequences(
-                in_=reduce(lambda a, b: a+b, rolled_indices[1:]),
+                in_=reduce(lambda a, b: a+b, rolled_indices[1:], []),
                 out=rolled_indices[0],
                 pad_to_length=n_samples_per_model
             )
