@@ -105,14 +105,14 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def pipeline(self, train_data: Input, validation_data: Input, canary_data: Optional[Input] = None) -> PipelineJob:
         @dsl.pipeline(default_compute=self.default_compute)
         def game_pipeline(train_data: Input, validation_data: Input, canary_data: Input) -> PipelineJob:
-            shadow_model_statistics = None
+            mi_statistics = None
             if self.mi_statistics_loader is not None:
                 mi_statistics = self.mi_statistics_loader.load(
                     train_data=train_data, validation_data=validation_data, canary_data=canary_data, seed=self.game_config.seed
                 ).outputs.statistics
 
             select_challenge_points = self.challenge_point_selection_loader.load(
-                data=train_data, shadow_model_statistics=shadow_model_statistics
+                data=canary_data, shadow_model_statistics=mi_statistics
             )
 
             create_challenge = create_in_out_data_for_membership_inference_challenge(

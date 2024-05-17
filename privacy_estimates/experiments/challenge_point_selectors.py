@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.loaders import ComponentLoader
-from privacy_estimates.experiments.components import select_cross_validation_challenge_points, append_column_constant_str, append_column_incrementing
+from privacy_estimates.experiments.components import select_cross_validation_challenge_points, select_top_k_rows
 
 
 class ChallengePointSelectionLoader(ComponentLoader):
@@ -47,14 +47,12 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
         return p(data=data, shadow_model_statistics=shadow_model_statistics)
     
 
-class AllChallengePoints(ChallengePointSelectionLoader):
-    def __init__(self):
-        pass
+class TopKChallengePoints(ChallengePointSelectionLoader):
+    def __init__(self, num_challenge_points: int):
+        self.num_challenge_points = num_challenge_points
 
     def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
-        @dsl.pipeline(name="select_challenge_points_from_external_canary_dataset")
+        @dsl.pipeline(name="select_top_k_challenge_points")
         def p(data: Input, shadow_model_statistics: Input) -> Pipeline:
-            return {
-                "challenge_points": data
-            }
+            return {"challenge_points": select_top_k_rows(data=data, k=self.num_challenge_points).outputs.output}
         return p(data=data, shadow_model_statistics=shadow_model_statistics)

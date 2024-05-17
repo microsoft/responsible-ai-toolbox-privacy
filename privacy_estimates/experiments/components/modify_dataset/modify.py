@@ -50,6 +50,13 @@ def rename_columns(data: Input, columns_old: str, columns_new: str, output: Outp
     ds.save_to_disk(output)
 
 
+@command_component(display_name="Select top k rows", environment="environment.aml.yaml")
+def select_top_k_rows(data: Input, k: int, output: Output):
+    ds = load_from_disk(data)
+    ds = ds.select(range(k))
+    ds.save_to_disk(output)
+
+
 @command_component(display_name="Move dataset", environment="environment.aml.yaml")
 def move_dataset(data: Input, output: Output):
     ds = load_from_disk(data)
