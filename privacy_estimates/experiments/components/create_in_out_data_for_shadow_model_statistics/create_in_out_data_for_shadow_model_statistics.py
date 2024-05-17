@@ -117,9 +117,9 @@ def check_in_out_indices(in_: Dataset, out: Dataset):
         missing_indices = set(in_indices).symmetric_difference(out_indices)
         raise ValueError(f"Some indices are missing: {missing_indices}")
 
-    least_common_in, least_common_in_occ = get_least_common_element(in_indices)
-    logger.info(f"Least common in element: {least_common_in} ({least_common_in_occ} times)")
     if not is_offline_setting:
+        least_common_in, least_common_in_occ = get_least_common_element(in_indices)
+        logger.info(f"Least common in element: {least_common_in} ({least_common_in_occ} times)")
         if least_common_in_occ < 4:
             logger.error(f"Lest common element occurs less than 4 times: {least_common_in} ({least_common_in_occ} times). "
                          "This might lead to a weak attack")
