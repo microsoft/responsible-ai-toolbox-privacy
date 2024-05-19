@@ -110,7 +110,7 @@ class CrossEntropy(Signal):
         self.temp = temp
         from torch.nn import CrossEntropyLoss
         self.ignored_index = -100
-        self.compute_loss = CrossEntropyLoss(ignore_index=self.ignored_index)
+        self.compute_loss = CrossEntropyLoss(ignore_index=self.ignored_index, reduction="none")
 
     def compute_mi_signal_from_logits(self, logits: np.ndarray, labels: np.ndarray,
                                       attention_mask: Optional[np.ndarray] = None) -> np.ndarray:
@@ -129,8 +129,12 @@ class CrossEntropy(Signal):
         self.assert_inputs_valid(logits=logits, labels=labels, attention_mask=attention_mask)
         logits = logits/self.temp
 
+        # pytorch expects n_classes dimension as the 2nd (i.e. index 1) dimension
+        # in ndim=2 this is a noop
+        logits = np.swapaxes(logits, 1, -1)
+
         import torch
-        signal = self.compute_loss(torch.tensor(logits), torch.tensor(labels)).numpy()
+        signal = -self.compute_loss(torch.tensor(logits), torch.tensor(labels)).numpy()
 
         signal[~attention_mask] = np.nan
         return signal
