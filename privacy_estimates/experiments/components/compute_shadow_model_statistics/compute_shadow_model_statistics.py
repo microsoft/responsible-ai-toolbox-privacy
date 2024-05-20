@@ -26,37 +26,51 @@ def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: D
 
     in_samples = set(zip(in_predictions["sample_index"], in_predictions["split"]))
     out_samples = set(zip(out_predictions["sample_index"], out_predictions["split"]))
-
-    if in_samples != out_samples:
-        all_samples = in_samples.union(out_samples)
-        if all_samples != in_samples:
-            raise ValueError(f"Missing samples in in_predictions. Missing samples: {all_samples - in_samples}")
-        if all_samples != out_samples:
-            raise ValueError(f"Missing samples in out_predictions. Missing samples: {all_samples - out_samples}")
+    all_samples = in_samples.union(out_samples)
+    missing_in_samples = all_samples - in_samples
+    missing_out_samples = all_samples - out_samples
 
     in_df = in_predictions.to_pandas()
     out_df = out_predictions.to_pandas()
 
-    in_df = in_df.groupby(["sample_index", "split", "label"]).agg(
-        {
-            "loss": ["mean", "std", "max", "min", "median", "count", list],
-            "logits": [list],
-            "model_index": [list],
-        }
-    )
-    out_df = out_df.groupby(["sample_index", "split", "label"]).agg(
-        {
-            "loss": ["mean", "std", "max", "min", "median", "count", list],
-            "logits": [list],
-            "model_index": [list],
-        }
-    )
+    group_by = ["sample_index", "split"]
+    aggregate = {"model_index": [list]}
+
+    if "label" in in_df.columns:
+        group_by.append("label")
+
+    if "logits" in in_df.columns:
+        aggregate["logits"] = [list]
+
+    if "loss" in in_df.columns:
+        aggregate["loss"] = ["mean", "std", "max", "min", "median", "count", list]
+
+    if "mi_signal" in in_df.columns:
+        aggregate["mi_signal"] = ["mean", "std", "max", "min", "median", "count", list]
+
+    in_df = in_df.groupby(group_by).agg(aggregate)
+    out_df = out_df.groupby(group_by).agg(aggregate)
+
+    # add missing in samples. If the column is count set it to 0, if list set it to [] otherwise set it to nan
+    for sample_index, split in missing_in_samples:
+        sample_dict = {col: [] if "list" in col else 0 if "count" in col else float('nan') for col in in_df.columns}
+        sample_dict["sample_index"] = sample_index
+        sample_dict["split"] = split
+        in_df = in_df.append(sample_dict, ignore_index=True)
+
+    # add missing out samples. If the column is count set it to 0, if list set it to [] otherwise set it to nan
+    for sample_index, split in missing_out_samples:
+        sample_dict = {col: [] if "list" in col else 0 if "count" in col else float('nan') for col in out_df.columns}
+        sample_dict["sample_index"] = sample_index
+        sample_dict["split"] = split
+        out_df = out_df.append(sample_dict, ignore_index=True)
+
     in_df.columns = ['_'.join(col) for col in in_df.columns.values]
     out_df.columns = ['_'.join(col) for col in out_df.columns.values]
-    in_df = in_df.rename(columns={"logits_list": "logits", "model_index_list": "model_index"})
-    out_df = out_df.rename(columns={"logits_list": "logits", "model_index_list": "model_index"})
+    in_df = in_df.rename(columns={"model_index_list": "model_index"})
+    out_df = out_df.rename(columns={"model_index_list": "model_index"})
 
-    samples = in_df.join(out_df, on=["sample_index", "split", "label"], lsuffix="_in", rsuffix="_out").reset_index()
+    samples = in_df.join(out_df, on=group_by, lsuffix="_in", rsuffix="_out").reset_index()
 
     return Dataset.from_pandas(df=samples, preserve_index=False)
 

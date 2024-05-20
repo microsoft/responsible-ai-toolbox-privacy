@@ -31,14 +31,6 @@ class TrainModelGroupDistributedLoader(TrainModelGroupBase):
                 predictions_in_i = train_model_and_predict.outputs.predictions_in
                 predictions_out_i = train_model_and_predict.outputs.predictions_out
 
-                if self.single_model_arguments.tag_model_index is True:
-                    predictions_in_i = append_column_constant_int(
-                        data=predictions_in_i, name="model_index", value=model_index
-                    ).outputs.output
-                    predictions_out_i = append_column_constant_int(
-                        data=predictions_out_i, name="model_index", value=model_index
-                    ).outputs.output
-
                 predictions_in.append(predictions_in_i)
                 predictions_out.append(predictions_out_i)
                 if hasattr(train_model_and_predict.outputs, "metrics"):
