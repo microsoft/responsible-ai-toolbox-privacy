@@ -13,7 +13,8 @@ inputs:
     description: MI statistics in Huggingface dataset format
   offline_a:
     type: number
-    description: RMIA Offline parameter
+    description: RMIA Offline parameter. If not supplied online attack is performed
+    optional: true
 outputs:
   scores:
     type: uri_folder
@@ -23,7 +24,7 @@ command: >-
   python rmia.py \
     --challenge_points ${{inputs.challenge_points}} \
     --mi_statistics ${{inputs.mi_statistics}} \
-    --offline_a ${{inputs.offline_a}} \
+    $[[ --offline_a ${{inputs.offline_a}} ]] \
     --scores ${{outputs.scores}}
 environment:
   conda_file: environment.yaml

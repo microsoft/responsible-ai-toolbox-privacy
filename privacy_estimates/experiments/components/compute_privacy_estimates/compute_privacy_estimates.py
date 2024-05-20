@@ -7,6 +7,7 @@ from prv_accountant import PRVAccountant, PoissonSubsampledGaussianMechanism
 from typing import Tuple, Optional
 from pydantic_cli import run_and_exit
 from pydantic import BaseModel
+from sklearn.metrics import roc_curve
 
 from privacy_estimates import report as priv_report, compute_privacy_curve_lo_hi
 
@@ -66,6 +67,10 @@ def main(args: Arguments) -> int:
         epsilons_lo=epsilons_lo, epsilons_hi=epsilons_hi, deltas=deltas, name=f"empirical_{1-args.alpha}"
     )
     report.add_trade_off_curve(to_curve_emp)
+
+    # Add ROC curve
+    fpr, tpr, _ = roc_curve(challenge_bits_ds["challenge_bit"], scores_ds["score"])
+    report.add_trade_off_curve(priv_report.TradeOffCurve(fpr=fpr, fnr=1-tpr, name="roc"))
 
     # Output
     loggers = [
