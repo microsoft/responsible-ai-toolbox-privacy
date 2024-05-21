@@ -8,7 +8,7 @@ from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
 from privacy_estimates.experiments.subpipelines import (
 	ComputeShadowModelStatisticsLoader, TrainManyModelsLoader, add_index_to_dataset
 )
-from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainingComponentLoader
+from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainingComponentLoader, ComponentLoader
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.challenge_point_selectors import ChallengePointSelectionLoader
 from privacy_estimates.experiments.components import (
@@ -45,6 +45,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader, attack_loader: AttackLoader,
             challenge_point_selection_loader: ChallengePointSelectionLoader,
             privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
+            dataset_preprocessing_loader: Optional[ComponentLoader] = None
     ) -> None:
         super().__init__(workspace=workspace)
         self.game_config = game_config
@@ -76,6 +77,8 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             num_models_per_group=self.game_config.num_models_per_group, tag_model_index=False
         )
 
+        self.dataset_preprocessing_loader = dataset_preprocessing_loader
+
     @property
     @abstractmethod
     def train_data(self):
@@ -105,6 +108,11 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def pipeline(self, train_data: Input, validation_data: Input, canary_data: Optional[Input] = None) -> PipelineJob:
         @dsl.pipeline(default_compute=self.default_compute)
         def game_pipeline(train_data: Input, validation_data: Input, canary_data: Input) -> PipelineJob:
+
+            if self.dataset_preprocessing_loader is not None:
+                train_data = self.dataset_preprocessing_loader.load(data=train_data).outputs.output
+                validation_data = self.dataset_preprocessing_loader.load(data=validation_data).outputs.output
+                canary_data = self.dataset_preprocessing_loader.load(data=canary_data).outputs.output
 
             train_data = add_index_to_dataset(data=train_data, split="train").outputs.output
             validation_data = add_index_to_dataset(data=validation_data, split="validation").outputs.output

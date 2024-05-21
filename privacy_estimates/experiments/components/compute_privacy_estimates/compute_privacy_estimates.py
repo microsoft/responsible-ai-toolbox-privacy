@@ -77,6 +77,7 @@ def main(args: Arguments) -> int:
         priv_report.AMLLogger(),
         priv_report.MatplotlibLogger(path=args.privacy_report),
         priv_report.PDFLogger(path=args.privacy_report),
+        priv_report.PDFLogger(path="."),
     ]
 
     for logger in loggers:

@@ -50,7 +50,6 @@ class InferenceComponentLoader(ComponentLoader):
     pass
 
 
-
 @dataclass
 class TrainSingleModelAndPredictArguments:
     train_loader: TrainingComponentLoader
