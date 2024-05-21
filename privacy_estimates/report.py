@@ -175,31 +175,37 @@ class MatplotlibLogger(AbstractLogger):
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
                 fig, ax = curve.append_to_fpr_fnr_plot(fig, ax)
+            ax.plot([0, 1], [1, 0], label="perfect privacy", color="grey", linestyle="--")
             ax.set_xlim([0, 1])
             ax.set_ylim([0, 1])
             ax.set_xlabel("FPR")
             ax.set_ylabel("FNR")            
             ax.set_aspect("equal")
+            ax.legend(loc="lower right")
             plt.savefig(self.path/"trade_off_curves.png")
 
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
                 fig, ax = curve.append_to_fpr_tpr_plot(fig, ax)
+            ax.plot([0, 1], [0, 1], label="perfect privacy", color="grey", linestyle="--") 
             ax.set_xlim([0, 1])
             ax.set_ylim([0, 1])
             ax.set_xlabel("FPR")
             ax.set_ylabel("TPR")
             ax.set_aspect("equal")
+            ax.legend(loc="lower right")
             plt.savefig(self.path/"trade_off_curves_fpr_tpr.png")
 
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
                 fig, ax = curve.append_to_fpr_tpr_plot(fig, ax, plot_zeros=False)
-            ax.set_xlabel("TPR")
-            ax.set_ylabel("FPR")
+            ax.plot([0, 1], [0, 1], label="perfect privacy", color="grey", linestyle="--")
+            ax.set_xlabel("FPR")
+            ax.set_ylabel("TPR")
             ax.set_xscale("log")
             ax.set_yscale("log")
             ax.set_aspect("equal")
+            ax.legend(loc="lower right")
             plt.savefig(self.path/"trade_off_curves_fpr_tpr_log.png")
 
         if report.mi_score_distribution is not None:
