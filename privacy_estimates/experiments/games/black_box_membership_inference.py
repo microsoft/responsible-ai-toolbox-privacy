@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from typing import Dict, Optional
-from azure.ai.ml import dsl, Input
+from typing import Dict, Optional, Literal, Union
+from azure.ai.ml import dsl, Input, Output
 from azure.ai.ml.entities import PipelineJob
 from abc import abstractmethod
 
@@ -43,9 +43,8 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def __init__(
             self, game_config: GameConfig, shadow_model_config: ShadowModelConfig, workspace: WorkspaceConfig,
             train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader, attack_loader: AttackLoader,
-            challenge_point_selection_loader: ChallengePointSelectionLoader,
+            challenge_point_selection_loader: ChallengePointSelectionLoader, 
             privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
-            dataset_preprocessing_loader: Optional[ComponentLoader] = None
     ) -> None:
         super().__init__(workspace=workspace)
         self.game_config = game_config
@@ -77,26 +76,6 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             num_models_per_group=self.game_config.num_models_per_group, tag_model_index=False
         )
 
-        self.dataset_preprocessing_loader = dataset_preprocessing_loader
-
-    @property
-    @abstractmethod
-    def train_data(self):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} needs to implement property train_data"
-        )
-
-    @property
-    @abstractmethod
-    def validation_data(self):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} needs to implement property validation_data"
-        )
-    
-    @property
-    def canary_data(self):
-        return None
-
     @property
     def experiment_name(self) -> str:
         return "black_box_membership_inference_game"
@@ -105,14 +84,14 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def default_compute(self) -> str:
         return self.workspace.cpu_compute
 
-    def pipeline(self, train_data: Input, validation_data: Input, canary_data: Optional[Input] = None) -> PipelineJob:
+    def pipeline(self) -> PipelineJob:
         @dsl.pipeline(default_compute=self.default_compute)
-        def game_pipeline(train_data: Input, validation_data: Input, canary_data: Input) -> PipelineJob:
+        def game_pipeline() -> PipelineJob:
+            preprocessed_datasets = self.preprocess_datasets()
 
-            if self.dataset_preprocessing_loader is not None:
-                train_data = self.dataset_preprocessing_loader.load(data=train_data).outputs.output
-                validation_data = self.dataset_preprocessing_loader.load(data=validation_data).outputs.output
-                canary_data = self.dataset_preprocessing_loader.load(data=canary_data).outputs.output
+            train_data = preprocessed_datasets["train_data"]
+            validation_data = preprocessed_datasets["validation_data"]
+            canary_data = preprocessed_datasets["canary_data"]
 
             train_data = add_index_to_dataset(data=train_data, split="train").outputs.output
             validation_data = add_index_to_dataset(data=validation_data, split="validation").outputs.output
@@ -161,15 +140,14 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             return {
                 "privacy_report": estimate_privacy.outputs.privacy_report,
             }
-        kwargs = {} if canary_data is None else {"canary_data": canary_data}
-        return game_pipeline(train_data=train_data, validation_data=validation_data, **kwargs)
+        return game_pipeline()
+    
+    @abstractmethod
+    def preprocess_datasets(
+        self
+    ) -> Dict[Literal["train_data", "validation_data", "canary_data"], Union[Input, Output]]:
+        pass
 
     @property
     def pipeline_parameters(self) -> Dict:
-        params = {
-            "train_data": self.train_data,
-            "validation_data":  self.validation_data
-        }
-        if self.canary_data is not None:
-            params["canary_data"] = self.canary_data
-        return params
+        return dict()
