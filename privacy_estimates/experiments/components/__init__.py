@@ -22,3 +22,4 @@ from .convert_in_out_to_challenge.convert_to_challenge import convert_in_out_to_
 from .compute_mi_signals.loader import compute_mi_signals
 from .convert_dataset.convert import convert_jsonl_to_hfd, convert_hfd_to_jsonl
 from .generate_text_canaries.generate_canaries import generate_canaries_with_secrets
+from .convert_uri_file_to_primitive.convert_uri_file import convert_uri_file_to_int

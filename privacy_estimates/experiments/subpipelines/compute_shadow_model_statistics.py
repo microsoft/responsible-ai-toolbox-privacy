@@ -4,7 +4,7 @@ from azure.ai.ml.entities import PipelineComponent
 from privacy_estimates.experiments.aml import WorkspaceConfig
 from privacy_estimates.experiments.subpipelines import TrainManyModelsLoader
 from privacy_estimates.experiments.components import (
-    create_in_out_data_for_shadow_model_statistics, compute_shadow_model_statistics, create_empty_dataset
+    create_in_out_data_for_shadow_model_statistics, compute_shadow_model_statistics, convert_uri_file_to_int
 )
 from privacy_estimates.experiments.loaders import TrainingComponentLoader, InferenceComponentLoader
 
@@ -29,13 +29,14 @@ class ComputeShadowModelStatisticsLoader:
             data_for_shadow_models = create_in_out_data_for_shadow_model_statistics(
                 in_out_data=canary_data, seed=seed, split_type="rotating_splits", in_fraction=self.in_fraction
             )
+            convert_num_points_per_model = convert_uri_file_to_int(uri_file=data_for_shadow_models.outputs.num_points_per_model)
             data_for_shadow_models.compute = self.workspace.large_memory_cpu_compute
             train_shadow_models = self.train_many_models_loader.load(
                 train_base_data=train_data,
                 validation_base_data=validation_data,
                 in_out_data=canary_data, in_indices=data_for_shadow_models.outputs.in_indices,
                 out_indices=data_for_shadow_models.outputs.out_indices, base_seed=seed,
-                num_points_per_model=data_for_shadow_models.outputs.num_points_per_model
+                num_points_per_model=convert_num_points_per_model.outputs.output
             )
 
             shadow_model_statistics_job = compute_shadow_model_statistics(
