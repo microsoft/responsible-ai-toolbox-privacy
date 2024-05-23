@@ -1,6 +1,6 @@
 import numpy as np
 from mldesigner import command_component, Input, Output
-from datasets import Dataset
+from datasets import Dataset, Features, Value
 from enum import Enum
 
 
@@ -34,7 +34,10 @@ def generate_canaries_with_secrets(
                     {"role": "assistant", "content": response}
                 ] for response in assistant_responses
             ]
-        })
+        },
+        features=Features({
+            'messages': [{'role': Value(dtype='string', id=None), 'content': Value(dtype='string', id=None)}]
+        }))
 
     canaries.save_to_disk(output)
 

@@ -1,10 +1,10 @@
 from mldesigner import command_component, Input, Output
-from datasets import Dataset
+from datasets import Dataset, Features, Value
 from pathlib import Path
 
 
 @command_component(environment="environment.aml.yaml")
-def convert_jsonl_to_hfd(data: Input(type="uri_file"), output: Output(type="uri_folder")):
+def convert_chat_jsonl_to_hfd(data: Input(type="uri_file"), output: Output(type="uri_folder")):
     """
     Convert a JSONL file to a Hugging Face dataset.
     """
@@ -14,7 +14,10 @@ def convert_jsonl_to_hfd(data: Input(type="uri_file"), output: Output(type="uri_
     else:
         paths = list(path.glob("*.jsonl")) + list(path.glob("*.json"))
     paths = [str(p) for p in paths]
-    Dataset.from_json(paths).save_to_disk(output)
+    feats = Features({
+        'messages': [{'role': Value(dtype='string', id=None), 'content': Value(dtype='string', id=None)}]
+    })
+    Dataset.from_json(paths, features=feats).save_to_disk(output)
 
 
 @command_component(environment="environment.aml.yaml")
