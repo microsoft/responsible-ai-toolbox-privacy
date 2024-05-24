@@ -326,6 +326,15 @@ class DatastoreURI(str):
         return str.__new__(cls, uri)
 
     @classmethod
+    def from_datastore_uri(cls, uri: str, workspace: WorkspaceConfig) -> "DatastoreURI":
+        if "subscriptions" in uri:
+            return cls(uri)
+        workspace_path = f"azureml://subscriptions/{workspace.subscription_id}/resourcegroups/{workspace.resource_group}/" \
+                         f"workspaces/{workspace.workspace_name}/"
+        uri = uri.replace("azureml://", workspace_path)
+        return cls(uri)
+
+    @classmethod
     def from_asset_uri(cls, uri: str, workspace: WorkspaceConfig) -> "DatastoreURI":
         pattern = re.compile(r"/data/([^/]+)")
         match = re.search(pattern, uri)
@@ -375,6 +384,7 @@ class Job:
             subscription_id=aml_run.experiment.workspace.subscription_id,
         )
         self.local_name = local_name
+        self.aml_job = self.ws.ml_client.jobs.get(aml_run.id)
 
         existing_tags = self.aml_run.get_tags()
         duplicate_keys = set(existing_tags.keys()).intersection(add_tags.keys())
@@ -424,9 +434,12 @@ class Job:
         return local_path
 
     def download_output(self, name: str, path: str, match_pattern: str = "*") -> Path:
-        output_details = self.details['runDefinition']['outputAssets'][name]
-        uri = DatastoreURI.from_asset_uri(uri=output_details["asset"]["assetId"],
-                                          workspace=self.ws)
+        run_id = self.aml_run.id
+        if self.aml_job.properties["azureml.isreused"]:
+            run_id = self.aml_job.properties["azureml.reusedrunid"]
+        uri_path = self.details['runDefinition']['outputData'][name]["outputLocation"]["uri"]["path"]
+        uri_path = uri_path.replace("${{name}}", run_id)
+        uri = DatastoreURI.from_datastore_uri(uri=uri_path, workspace=self.ws)
         local_path = uri.download_content(path=path, match_pattern=match_pattern)
         return local_path
 
