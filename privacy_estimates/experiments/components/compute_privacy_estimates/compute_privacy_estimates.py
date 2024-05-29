@@ -41,8 +41,8 @@ def setup_accountant(dp_parameters_path: Path) -> Tuple[PRVAccountant, int]:
 def main(args: Arguments) -> int:
     report = priv_report.PrivacyReport()
 
-    scores_ds = Dataset.load_from_disk(args.scores)
-    challenge_bits_ds = Dataset.load_from_disk(args.challenge_bits)
+    scores_ds = Dataset.load_from_disk(str(args.scores))
+    challenge_bits_ds = Dataset.load_from_disk(str(args.challenge_bits))
 
     # Add MI score distribution
     report.mi_score_distribution = priv_report.MIScoreDistribution(

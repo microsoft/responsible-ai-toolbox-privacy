@@ -10,7 +10,7 @@ import requests
 
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
-from azure.ai.ml.entities import Component, PipelineJob
+from azure.ai.ml.entities import Component, PipelineJob, CommandComponent, Command
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.core.exceptions import ClientAuthenticationError
 from dataclasses import dataclass

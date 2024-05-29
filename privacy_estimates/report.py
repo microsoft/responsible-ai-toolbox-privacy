@@ -164,7 +164,7 @@ class AbstractLogger(ABC):
 
 class MatplotlibLogger(AbstractLogger):
     def __init__(self, path: Path):
-        self.path = path
+        self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 
     def log(self, report: PrivacyReport):
@@ -284,7 +284,7 @@ class AMLLogger(AbstractLogger):
 
 class PDFLogger(AbstractLogger):
     def __init__(self, path: Path):
-        self.path = path
+        self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 
     def log(self, report: PrivacyReport):
