@@ -442,6 +442,10 @@ class Job:
         uri = DatastoreURI.from_datastore_uri(uri=uri_path, workspace=self.ws)
         local_path = uri.download_content(path=path, match_pattern=match_pattern)
         return local_path
+    
+    def resubmit(self):
+        breakpoint()
+        return self.ws.ml_client.jobs.create_or_update(self.aml_job) 
 
     def get_command(self, input_paths: Optional[Dict[str, Path]] = None, output_path: Optional[Path] = None) -> str:
         """

@@ -49,7 +49,7 @@ class PreparedData:
 
 def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds: Dataset, in_sample_indices_ds: Dataset,
                   out_sample_indices_ds: Dataset, model_index: int, seed: int, num_points_per_model: int, sample_selection: str,
-                  merge_unused_samples: str) -> PreparedData:
+                  merge_unused_samples: str, num_repetitions: int = 1) -> PreparedData:
     """
     Component that prepare data for training a model
 
@@ -67,6 +67,7 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
         sample_selection (str, optional): Method for selecting samples. Defaults to "with_replacement".
         merge_unused_samples_with_train_data (bool, optional): Whether to merge unused samples with the train data.
                                                                Defaults to False.
+        num_repetitions (int, optional): Number of times to repeat the inserted samples in the train data. Defaults to 1.
     """
     sample_selection = SampleSelectionMethod(sample_selection)
     merge_unused_samples = MergeUnusedSamplesMethod(merge_unused_samples)
@@ -132,7 +133,7 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     )
 
     logger.info(f"Length of train_base_ds: {len(train_base_ds)}")
-    train_data_for_model_ds: Dataset = concatenate_datasets([train_base_ds, in_data_for_model_ds])
+    train_data_for_model_ds: Dataset = concatenate_datasets([train_base_ds] + [in_data_for_model_ds]*num_repetitions)
 
     validation_data_for_model_ds = validation_base_ds
     logger.info(f"Length of validation_base_ds: {len(validation_data_for_model_ds)}")
@@ -238,7 +239,8 @@ def prepare_data_for_aml_parallel(
     model_index_start: int, model_index_end: int, group_base_seed: int, num_points_per_model: int,
     in_data_for_models: Output(mode="rw_mount"), out_data_for_models: Output(mode="rw_mount"),  # noqa: F821
     train_data_for_models: Output(mode="rw_mount"), validation_data_for_models: Output(mode="rw_mount"), # noqa: F821
-    sample_selection: str, merge_unused_samples: str, seeds_for_models: Output(mode="rw_mount")  # noqa: F821
+    sample_selection: str, merge_unused_samples: str, seeds_for_models: Output(mode="rw_mount"),  # noqa: F821
+    num_repetitions: int = 1
 ):
     for model_index in range(model_index_start, model_index_end):
         model_index_str = f"model_index-{model_index:04}"
@@ -252,7 +254,8 @@ def prepare_data_for_aml_parallel(
             seed=group_base_seed+model_index,
             num_points_per_model=num_points_per_model,
             sample_selection=sample_selection,
-            merge_unused_samples=merge_unused_samples
+            merge_unused_samples=merge_unused_samples,
+            num_repetitions=num_repetitions
         )
         prepared_data.train_data_for_model.save_to_disk(str(Path(train_data_for_models)/model_index_str))
         prepared_data.validation_data_for_model.save_to_disk(str(Path(validation_data_for_models)/model_index_str))
@@ -269,7 +272,7 @@ def prepare_data_for_aml_parallel(
 def prepare_data(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
                  model_index: int, seed: int, num_points_per_model: int, in_data_for_model: Output, out_data_for_model: Output,
                  train_data_for_model: Output, validation_data_for_model: Output, sample_selection: str,
-                 merge_unused_samples: str):
+                 merge_unused_samples: str, num_repetitions: int = 1):
     """
     Component that prepare data for training a model
 
@@ -287,6 +290,7 @@ def prepare_data(train_base_data: Input, validation_base_data: Input, in_out_dat
         sample_selection (str, optional): Method for selecting samples. Defaults to "with_replacement".
         merge_unused_samples_with_train_data (bool, optional): Whether to merge unused samples with the train data.
                                                                Defaults to False.
+        num_repetitions (int, optional): Number of times to repeat the inserted samples in the train data. Defaults to 1.
     """
     prepared_data = _prepare_data(
         train_base_ds=load_from_disk(train_base_data),
@@ -298,7 +302,8 @@ def prepare_data(train_base_data: Input, validation_base_data: Input, in_out_dat
         seed=seed,
         num_points_per_model=num_points_per_model,
         sample_selection=sample_selection,
-        merge_unused_samples=merge_unused_samples
+        merge_unused_samples=merge_unused_samples,
+        num_repetitions=num_repetitions,
     )
     prepared_data.train_data_for_model.save_to_disk(train_data_for_model)
     prepared_data.validation_data_for_model.save_to_disk(validation_data_for_model)

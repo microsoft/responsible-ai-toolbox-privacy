@@ -49,6 +49,7 @@ class TrainModelGroupAMLParallelLoader(TrainModelGroupBase):
                 model_index_end=model_index_end, group_base_seed=base_seed, num_points_per_model=num_points_per_model,
                 sample_selection=self.single_model_arguments.sample_selection,
                 merge_unused_samples=self.single_model_arguments.merge_unused_samples,
+                num_repetitions=self.single_model_arguments.num_repetitions,
             )
 
             filter_train_data = filter_aux_data_aml_parallel(full=prepare_data.outputs.train_data_for_models)

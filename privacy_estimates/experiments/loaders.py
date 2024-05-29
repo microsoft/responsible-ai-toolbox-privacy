@@ -57,6 +57,7 @@ class TrainSingleModelAndPredictArguments:
     sample_selection: str
     tag_model_index: bool
     merge_unused_samples: str
+    num_repetitions: int
 
 
 class TrainSingleModelAndPredictLoader:
@@ -79,7 +80,7 @@ class TrainSingleModelAndPredictLoader:
                 train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                 in_indices=in_indices, out_indices=out_indices, seed=seed, num_points_per_model=num_points_per_model,
                 model_index=model_index, sample_selection=self.arguments.sample_selection,
-                merge_unused_samples=self.arguments.merge_unused_samples
+                merge_unused_samples=self.arguments.merge_unused_samples, num_repetitions=self.arguments.num_repetitions
             )
 
             filter_train_data = filter_aux_data(full=data_for_model.outputs.train_data_for_model)

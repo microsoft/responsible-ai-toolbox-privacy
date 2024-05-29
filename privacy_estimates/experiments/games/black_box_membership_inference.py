@@ -21,6 +21,7 @@ from privacy_estimates.experiments.games.configs import PrivacyEstimationConfig
 class GameConfig:
     num_models: int
     seed: int
+    num_repetitions: int = 1
     num_challenge_points_per_model: int = 1
     num_models_per_group: int = 32
     num_concurrent_jobs_per_node: int = 1
@@ -73,7 +74,8 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             num_models=self.game_config.num_models, train_loader=train_loader, inference_loader=inference_loader,
             sample_selection="partitioned", merge_unused_samples="all_with_train",
             num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
-            num_models_per_group=self.game_config.num_models_per_group, tag_model_index=False
+            num_models_per_group=self.game_config.num_models_per_group, tag_model_index=False,
+            num_repetitions=self.game_config.num_repetitions
         )
 
     @property

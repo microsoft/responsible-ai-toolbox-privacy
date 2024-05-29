@@ -9,8 +9,8 @@ from .base import TrainSingleModelAndPredictArguments
 
 class TrainManyModelsLoader:
     def __init__(self, train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader,
-                 num_models: int, sample_selection: str, merge_unused_samples: str, num_models_per_group: int = 32,  
-                 num_concurrent_jobs_per_node: int = 1, tag_model_index: bool = False):
+                 num_models: int, sample_selection: str, merge_unused_samples: str, num_repetitions: int = 1,
+                 num_models_per_group: int = 32, num_concurrent_jobs_per_node: int = 1, tag_model_index: bool = False):
         """
         Args:
             train_loader: ComponentLoader for training a single model
@@ -27,7 +27,7 @@ class TrainManyModelsLoader:
 
         self.single_model_arguments = TrainSingleModelAndPredictArguments(
             train_loader=train_loader, inference_loader=inference_loader, sample_selection=sample_selection,
-            tag_model_index=tag_model_index, merge_unused_samples=merge_unused_samples
+            tag_model_index=tag_model_index, merge_unused_samples=merge_unused_samples, num_repetitions=num_repetitions,
         )
 
         if num_concurrent_jobs_per_node > 1:

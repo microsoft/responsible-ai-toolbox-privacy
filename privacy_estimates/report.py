@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Union
 from pathlib import Path
 from warnings import warn
+from tempfile import TemporaryDirectory
 
 from privacy_estimates import convert_eps_deltas_to_fpr_fnr
 
@@ -237,14 +238,15 @@ class AMLLogger(AbstractLogger):
             return
 
         # Create PNGs and log to images
-        MatplotlibLogger(Path(".")).log(report)
-        if len(report.trade_off_curves) > 0:
-            self.run.log_image(name="trade_off_curves.png", path="trade_off_curves.png")
-            self.run.log_image(name="trade_off_curves_fpr_tpr.png", path="trade_off_curves_fpr_tpr.png")
-            self.run.log_image(name="trade_off_curves_fpr_tpr_log.png", path="trade_off_curves_fpr_tpr_log.png")
-        if report.mi_score_distribution is not None:
-            self.run.log_image(name="mi_score_histogram.png", path="mi_score_histogram.png")
-            self.run.log_image(name="mi_score_kde.png", path="mi_score_kde.png")
+        with TemporaryDirectory() as temp_dir:
+            MatplotlibLogger(Path(temp_dir)).log(report)
+            if len(report.trade_off_curves) > 0:
+                self.run.log_image(name="trade_off_curves.png", path="trade_off_curves.png")
+                self.run.log_image(name="trade_off_curves_fpr_tpr.png", path="trade_off_curves_fpr_tpr.png")
+                self.run.log_image(name="trade_off_curves_fpr_tpr_log.png", path="trade_off_curves_fpr_tpr_log.png")
+            if report.mi_score_distribution is not None:
+                self.run.log_image(name="mi_score_histogram.png", path="mi_score_histogram.png")
+                self.run.log_image(name="mi_score_kde.png", path="mi_score_kde.png")
 
         if len(report.trade_off_curves) > 0:
             # Log trade off curves as tables to metrics
