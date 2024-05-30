@@ -30,12 +30,8 @@ outputs:
 code: .
 additional_includes:
         - "../../../../privacy_estimates"
-        - "../../../../setup.py"
-        - "../../../../VERSION"
-        - "../../../../README.md"
-        - "../../../../scripts"
 command: >-
-  python -m pip install -e .[report] && python compute_privacy_estimates.py \
+  python compute_privacy_estimates.py \
     $[[ --dp_parameters ${{inputs.dp_parameters}} ]] \
     --scores ${{inputs.scores}} \
     --challenge_bits ${{inputs.challenge_bits}} \
