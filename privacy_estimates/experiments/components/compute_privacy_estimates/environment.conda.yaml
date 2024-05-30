@@ -18,5 +18,6 @@ dependencies:
     - open-fonts
     - pdfkit
     - git+https://github.com/microsoft/prv_accountant.git@535a9f0e417580bd28fd74579119fa4f269a16af
+    - scikit-learn
     - pydantic-cli
     - tqdm-loggable
