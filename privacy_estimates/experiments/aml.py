@@ -413,6 +413,14 @@ class Job:
 
         run = Run.get(ws.workspace, run_id=run_id)
 
+        node_path, = query_dict.get('nsq', [None])
+        if node_path is not None:
+            node_path = node_path.replace("nodePath == ", "").replace("\\/", "/")
+            node_path_ls = [ p for p in node_path.split("/") if p ]
+            job = Job(aml_run=run)
+            while len(node_path_ls) > 0:
+                job = job.get_node(node_path_ls.pop(0))
+            run = job.aml_run
         return Job(aml_run=run, local_name=local_name, add_tags=add_tags)
 
     @classmethod
@@ -422,8 +430,16 @@ class Job:
         return Job(aml_run=run, local_name=local_name)
 
     def get_node(self, name: str) -> "Job":
-        children = self.aml_run.get_children()
-        node = next(filter(lambda x: x.display_name == name, children))
+        children = list(self.aml_run.get_children())
+        if len(children) == 1 and children[0].type == "azureml.PipelineRun":
+            children = list(children[0].get_children())
+        try:
+            node = next(filter(lambda x: x.display_name == name, children))
+        except StopIteration:
+            raise ValueError(
+                f"Node {name} not found in job {self.aml_run.id}. "
+                f"Available nodes: {', '.join([c.display_name for c in children])}"
+            )
         return Job(aml_run=node)
 
     def download_input(self, name: str, path: str, match_pattern: str = "*") -> Path:
