@@ -212,7 +212,8 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     # Check that train_data_for_model_ds doesn't contain any duplicates (other than null rows)
     train_data_for_model_sample_indices_not_null = [i for i in train_data_for_model_sample_indices if i != "None-None"]
     if (
-        len(set(train_data_for_model_sample_indices_not_null)) != len(train_data_for_model_sample_indices_not_null)
+        len(set(train_data_for_model_sample_indices_not_null)) + (num_repetitions-1)*num_points_per_model != \
+            len(train_data_for_model_sample_indices_not_null)
     ):
         duplicates = [
             i for i, c in Counter(train_data_for_model_sample_indices_not_null).items() if c > 1

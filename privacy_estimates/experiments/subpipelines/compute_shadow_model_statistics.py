@@ -12,13 +12,13 @@ from privacy_estimates.experiments.loaders import TrainingComponentLoader, Infer
 class ComputeShadowModelStatisticsLoader:
     def __init__(self, train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader,
                  num_models: int, workspace: WorkspaceConfig, in_fraction: float, num_concurrent_jobs_per_node: int = 1,
-                 num_models_per_group: int = 32):
+                 num_models_per_group: int = 32, num_repetitions: int = 1) -> None:
         self.workspace = workspace
         self.in_fraction = in_fraction
         self.train_many_models_loader = TrainManyModelsLoader(
             num_models=num_models, train_loader=train_loader, inference_loader=inference_loader, sample_selection="partitioned",
             merge_unused_samples="none", num_concurrent_jobs_per_node=num_concurrent_jobs_per_node,
-            num_models_per_group=num_models_per_group, tag_model_index=True
+            num_models_per_group=num_models_per_group, tag_model_index=True, num_repetitions=num_repetitions
         )
 
     def load(self, train_data: Input, validation_data: Input, canary_data: Input, seed: int) -> PipelineComponent:

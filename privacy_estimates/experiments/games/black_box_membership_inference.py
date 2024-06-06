@@ -65,7 +65,8 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 train_loader=self.train_loader, inference_loader=self.inference_loader,
                 num_models=self.shadow_model_config.num_models, in_fraction=self.shadow_model_config.in_fraction,
                 num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
-                num_models_per_group=self.game_config.num_models_per_group, workspace=workspace
+                num_models_per_group=self.game_config.num_models_per_group, workspace=workspace,
+                num_repetitions=self.game_config.num_repetitions
             )
         else:
             self.mi_statistics_loader = None

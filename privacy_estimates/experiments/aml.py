@@ -63,7 +63,7 @@ class WorkspaceConfig:
 
     def _get_ml_client(self) -> MLClient:
         try:
-            credential = DefaultAzureCredential()
+            credential = DefaultAzureCredential(process_timeout=45)
             # Check if given credential can get token successfully.
             credential.get_token("https://management.azure.com/.default")
         except ClientAuthenticationError:
