@@ -212,13 +212,12 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     # Check that train_data_for_model_ds doesn't contain any duplicates (other than null rows)
     train_data_for_model_sample_indices_not_null = [i for i in train_data_for_model_sample_indices if i != "None-None"]
     if (
-        len(set(train_data_for_model_sample_indices_not_null)) + (num_repetitions-1)*num_points_per_model != \
-            len(train_data_for_model_sample_indices_not_null)
+        num_repetitions == 1 and  # If num_repetitions > 1, duplicates are expected
+        len(set(train_data_for_model_sample_indices_not_null)) != len(train_data_for_model_sample_indices_not_null)
     ):
         duplicates = [
             i for i, c in Counter(train_data_for_model_sample_indices_not_null).items() if c > 1
         ]
-        print(f"train_data_for_model_ds: {train_data_for_model_ds['input']}")
         raise ValueError(
             f"train_data_for_model_ds must not contain any duplicates. "
             f"Found {len(duplicates)} duplicates: {duplicates}"
