@@ -11,7 +11,7 @@ import requests
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
 from azure.ai.ml.entities import Component, PipelineJob, CommandComponent, Command
-from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
+from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, AzureCliCredential
 from azure.core.exceptions import ClientAuthenticationError
 from dataclasses import dataclass
 from hydra.core.hydra_config import HydraConfig
@@ -43,8 +43,12 @@ class RegistryConfig:
             # Check if given credential can get token successfully.
             credential.get_token("https://management.azure.com/.default")
         except ClientAuthenticationError:
-            # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
-            credential = InteractiveBrowserCredential()
+            try:
+                credential = AzureCliCredential()
+                credential.get_token("https://management.azure.com/.default")
+            except ClientAuthenticationError:
+                # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
+                credential = InteractiveBrowserCredential()
         return MLClient(credential=credential, registry_name=self.registry_name, registry_location=self.location)
 
 @dataclass
@@ -68,7 +72,11 @@ class WorkspaceConfig:
             credential.get_token("https://management.azure.com/.default")
         except ClientAuthenticationError:
             # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
-            credential = InteractiveBrowserCredential()
+            try:
+                credential = AzureCliCredential()
+                credential.get_token("https://management.azure.com/.default")
+            except ClientAuthenticationError:
+                credential = InteractiveBrowserCredential()
         return MLClient(credential=credential, subscription_id=self.subscription_id, resource_group_name=self.resource_group,
                         workspace_name=self.workspace_name)
 
