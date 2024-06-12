@@ -64,6 +64,7 @@ setup(
         ],
     },
     scripts=[
-        "scripts/estimate-epsilon.py"
+        "scripts/estimate-epsilon.py",
+        "experiments/scripts/debug-component.py",
     ]
 )
