@@ -26,6 +26,12 @@ class RMIA:
     ):
         if (reference_signals_in is None) == (offline_a is None):
             raise ValueError("Either reference_signals_in or offline_a must be provided, but not both.")
+    
+        if any((v<0 or 1<v) for v in reference_signals_out.values()):
+            raise ValueError(f"In-reference signals must be in the range [0, 1].")
+        if reference_signals_in is not None:
+            if any((v<0 or 1<v) for v in reference_signals_in.values()):
+                raise ValueError(f"Out-reference signals must be in the range [0, 1].")
 
         if offline_a is not None:
             print("RMIA: Using offline_a for computing mean_in.")
@@ -45,6 +51,7 @@ class RMIA:
                 f"Found columns: {reference_signals_ds.column_names}. "
                 f"Missing columns: {required_columns - set(reference_signals_ds.column_names)}."
             )
+
         reference_signals_out = {
             (split, sample_index): mi_signal
             for split, sample_index, mi_signal
