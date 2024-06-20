@@ -24,6 +24,18 @@ class RMIA:
         reference_signals_in: Optional[Mapping[Hashable, float]] = None,
         offline_a: Optional[float] = None
     ):
+        """
+        Signals are probabilities P(x|\theta) and are checked to be in [0, 1].
+
+        Args:
+            reference_signals_out: Reference signals for out-of-distribution samples. A dictionary
+                mapping sample indices to reference signals.
+            reference_signals_in: Reference signals for in-distribution samples. A dictionary
+                mapping sample indices to reference signals. If None, mean_in is computed using
+                reference_signals_out.
+            offline_a: Offline value for a. If provided, mean_in is computed using this value.
+                If not provided, mean_in is computed using reference signals.
+        """
         if (reference_signals_in is None) == (offline_a is None):
             raise ValueError("Either reference_signals_in or offline_a must be provided, but not both.")
     
