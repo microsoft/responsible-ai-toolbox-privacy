@@ -459,7 +459,7 @@ class Job:
 
     def download_output(self, name: str, path: str, match_pattern: str = "*") -> Path:
         run_id = self.aml_run.id
-        if self.aml_job.properties["azureml.isreused"]:
+        if self.aml_job.properties.get("azureml.isreused", False):
             run_id = self.aml_job.properties["azureml.reusedrunid"]
         uri_path = self.details['runDefinition']['outputData'][name]["outputLocation"]["uri"]["path"]
         uri_path = uri_path.replace("${{name}}", run_id)
