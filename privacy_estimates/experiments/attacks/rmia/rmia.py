@@ -87,7 +87,7 @@ class RMIA:
             mean_x = (reference_signals_in + reference_signals_out) / 2
         prob_ratio_x = target_signals.ravel() / mean_x
         mia_scores = prob_ratio_x
-        return -mia_scores
+        return mia_scores
 
 
 def main(args: Arguments):
