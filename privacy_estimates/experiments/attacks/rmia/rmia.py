@@ -103,8 +103,8 @@ class RMIA:
 
 
 def main(args: Arguments):
-    mi_statistics = load_from_disk(args.mi_statistics, keep_in_memory=True)
-    challenge_points = load_from_disk(args.challenge_points, keep_in_memory=True)
+    mi_statistics = load_from_disk(str(args.mi_statistics), keep_in_memory=True)
+    challenge_points = load_from_disk(str(args.challenge_points), keep_in_memory=True)
 
     rmia = RMIA.from_dataset(reference_signals_ds=mi_statistics, offline_a=args.offline_a)
 
