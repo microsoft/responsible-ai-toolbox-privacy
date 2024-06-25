@@ -118,7 +118,7 @@ def main(args: Arguments):
     mi_scores = rmia.compute_score(index=target_indices, target_signals=target_signals)
 
     mi_scores_ds = Dataset.from_dict({"score": mi_scores})
-    mi_scores_ds.save_to_disk(args.scores)
+    mi_scores_ds.save_to_disk(str(args.scores))
 
 
 def exception_handler(ex):
