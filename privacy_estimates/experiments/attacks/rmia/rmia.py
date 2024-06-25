@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from typing import Sequence, Hashable, Mapping, Optional
 from pydantic import BaseModel, Field
@@ -26,6 +27,8 @@ class RMIA:
     ):
         """
         Signals are probabilities P(x|\theta) and are checked to be in [0, 1].
+        If they're not in [0,1] a warning is produced but the attack should still work (albeit more heuristically)
+        provided that the convention is followed that larger signal represent evidence for in-membership.
 
         Args:
             reference_signals_out: Reference signals for out-of-distribution samples. A dictionary
@@ -38,12 +41,13 @@ class RMIA:
         """
         if (reference_signals_in is None) == (offline_a is None):
             raise ValueError("Either reference_signals_in or offline_a must be provided, but not both.")
+
     
         if any((v<0 or 1<v) for v in reference_signals_out.values()):
-            raise ValueError(f"In-reference signals must be in the range [0, 1].")
+            warnings.warn(f"In-reference signals must be in the range [0, 1].", RuntimeWarning)
         if reference_signals_in is not None:
             if any((v<0 or 1<v) for v in reference_signals_in.values()):
-                raise ValueError(f"Out-reference signals must be in the range [0, 1].")
+                warnings.warn(f"Out-reference signals must be in the range [0, 1].", RuntimeWarning)
 
         if offline_a is not None:
             print("RMIA: Using offline_a for computing mean_in.")

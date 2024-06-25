@@ -36,6 +36,9 @@ class Signal(ABC):
             labels: The true labels of the data.
             completion_mask: The mask for the completion of the sequence i.e. which tokens will be considered to compute the
                              signal. If None, all elements are considered.
+        Returns:
+            The signal for the membership inference attack. of shape (n_samples,) or (n_samples, sequence_len). Larger values
+            are evidence for in-membership.
         """
         raise NotImplementedError("This method should be implemented by the subclass")
 
@@ -49,6 +52,9 @@ class Signal(ABC):
             labels: The true labels of the data.
             completion_mask: The mask for the completion of the sequence i.e. which tokens will be considered to compute the
                              signal. If None, all elements are considered.
+        Returns:
+            The signal for the membership inference attack. of shape (n_samples,) or (n_samples, sequence_len). Larger values
+            are evidence for in-membership.
         """
         raise NotImplementedError("This method should be implemented by the subclass")
     
@@ -62,6 +68,9 @@ class Signal(ABC):
             labels: The true labels of the data.
             completion_mask: The mask for the completion of the sequence i.e. which tokens will be considered to compute the
                              signal. If None, all elements are considered.
+        Returns:
+            The signal for the membership inference attack. of shape (n_samples,) or (n_samples, sequence_len). Larger values
+            are evidence for in-membership.
         """
         raise NotImplementedError("This method should be implemented by the subclass")
 
@@ -93,7 +102,8 @@ class TaylorSoftMargin(Signal):
             completion_mask: The mask for the completion of the sequence i.e. which tokens will be considered to compute the
                              signal. If None, all elements are considered.
         Returns:
-            The signal for the membership inference attack. of shape [n_samples, (seq_len)]
+            The signal for the membership inference attack. of shape [n_samples, (seq_len)]. Larger values
+            are evidence for in-membership.
         """
         if attention_mask is None:
             attention_mask = np.ones_like(labels)
@@ -130,7 +140,8 @@ class CrossEntropy(Signal):
             completion_mask: The mask for the completion of the sequence i.e. which tokens will be considered to compute the
                              signal. If None, all elements are considered.
         Returns:
-            The signal for the membership inference attack. of shape [n_samples, (seq_len)]
+            The signal for the membership inference attack. of shape [n_samples, (seq_len)]. Larger values
+            are evidence for in-membership.
         """
         if completion_mask is None:
             completion_mask = np.ones_like(labels)
@@ -155,6 +166,18 @@ SIGNALS = {cls.__name__: cls for cls in Signal.__subclasses__()}
 
 def compute_mi_signals(predictions: np.ndarray, labels: np.ndarray, method: str, prediction_format: PredictionFormat,
                        completion_mask: Optional[np.ndarray] = None, **kwargs) -> np.ndarray:
+    """
+    Compute the membership inference signals for the given method.
+
+    Args:
+        predictions: The predictions of the model.
+        labels: The true labels of the data.
+        method: The method to use for computing the signals.
+        prediction_format: The format of the predictions.
+        completion_mask: The mask for the completion of the sequence i.e. which tokens will be considered to compute the
+                         signal. If None, all elements are considered.
+        **kwargs: Additional arguments for the method.
+    """
     if method not in SIGNALS:
         raise ValueError(f"Method {method} not found. Available methods: {SIGNALS.keys()}")
     signal_method = SIGNALS[method](**kwargs)
