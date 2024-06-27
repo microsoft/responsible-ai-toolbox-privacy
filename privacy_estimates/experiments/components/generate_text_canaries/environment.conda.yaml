@@ -8,4 +8,5 @@ dependencies:
     - azure-ai-ml
     - datasets
     - mldesigner
+    - openai>1.0.0
     - tqdm-loggable
