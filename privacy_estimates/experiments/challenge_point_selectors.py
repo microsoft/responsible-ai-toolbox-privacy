@@ -48,11 +48,16 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
     
 
 class TopKChallengePoints(ChallengePointSelectionLoader):
-    def __init__(self, num_challenge_points: int):
+    def __init__(self, num_challenge_points: int, allow_fewer: bool = False):
         self.num_challenge_points = num_challenge_points
+        self.allow_fewer = allow_fewer
 
     def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
         @dsl.pipeline(name="Select top-k challenge points")
         def p(data: Input, shadow_model_statistics: Input) -> Pipeline:
-            return {"challenge_points": select_top_k_rows(data=data, k=self.num_challenge_points).outputs.output}
+            return {
+                "challenge_points": select_top_k_rows(
+                    data=data, k=self.num_challenge_points, allow_fewer=self.allow_fewer
+                ).outputs.output
+            }
         return p(data=data, shadow_model_statistics=shadow_model_statistics)
