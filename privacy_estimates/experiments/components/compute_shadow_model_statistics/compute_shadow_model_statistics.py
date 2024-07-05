@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+
 from mldesigner import command_component, Input, Output
 from datasets import Dataset, load_from_disk
 from tempfile import TemporaryDirectory
@@ -14,6 +17,17 @@ def drop_null_rows(ds: Dataset) -> Dataset:
         ds = load_from_disk(tmp_dir)
         filtered_ds = ds.filter(lambda row: all(row[k] is not None for k in ["split", "sample_index"]), num_proc=cpu_count())
         return filtered_ds
+
+
+def log_mean_exp(log_column: pd.Series):
+    """
+    Compute the mean of a column of log values. This is done by exponentiating the log values, computing the mean of
+    the exponentiated values, and then taking the log of the mean.
+
+    The exponantiationg is done in longdouble. This can be useful for very small values, where the log values are very
+    negative and the exponentiated values are very close to zero. In this case, the exponentiated values will be rounded
+    """
+    return np.log(np.mean(np.exp(np.array(log_column.values, dtype=np.longdouble)))).astype(np.double)
 
 
 def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: Dataset) -> Dataset:
@@ -47,6 +61,9 @@ def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: D
 
     if "mi_signal" in in_df.columns:
         aggregate["mi_signal"] = ["mean", "std", "max", "min", "median", "count", list]
+
+    if "log_mi_signal" in in_df.columns:
+        aggregate["log_mi_signal"] = [log_mean_exp, list]
 
     in_df = in_df.groupby(group_by).agg(aggregate)
     out_df = out_df.groupby(group_by).agg(aggregate)
