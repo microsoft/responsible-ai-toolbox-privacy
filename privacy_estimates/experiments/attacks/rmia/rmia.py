@@ -59,21 +59,32 @@ class RMIA:
         self.reference_signals_in = reference_signals_in
 
     @classmethod
-    def from_dataset(cls, reference_signals_ds: Dataset, offline_a: Optional[float] = None):
-        required_columns = {"sample_index", "split", "mi_signal_mean_in", "mi_signal_mean_out"}
+    def from_dataset(cls, reference_signals_ds: Dataset, offline_a: Optional[float] = None, use_log_column: bool = False):
+        required_columns = {"sample_index", "split"}
+        if use_log_column:
+            required_columns |= {"log_mi_signal_log_mean_exp_in", "log_mi_signal_log_mean_exp_out"}
+        else:
+            required_columns |= {"mi_signal_mean_in", "mi_signal_mean_out"}
         if not required_columns.issubset(reference_signals_ds.column_names):
             raise ValueError(
                 f"Reference signals dataset must contain columns: {required_columns}. "
                 f"Found columns: {reference_signals_ds.column_names}. "
                 f"Missing columns: {required_columns - set(reference_signals_ds.column_names)}."
             )
+        
+        if use_log_column:
+            signal_column_out = np.exp(np.array(reference_signals_ds["log_mi_signal_log_mean_exp_out"], dtype=np.longdouble))
+            signal_column_in = np.exp(np.array(reference_signals_ds["log_mi_signal_log_mean_exp_in"], dtype=np.longdouble))
+        else:
+            signal_column_out = reference_signals_ds["mi_signal_mean_out"]
+            signal_column_in = reference_signals_ds["mi_signal_mean_in"]
 
         reference_signals_out = {
             (split, sample_index): mi_signal
             for split, sample_index, mi_signal
             in zip(
                 reference_signals_ds["split"], reference_signals_ds["sample_index"],
-                reference_signals_ds["mi_signal_mean_out"]
+                signal_column_out
             )
         }
         if sum(reference_signals_ds["mi_signal_count_in"]) == 0:
@@ -84,7 +95,7 @@ class RMIA:
                 for split, sample_index, mi_signal
                 in zip(
                     reference_signals_ds["split"], reference_signals_ds["sample_index"],
-                    reference_signals_ds["mi_signal_mean_in"]
+                    signal_column_in
                 )
             }
         return RMIA(offline_a=offline_a, reference_signals_out=reference_signals_out,
