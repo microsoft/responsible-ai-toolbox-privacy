@@ -36,11 +36,11 @@ setup(
         ]
     },
     install_requires=[
+        "argparse_dataclass",
         "statsmodels",
         "numpy",
         "scipy",
         "multimethod",
-        "pydantic_cli",
         "scikit-learn",
         "shapely",
         "parmap",
@@ -61,12 +61,10 @@ setup(
             "mldesigner",
             "mlflow-skinny",
             "mltable",
-            "pydantic>2",
             "tqdm-loggable",
         ],
     },
     scripts=[
-        "scripts/estimate-epsilon.py",
         "experiments/scripts/debug-component.py",
     ]
 )

@@ -2,8 +2,8 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager, ExitStack
-from pydantic_cli import run_and_exit
-from pydantic import BaseModel, Field
+from dataclasses import dataclass, field
+from argparse_dataclass import ArgumentParser
 from pathlib import Path
 from typing import Dict, Optional
 from tempfile import TemporaryDirectory
@@ -11,10 +11,17 @@ from tempfile import TemporaryDirectory
 from privacy_estimates.experiments.aml import WorkspaceConfig, Job
 
 
-class Arguments(BaseModel):
-    workspace_config: Optional[Path] = Field(default=None, cli=["--workspace-config"])
-    run_id: Optional[str] = Field(defaulte=None, cli=["--run-id"])
-    url: Optional[str] = Field(default=None, cli=["--url"])
+@dataclass
+class Arguments:
+    workspace_config: Optional[Path] = field(default=None, metadata={
+        "args": ["--workspace-config"], "help": "Path to the workspace configuration JSON file."
+    })
+    run_id: Optional[str] = field(default=None, metadata={
+        "args": ["--run-id"], "help": "Run ID of the job to debug."
+    })
+    url: Optional[str] = field(default=None, metadata={
+        "args": ["--url"], "help": "URL of the job to debug. (Often requires quotes around the URL.)"
+    })
 
 
 @contextmanager
@@ -55,4 +62,6 @@ def main(args: Arguments):
 
 
 if __name__ == "__main__":
-    run_and_exit(Arguments, main)
+    parser = ArgumentParser(Arguments)
+    args = parser.parse_args()
+    main(args=args)
