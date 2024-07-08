@@ -1,5 +1,6 @@
 from typing import Dict, Literal
 from azure.ai.ml import Input, Output
+from azure.ai.ml.entities import JobResourceConfiguration
 from pathlib import Path
 from dataclasses import dataclass, asdict
 
@@ -42,6 +43,10 @@ class TrainLMComponentLoader(TrainingComponentLoader):
         )
         job = component(train_data=train_data, validation_data=validation_data, seed=seed, **asdict(self.parameters),
                         text_column="sentence")
+        job.compute = "serverless"
+        job.resources = JobResourceConfiguration(instance_count=1, instance_type="STANDARD_ND40RS_V2")
+        job.distribution.process_count_per_node = 8
+
         return job
 
 
@@ -55,6 +60,8 @@ class LMInferenceComponentLoader(InferenceComponentLoader):
             EXPERIMENT_DIR/"components"/"predict-with-lm"/"component_spec.yaml", version="local"
         )
         job = component(model=model, data=dataset, **asdict(self.parameters), text_column="sentence")
+        job.compute = "serverless"
+        job.resources = JobResourceConfiguration(instance_count=1, instance_type="STANDARD_ND40RS_V2")
         return job
 
 

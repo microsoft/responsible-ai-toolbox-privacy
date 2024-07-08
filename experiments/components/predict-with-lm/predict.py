@@ -72,13 +72,16 @@ class DistributedEvaluator:
 
             output = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
 
+            logits = output.logits[:, :-1, :] # remove the last token prediction
+            labels = batch["labels"][:, 1:] # Remove the first token in the labels
+
             completion_mask_np = attention_mask.cpu().numpy()
 
         labels_np = labels.cpu().numpy()
         completion_mask_np[labels_np == -100] = 0
 
         mi_signal = self.signal_method.compute_mi_signal_from_logits(
-            logits=output.logits.cpu().numpy(), labels=labels.cpu().numpy(), completion_mask=completion_mask_np
+            logits=logits.cpu().numpy(), labels=labels.cpu().numpy(), completion_mask=completion_mask_np
         ).sum(axis=1, where=completion_mask_np)
 
         assert np.isnan(mi_signal).any() == False, "NaN values in MI signal"

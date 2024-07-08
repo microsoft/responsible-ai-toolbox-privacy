@@ -149,7 +149,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def preprocess_datasets(
         self
     ) -> Dict[Literal["train_data", "validation_data", "canary_data"], Union[Input, Output]]:
-        pass
+        raise NotImplementedError("`preprocess_datasets` must be implemented in a subclass")
 
     @property
     def pipeline_parameters(self) -> Dict:

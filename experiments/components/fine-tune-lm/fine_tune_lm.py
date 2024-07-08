@@ -18,8 +18,8 @@ class ModelArguments:
 
 
 def main(train_args: TrainingArguments, data_args: DataArguments, model_args: ModelArguments):
-    train_dataset = load_from_disk(data_args.train_data)
-    eval_dataset = load_from_disk(data_args.eval_data)
+    train_dataset = load_from_disk(data_args.train_data, keep_in_memory=True)
+    eval_dataset = load_from_disk(data_args.eval_data, keep_in_memory=True)
 
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
     if tokenizer.pad_token_id is None:
