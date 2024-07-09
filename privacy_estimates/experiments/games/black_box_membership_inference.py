@@ -4,7 +4,7 @@ from azure.ai.ml import dsl, Input, Output
 from azure.ai.ml.entities import PipelineJob
 from abc import abstractmethod
 
-from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
+from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig, ClusterComputeConfig
 from privacy_estimates.experiments.subpipelines import (
 	ComputeShadowModelStatisticsLoader, TrainManyModelsLoader, add_index_to_dataset
 )
@@ -88,7 +88,9 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
         return self.workspace.cpu_compute
 
     def pipeline(self) -> PipelineJob:
-        @dsl.pipeline(default_compute=self.default_compute)
+        if not isinstance(self.default_compute, ClusterComputeConfig):
+            raise TypeError("The default compute must be a comput cluster (i.e. `ClusterComputeConfig` object)")
+        @dsl.pipeline(default_compute=self.default_compute.cluster_name)
         def game_pipeline() -> PipelineJob:
             preprocessed_datasets = self.preprocess_datasets()
 

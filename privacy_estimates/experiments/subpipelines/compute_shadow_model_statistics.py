@@ -30,7 +30,7 @@ class ComputeShadowModelStatisticsLoader:
                 in_out_data=canary_data, seed=seed, split_type="rotating_splits", in_fraction=self.in_fraction
             )
             convert_num_points_per_model = convert_uri_file_to_int(uri_file=data_for_shadow_models.outputs.num_points_per_model)
-            data_for_shadow_models.compute = self.workspace.large_memory_cpu_compute
+            data_for_shadow_models = self.workspace.large_memory_cpu_compute.apply(data_for_shadow_models)
             train_shadow_models = self.train_many_models_loader.load(
                 train_base_data=train_data,
                 validation_base_data=validation_data,
@@ -43,7 +43,7 @@ class ComputeShadowModelStatisticsLoader:
                 predictions_in=train_shadow_models.outputs.predictions_in,
                 predictions_out=train_shadow_models.outputs.predictions_out
             )
-            shadow_model_statistics_job.compute = self.workspace.large_memory_cpu_compute
+            shadow_model_statistics_job = self.workspace.large_memory_cpu_compute.apply(shadow_model_statistics_job)
 
             return {
                 "statistics": shadow_model_statistics_job.outputs.statistics,

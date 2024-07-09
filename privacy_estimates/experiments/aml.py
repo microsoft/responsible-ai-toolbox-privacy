@@ -76,6 +76,20 @@ class ServerlessComputeConfig(ComputeConfig):
 
 
 @dataclass
+class ClusterComputeConfig(ComputeConfig):
+    cluster_name: str
+    process_count_per_node: int = 1
+
+    def apply(self, job: Job) -> Job:
+        job.compute = self.cluster_name
+        if job.distribution is not None:
+            job.distribution.process_count_per_node = self.process_count_per_node
+        elif self.process_count_per_node > 1:
+            raise ValueError("Cannot set process_count_per_node without setting distribution")
+        return job
+
+
+@dataclass
 class WorkspaceConfig:
     workspace_name: str
     resource_group: str
@@ -87,6 +101,16 @@ class WorkspaceConfig:
 
     def __post_init__(self) -> None:
         self.ml_client = self._get_ml_client()
+
+        if self.cpu_compute is not None:
+            self.cpu_compute = ClusterComputeConfig(cluster_name=self.cpu_compute)
+
+        if self.gpu_compute is not None:
+            self.gpu_compute = ClusterComputeConfig(cluster_name=self.gpu_compute)
+
+        if self.large_memory_cpu_compute is not None:
+            self.large_memory_cpu_compute = ClusterComputeConfig(cluster_name=self.large_memory_cpu_compute)
+
         if self.large_memory_cpu_compute is None:
             self.large_memory_cpu_compute = self.cpu_compute
 
@@ -126,6 +150,7 @@ class WorkspaceConfig:
             cpu_compute=cfg.get('cpu_compute', None),
             gpu_compute=cfg.get('gpu_compute', None),
             large_memory_cpu_compute=cfg.get('large_memory_cpu_compute', None),
+            compute=cfg.get('compute', {}),
         )
 
     @classmethod
@@ -250,9 +275,11 @@ class ExperimentBase:
                 tags[f"{group_name}.{param_name}"] = str(param_value)
 
         logger.info("Submitting job...")
+        if not isinstance(self.default_compute, ClusterComputeConfig):
+            raise ValueError("default_compute must be an instance of ClusterComputeConfig")
+        job.settings.default_compute = self.default_compute.cluster_name
         submitted_job = self.workspace.ml_client.jobs.create_or_update(
-            job, compute=self.default_compute, experiment_name=self.experiment_name, tags=tags,
-            skip_validation=False
+            job, experiment_name=self.experiment_name, tags=tags, skip_validation=False
         )
         return submitted_job
 
