@@ -1,6 +1,5 @@
 from typing import Dict, Literal
 from azure.ai.ml import Input, Output
-from azure.ai.ml.entities import JobResourceConfiguration
 from pathlib import Path
 from dataclasses import dataclass, asdict
 
@@ -10,7 +9,7 @@ from privacy_estimates.experiments.games.black_box_membership_inference import (
 )
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.attacks.rmia import RmiaLoader
-from privacy_estimates.experiments.aml import WorkspaceConfig
+from privacy_estimates.experiments.aml import WorkspaceConfig, ServerlessComputeConfig, ComputeConfig
 from privacy_estimates.experiments.challenge_point_selectors import TopKChallengePoints
 
 
@@ -33,9 +32,10 @@ class SharedInferenceParameters:
 
 
 class TrainLMComponentLoader(TrainingComponentLoader):
-    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedTrainingParameters):
+    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedTrainingParameters, compute_config: ComputeConfig):
         super().__init__(aml_component_loader=aml_component_loader)
         self.parameters = parameters
+        self.compute_config = compute_config
 
     def load(self, train_data: Input, validation_data: Input, seed: int):
         component = self.aml_loader.load_from_component_spec(
@@ -43,41 +43,45 @@ class TrainLMComponentLoader(TrainingComponentLoader):
         )
         job = component(train_data=train_data, validation_data=validation_data, seed=seed, **asdict(self.parameters),
                         text_column="sentence")
-        job.compute = "serverless"
-        job.resources = JobResourceConfiguration(instance_count=1, instance_type="STANDARD_ND40RS_V2")
-        job.distribution.process_count_per_node = 8
-
+        job = self.compute_config.apply(job)
         return job
 
 
 class LMInferenceComponentLoader(InferenceComponentLoader):
-    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedInferenceParameters):
+    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedInferenceParameters, compute_config: ComputeConfig):
         super().__init__(aml_component_loader=aml_component_loader)
         self.parameters = parameters
+        self.compute_config = compute_config
 
     def load(self, model: Input, dataset: Input):
         component = self.aml_loader.load_from_component_spec(
             EXPERIMENT_DIR/"components"/"predict-with-lm"/"component_spec.yaml", version="local"
         )
         job = component(model=model, data=dataset, **asdict(self.parameters), text_column="sentence")
-        job.compute = "serverless"
-        job.resources = JobResourceConfiguration(instance_count=1, instance_type="STANDARD_ND40RS_V2")
+        job = self.compute_config.apply(job)
         return job
+
 
 
 class Game(BlackBoxMembershipInferenceGameBase):
     def __init__(self, shared_training_parameters: SharedTrainingParameters,
                  shared_inference_parameters: SharedInferenceParameters, workspace: WorkspaceConfig,
                  game_config: GameConfig, shadow_model_config: ShadowModelConfig) -> None:
+        
+        gpu_distributed_config = ServerlessComputeConfig(**(workspace.compute["gpu_distributed"]))
+        gpu_single_config = ServerlessComputeConfig(**(workspace.compute["gpu_single"]))
+
 
         train_loader = TrainLMComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),
-            parameters=shared_training_parameters
+            parameters=shared_training_parameters,
+            compute_config=gpu_distributed_config
         )
 
         inference_loader = LMInferenceComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),
-            parameters=shared_inference_parameters
+            parameters=shared_inference_parameters,
+            compute_config=gpu_single_config,
         )
 
         attack_loader = RmiaLoader()

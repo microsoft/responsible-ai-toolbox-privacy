@@ -10,10 +10,10 @@ import requests
 
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
-from azure.ai.ml.entities import Component, PipelineJob, CommandComponent, Command
+from azure.ai.ml.entities import Component, PipelineJob, Job, JobResourceConfiguration, QueueSettings
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, AzureCliCredential
 from azure.core.exceptions import ClientAuthenticationError
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from hydra.core.hydra_config import HydraConfig
 from pathlib import Path
 from omegaconf import OmegaConf, DictConfig
@@ -51,6 +51,30 @@ class RegistryConfig:
                 credential = InteractiveBrowserCredential()
         return MLClient(credential=credential, registry_name=self.registry_name, registry_location=self.location)
 
+
+class ComputeConfig:
+    def apply(self, job: Job) -> Job:
+        raise NotImplementedError("Must be implemented in subclass")
+
+
+@dataclass
+class ServerlessComputeConfig(ComputeConfig):
+    instance_type: str
+    instance_count: int = 1
+    job_tier: str = "Standard"
+    process_count_per_node: int = 1
+    
+    def apply(self, job: Job) -> Job:
+        job.compute = "serverless"
+        job.resources = JobResourceConfiguration(instance_count=self.instance_count, instance_type=self.instance_type)
+        job.queue_settings = QueueSettings(job_tier=self.job_tier)
+        if job.distribution is not None:
+            job.distribution.process_count_per_node = self.process_count_per_node
+        elif self.process_count_per_node > 1:
+            raise ValueError("Cannot set process_count_per_node without setting distribution")
+        return job
+
+
 @dataclass
 class WorkspaceConfig:
     workspace_name: str
@@ -59,6 +83,7 @@ class WorkspaceConfig:
     cpu_compute: Optional[str] = None
     gpu_compute: Optional[str] = None
     large_memory_cpu_compute: Optional[str] = None
+    compute: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.ml_client = self._get_ml_client()
@@ -205,6 +230,7 @@ class ExperimentBase:
         # initialize AML logging
         logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
         logging.getLogger("azure.identity._credentials.chained").setLevel(logging.WARNING)
+        logging.getLogger("azure.identity").setLevel(logging.WARNING)
 
     def submit(self, display_name: Optional[str] = None, tags: Optional[Dict[str, str]] = None) -> PipelineJob:
         self.validate()
