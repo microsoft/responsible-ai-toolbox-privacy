@@ -5,7 +5,10 @@ from datasets import Dataset, features
 from pathlib import Path
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment={
+    "conda_file": Path(__file__).parent / "environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+})
 def create_challenge_bits_aml_parallel(
     num_challenge_points: int,
     seed: int,

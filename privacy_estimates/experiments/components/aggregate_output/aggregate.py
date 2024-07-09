@@ -7,6 +7,12 @@ from contextlib import ExitStack
 from pathlib import Path
 
 
+ENV = {
+    "conda_file": Path(__file__).parent/"environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+}
+
+
 def concatenate_datasets(paths: List[str], output: str) -> None:
     datasets.concatenate_datasets([datasets.load_from_disk(path) for path in paths]).save_to_disk(output)
 
@@ -77,19 +83,19 @@ AGGREGATOR_OUTPUTS = {
 }
 
 
-@command_component(display_name="Aggregate 2 output directories", environment="environment.aml.yaml")
+@command_component(display_name="Aggregate 2 output directories", environment=ENV)
 def aggregate_2_output_dirs(data0: Input(type="uri_folder"), data1: Input(type="uri_folder"),  # noqa: F821
                             output: Output(type="uri_folder"), aggregator: str):  # noqa: F821
     AGGREGATORS[aggregator]([data0, data1], output=output)
 
 
-@command_component(display_name="Aggregate 2 output files", environment="environment.aml.yaml")
+@command_component(display_name="Aggregate 2 output files", environment=ENV)
 def aggregate_2_output_files(data0: Input(type="uri_file"), data1: Input(type="uri_file"),  # noqa: F821
                              output: Output(type="uri_file"), aggregator: str):  # noqa: F821
     AGGREGATORS[aggregator]([data0, data1], output=output)
 
 
-@command_component(display_name="Aggregate 16 output directories", environment="environment.aml.yaml")
+@command_component(display_name="Aggregate 16 output directories", environment=ENV)
 def aggregate_16_output_dirs(
     data0: Input(type="uri_folder"), data1: Input(type="uri_folder"), data2: Input(type="uri_folder"),  # noqa: F821
     data3: Input(type="uri_folder"), data4: Input(type="uri_folder"), data5: Input(type="uri_folder"),  # noqa: F821
@@ -106,7 +112,7 @@ def aggregate_16_output_dirs(
     )
 
 
-@command_component(display_name="Aggregate 16 output files", environment="environment.aml.yaml")
+@command_component(display_name="Aggregate 16 output files", environment=ENV)
 def aggregate_16_output_files(
     data0: Input(type="uri_file"), data1: Input(type="uri_file"), data2: Input(type="uri_file"),  # noqa: F821
     data3: Input(type="uri_file"), data4: Input(type="uri_file"), data5: Input(type="uri_file"),  # noqa: F821
@@ -160,7 +166,7 @@ def aggregate_output(data: List[Union[Input, Output]], aggregator: str) -> Outpu
         )
 
 
-@command_component(display_name="Collect AML parallel to file", environment="environment.aml.yaml")
+@command_component(display_name="Collect AML parallel to file", environment=ENV)
 def collect_from_aml_parallel_to_uri_file(data: Input(type="uri_folder"), output: Output(type="uri_file"),  # noqa: F821
                                           aggregator: str):
     assert AGGREGATOR_OUTPUTS[aggregator] == "uri_file"
@@ -168,7 +174,7 @@ def collect_from_aml_parallel_to_uri_file(data: Input(type="uri_folder"), output
     AGGREGATORS[aggregator](files, output=output)
 
 
-@command_component(display_name="Collect AML parallel to folder", environment="environment.aml.yaml")
+@command_component(display_name="Collect AML parallel to folder", environment=ENV)
 def collect_from_aml_parallel_to_uri_folder(data: Input(type="uri_folder"), output: Output(type="uri_folder"),  # noqa: F821
                                             aggregator: str):
     assert AGGREGATOR_OUTPUTS[aggregator] == "uri_folder"

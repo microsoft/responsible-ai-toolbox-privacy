@@ -7,9 +7,8 @@ from privacy_estimates.experiments.loaders import InferenceComponentLoader, Trai
 from privacy_estimates.experiments.games.black_box_membership_inference import (
     BlackBoxMembershipInferenceGameBase, ShadowModelConfig, GameConfig
 )
-from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.attacks.rmia import RmiaLoader
-from privacy_estimates.experiments.aml import WorkspaceConfig, ServerlessComputeConfig, ComputeConfig
+from privacy_estimates.experiments.aml import WorkspaceConfig, ServerlessComputeConfig, ComputeConfig, ClusterComputeConfig
 from privacy_estimates.experiments.challenge_point_selectors import TopKChallengePoints
 
 
@@ -62,14 +61,13 @@ class LMInferenceComponentLoader(InferenceComponentLoader):
         return job
 
 
-
 class Game(BlackBoxMembershipInferenceGameBase):
     def __init__(self, shared_training_parameters: SharedTrainingParameters,
                  shared_inference_parameters: SharedInferenceParameters, workspace: WorkspaceConfig,
                  game_config: GameConfig, shadow_model_config: ShadowModelConfig) -> None:
         
-        gpu_distributed_config = ServerlessComputeConfig(**(workspace.compute["gpu_distributed"]))
-        gpu_single_config = ServerlessComputeConfig(**(workspace.compute["gpu_single"]))
+        gpu_distributed_config = ClusterComputeConfig(**(workspace.compute["gpu_distributed"]))
+        gpu_single_config = ClusterComputeConfig(**(workspace.compute["gpu_single"]))
 
 
         train_loader = TrainLMComponentLoader(

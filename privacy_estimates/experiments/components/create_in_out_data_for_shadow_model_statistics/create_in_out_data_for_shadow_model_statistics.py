@@ -10,9 +10,9 @@ from enum import Enum
 from tqdm_loggable.auto import tqdm
 from tqdm_loggable.tqdm_logging import tqdm_logging
 from typing import Sequence, Tuple, Optional
-from multiprocessing import cpu_count
 from functools import partial, reduce
 from collections import Counter
+from pathlib import Path
 
 
 logging.basicConfig()
@@ -177,7 +177,10 @@ def compute_in_out_indices_using_cross_validation(indices: Sequence, in_fraction
     return cross_validation_sets, n_samples_per_model
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment={
+    "conda_file": Path(__file__).parent / "environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+})
 def create_in_out_data_for_shadow_model_statistics(
     in_out_data: Input,
     in_indices: Output,

@@ -1,6 +1,7 @@
 import logging
 from mldesigner import command_component, Input, Output
 from datasets import load_from_disk, Dataset
+from pathlib import Path
 
 
 logging.basicConfig()
@@ -8,7 +9,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment={
+    "conda_file": Path(__file__).parent / "environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+})
 def create_empty_dataset(
     dataset_for_features: Input,
     dataset: Output,

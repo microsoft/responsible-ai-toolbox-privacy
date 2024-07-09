@@ -5,9 +5,16 @@ from datasets import load_from_disk, Dataset
 from mldesigner import command_component, Input, Output
 from sklearn.metrics import auc, roc_curve
 from tqdm_loggable.auto import tqdm
+from pathlib import Path
 
 
-@command_component(environment="environment.aml.yaml", name="select_cross_validation_challenge_points_preprocess")
+ENV = {
+    "conda_file": Path(__file__).parent / "environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+}
+
+
+@command_component(environment=ENV, name="select_cross_validation_challenge_points_preprocess")
 def preprocess(
     shadow_model_statistics: Input,
     shadow_model_statistics_for_cross_validation: Output,
@@ -58,7 +65,7 @@ def preprocess(
     Dataset.from_pandas(loss_statistics_test, preserve_index=False).save_to_disk(challenge_points_for_cross_validation)
 
 
-@command_component(environment="environment.aml.yaml", name="select_cross_validation_challenge_points_postprocess")
+@command_component(environment=ENV, name="select_cross_validation_challenge_points_postprocess")
 def postprocess(scores: Input, challenge_points_for_cross_validation: Input, data: Input, num_challenge_points: int,
                 mi_challenge_points: Output, criterion: str = "auc"):
     """

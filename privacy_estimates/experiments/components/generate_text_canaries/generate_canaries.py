@@ -8,6 +8,13 @@ from enum import Enum
 from guidance import models, gen, user, system, assistant
 from functools import partial
 from dataclasses import dataclass
+from pathlib import Path
+
+
+ENV = {
+    "conda_file": Path(__file__).parent / "environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+}
 
 
 class Format(Enum):
@@ -121,7 +128,7 @@ def generate_natural_canaries_with_aoai(
     return canaries
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment=ENV)
 def generate_natural_canaries(
     num_canaries: int, seed: int, format: str, output: Output(type="uri_folder")
 ):
@@ -136,7 +143,7 @@ def generate_natural_canaries(
     canaries.save_to_disk(output)
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment=ENV)
 def generate_canaries_with_secrets(
     num_canaries: int, seed: int, format: str, output: Output(type="uri_folder"),
     text_column: Input(type="string", optional=True) = None

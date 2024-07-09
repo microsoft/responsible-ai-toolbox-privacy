@@ -3,7 +3,7 @@ defaults:
   - _self_
 
 shared_training_parameters:
-  per_device_train_batch_size: 64
+  per_device_train_batch_size: 1
   learning_rate: 1e-4
   num_train_epochs: 3
   model_name: gpt2
@@ -20,5 +20,5 @@ game_config:
   num_challenge_points_per_model: 1024
 
 shadow_model_config:
-  num_models: 8
+  num_models: 2
   in_fraction: 0.5

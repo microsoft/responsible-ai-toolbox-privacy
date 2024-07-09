@@ -2,6 +2,7 @@ from mldesigner import command_component, Input, Output
 from datasets import Dataset, load_from_disk
 from tempfile import TemporaryDirectory
 from multiprocessing import cpu_count
+from pathlib import Path
 
 
 def drop_null_rows(ds: Dataset) -> Dataset:
@@ -75,7 +76,12 @@ def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: D
     return Dataset.from_pandas(df=samples, preserve_index=False)
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(
+    environment={
+        "conda_file": Path(__file__).parent/"environment.conda.yaml",
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+    }
+)
 def compute_shadow_model_statistics(predictions_in: Input, predictions_out: Input, statistics: Output):
     stats = _compute_shadow_model_statistics(
         in_predictions=load_from_disk(predictions_in),

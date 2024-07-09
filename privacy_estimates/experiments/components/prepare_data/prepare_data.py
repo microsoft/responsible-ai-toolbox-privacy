@@ -1,7 +1,6 @@
 import numpy as np
 import logging
 import os
-import pandas as pd
 
 from mldesigner import command_component, Input, Output
 from pathlib import Path
@@ -9,6 +8,12 @@ from enum import Enum
 from datasets import load_from_disk, concatenate_datasets, Dataset, features
 from collections import Counter
 from dataclasses import dataclass
+
+
+ENV = {
+    "conda_file": Path(__file__).parent / "environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+}
 
 
 logging.basicConfig()
@@ -233,7 +238,7 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     )
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment=ENV)
 def prepare_data_for_aml_parallel(
     train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
     model_index_start: int, model_index_end: int, group_base_seed: int, num_points_per_model: int,
@@ -268,7 +273,7 @@ def prepare_data_for_aml_parallel(
             f.write(str(group_base_seed+model_index))
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment=ENV)
 def prepare_data(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
                  model_index: int, seed: int, num_points_per_model: int, in_data_for_model: Output, out_data_for_model: Output,
                  train_data_for_model: Output, validation_data_for_model: Output, sample_selection: str,

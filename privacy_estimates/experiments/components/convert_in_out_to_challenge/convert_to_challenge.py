@@ -1,8 +1,8 @@
 from mldesigner import command_component, Input, Output
 from datasets import load_from_disk, concatenate_datasets
-from collections import OrderedDict
 from functools import partial
 from typing import Dict, List, Any, Callable
+from pathlib import Path
 
 
 MEMBER_SUFFIX = "_in"
@@ -30,7 +30,10 @@ def select_prediction_for_challenge(
     }
 
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment={
+    "conda_file": Path(__file__).parent / "environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+})
 def convert_in_out_to_challenge(
     predictions_in: Input, predictions_out: Input, all_challenge_bits: Input, challenge: Output, challenge_bits: Output,
 ):

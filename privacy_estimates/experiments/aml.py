@@ -63,10 +63,12 @@ class ServerlessComputeConfig(ComputeConfig):
     instance_count: int = 1
     job_tier: str = "Standard"
     process_count_per_node: int = 1
+    locations: Optional[List[str]] = None
     
     def apply(self, job: Job) -> Job:
         job.compute = "serverless"
-        job.resources = JobResourceConfiguration(instance_count=self.instance_count, instance_type=self.instance_type)
+        job.resources = JobResourceConfiguration(instance_count=self.instance_count, instance_type=self.instance_type,
+                                                 locations=self.locations)
         job.queue_settings = QueueSettings(job_tier=self.job_tier)
         if job.distribution is not None:
             job.distribution.process_count_per_node = self.process_count_per_node
@@ -321,9 +323,6 @@ class ExperimentBase:
 
     def load_component_by_name(self, name: str, version: str) -> Callable[..., Component]:
         return self.aml_component_loader.load_by_name(name, version)
-
-    def set_compute_target(self, component: Component, target: str):
-        component.runsettings.configure(target=target)
 
     @classmethod
     def main(cls, config_path):

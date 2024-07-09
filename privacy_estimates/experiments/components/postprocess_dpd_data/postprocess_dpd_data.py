@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 @command_component(
     display_name="Postprocess DP Distinguisher data",
-    environment="environment.aml.yaml",
+    environment={
+        "conda_file": Path(__file__).parent / "environment.conda.yaml",
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+    }
 )
 def postprocess_dpd_data(dpd_data: Input, dp_parameters: Input, seed: int, scores: Output, challenge_bits: Output,
                          postprocessed_dp_parameters: Output(type="uri_file")):  # noqa: F821

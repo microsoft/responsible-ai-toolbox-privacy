@@ -1,9 +1,11 @@
 from mldesigner import command_component, Input
+from pathlib import Path
 
-# TODO: This could be also solved by assigning a dict with keys conda_file and image to the environment parameter
-# This should avoid many warnings about componentenvironment name not being able to set
 
-@command_component(environment="environment.aml.yaml")
+@command_component(environment={
+    "conda_file": Path(__file__).parent / "environment.conda.yaml",
+    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+})
 def convert_uri_file_to_int(uri_file: Input(type="uri_file")) -> int:
     with open(uri_file, 'r') as file:
         return int(file.read())
