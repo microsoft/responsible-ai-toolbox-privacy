@@ -1,7 +1,15 @@
+import logging
+import transformers
+import datasets
+import sys
+
 from transformers import Trainer, TrainingArguments, HfArgumentParser, AutoModelForCausalLM, AutoTokenizer
 from dataclasses import dataclass
 from datasets import load_from_disk
-from functools import partial
+from data.preprocess import preprocess_text
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -18,6 +26,23 @@ class ModelArguments:
 
 
 def main(train_args: TrainingArguments, data_args: DataArguments, model_args: ModelArguments):
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+
+    if train_args.should_log:
+        # The default of training_args.log_level is passive, so we set log level at info here to have that default.
+        transformers.utils.logging.set_verbosity_info()
+
+    log_level = train_args.get_process_log_level()
+    logger.setLevel(log_level)
+    datasets.utils.logging.set_verbosity(log_level)
+    transformers.utils.logging.set_verbosity(log_level)
+    transformers.utils.logging.enable_default_handler()
+    transformers.utils.logging.enable_explicit_format()
+
     train_dataset = load_from_disk(data_args.train_data, keep_in_memory=True)
     eval_dataset = load_from_disk(data_args.eval_data, keep_in_memory=True)
 
@@ -27,14 +52,10 @@ def main(train_args: TrainingArguments, data_args: DataArguments, model_args: Mo
 
     model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path)
 
-    train_dataset = train_dataset.map(
-        lambda x: tokenizer(x[data_args.text_column], truncation=True, padding="max_length", max_length=data_args.max_sequence_length),
-        batched=True, remove_columns=train_dataset.column_names
-    )
-    eval_dataset = eval_dataset.map(
-        lambda x: tokenizer(x[data_args.text_column], truncation=True, padding="max_length", max_length=data_args.max_sequence_length),
-        batched=True, remove_columns=eval_dataset.column_names
-    )
+    train_dataset = preprocess_text(train_dataset, tokenizer=tokenizer, text_column=data_args.text_column,
+                                    max_sequence_length=data_args.max_sequence_length, add_lm_labels=True)
+    eval_dataset = preprocess_text(eval_dataset, tokenizer=tokenizer, text_column=data_args.text_column,
+                                   max_sequence_length=data_args.max_sequence_length, add_lm_labels=True)
 
     trainer = Trainer(
         model=model,

@@ -69,7 +69,7 @@ command: >-
     --logging_steps 1 \
     --save_strategy no \
     --disable_tqdm 1 \
-    --evaluation_strategy epoch \
+    --eval_strategy epoch \
     --dataloader_num_workers 2 \
     --remove_unused_columns 0 \
     --label_names label \
