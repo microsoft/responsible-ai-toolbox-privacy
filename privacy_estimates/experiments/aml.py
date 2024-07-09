@@ -62,7 +62,7 @@ class ServerlessComputeConfig(ComputeConfig):
     instance_type: str
     instance_count: int = 1
     job_tier: str = "Standard"
-    process_count_per_node: int = 1
+    process_count_per_instance: int = 1
     locations: Optional[List[str]] = None
     
     def apply(self, job: Job) -> Job:
@@ -71,23 +71,23 @@ class ServerlessComputeConfig(ComputeConfig):
                                                  locations=self.locations)
         job.queue_settings = QueueSettings(job_tier=self.job_tier)
         if job.distribution is not None:
-            job.distribution.process_count_per_node = self.process_count_per_node
-        elif self.process_count_per_node > 1:
-            raise ValueError("Cannot set process_count_per_node without setting distribution")
+            job.distribution.process_count_per_instance = self.process_count_per_instance
+        elif self.process_count_per_instance > 1:
+            raise ValueError("Cannot set process_count_per_instance without setting distribution")
         return job
 
 
 @dataclass
 class ClusterComputeConfig(ComputeConfig):
     cluster_name: str
-    process_count_per_node: int = 1
+    process_count_per_instance: int = 1
 
     def apply(self, job: Job) -> Job:
         job.compute = self.cluster_name
         if job.distribution is not None:
-            job.distribution.process_count_per_node = self.process_count_per_node
-        elif self.process_count_per_node > 1:
-            raise ValueError("Cannot set process_count_per_node without setting distribution")
+            job.distribution.process_count_per_instance = self.process_count_per_instance
+        elif self.process_count_per_instance > 1:
+            raise ValueError("Cannot set process_count_per_instance without setting distribution")
         return job
 
 
