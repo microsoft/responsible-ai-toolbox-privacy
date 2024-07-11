@@ -82,7 +82,7 @@ class Game(BlackBoxMembershipInferenceGameBase):
             compute_config=gpu_single_config,
         )
 
-        attack_loader = RmiaLoader()
+        attack_loader = RmiaLoader(use_log_column=True)
 
         challenge_point_selection_loader = TopKChallengePoints(
             num_challenge_points=game_config.num_models*game_config.num_challenge_points_per_model

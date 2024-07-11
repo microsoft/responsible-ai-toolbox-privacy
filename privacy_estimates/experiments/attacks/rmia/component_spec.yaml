@@ -15,6 +15,11 @@ inputs:
     type: number
     description: RMIA Offline parameter. If not supplied online attack is performed
     optional: true
+  use_log_column:
+    type: boolean
+    description: Use log columns (i.e. `log_mi_signal`) for reference signals. This may be more numerically stable if the reference signals are very small as in the probability of a long sequence.
+    optional: true
+    default: false
 outputs:
   scores:
     type: uri_folder
@@ -25,7 +30,8 @@ command: >-
     --challenge_points ${{inputs.challenge_points}} \
     --mi_statistics ${{inputs.mi_statistics}} \
     $[[ --offline_a ${{inputs.offline_a}} ]] \
-    --scores ${{outputs.scores}}
+    $[[ --use_log_column ${{inputs.use_log_column}} ]] \
+    --scores ${{outputs.scores}} 
 environment:
   conda_file: environment.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04

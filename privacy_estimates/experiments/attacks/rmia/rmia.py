@@ -1,21 +1,36 @@
 import numpy as np
 import warnings
 
-from typing import Sequence, Hashable, Mapping, Optional
-from pydantic import BaseModel, Field
-from pydantic_cli import run_and_exit
+from typing import Sequence, Hashable, Mapping, Optional, Union
 from pathlib import Path
 from datasets import load_from_disk, Dataset
+from argparse_dataclass import ArgumentParser
+from dataclasses import dataclass, field
 
 
-class Arguments(BaseModel):
+def str2bool(v: str):
+    return v.lower() in ("yes", "true", "t", "1")
+
+
+@dataclass
+class Arguments:
     mi_statistics: Path
     challenge_points: Path
     scores: Path
-    offline_a: float = Field(
+    offline_a: float = field(
         default=None,
-        description="Offline value for a. If provided, mean_in is computed using this value. "
+        metadata={
+            "help": "Offline value for a. If provided, mean_in is computed using this value. "
                     "If not provided, mean_in is computed using reference signals."
+        },
+    )
+    use_log_column: Union[str, bool] = field(
+        default=False,
+        metadata={
+            "help": "Use log columns (i.e. `log_mi_signal`) for reference signals. This may be more numerically stable if the "
+                    "reference signals are very small as in the probability of a long sequence.",
+            "type": str2bool,
+        },
     )
 
 
@@ -71,7 +86,7 @@ class RMIA:
                 f"Found columns: {reference_signals_ds.column_names}. "
                 f"Missing columns: {required_columns - set(reference_signals_ds.column_names)}."
             )
-        
+
         if use_log_column:
             signal_column_out = np.exp(np.array(reference_signals_ds["log_mi_signal_log_mean_exp_out"], dtype=np.longdouble))
             signal_column_in = np.exp(np.array(reference_signals_ds["log_mi_signal_log_mean_exp_in"], dtype=np.longdouble))
@@ -121,20 +136,26 @@ def main(args: Arguments):
     mi_statistics = load_from_disk(str(args.mi_statistics), keep_in_memory=True)
     challenge_points = load_from_disk(str(args.challenge_points), keep_in_memory=True)
 
-    rmia = RMIA.from_dataset(reference_signals_ds=mi_statistics, offline_a=args.offline_a)
+    rmia = RMIA.from_dataset(reference_signals_ds=mi_statistics, offline_a=args.offline_a,
+                             use_log_column=args.use_log_column)
 
     target_indices = list(zip(challenge_points["split"], challenge_points["sample_index"]))
-    target_signals = challenge_points["mi_signal"]
+
+    if args.use_log_column:
+        target_signals = np.exp(np.array(challenge_points["log_mi_signal"], dtype=np.longdouble))
+    else:
+        target_signals = challenge_points["mi_signal"]
 
     mi_scores = rmia.compute_score(index=target_indices, target_signals=target_signals)
+
+    mi_scores = np.array(mi_scores, dtype=np.double)
 
     mi_scores_ds = Dataset.from_dict({"score": mi_scores})
     mi_scores_ds.save_to_disk(str(args.scores))
 
 
-def exception_handler(ex):
-    raise RuntimeError("An error occurred while running the script.") from ex
-
 
 if __name__ == "__main__":
-    run_and_exit(Arguments, main, exception_handler=exception_handler)
+    parser = ArgumentParser(Arguments)
+    args = parser.parse_args()
+    main(args=args)
