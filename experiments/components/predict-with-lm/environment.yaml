@@ -80,6 +80,7 @@ dependencies:
       - numpy==1.26.4
       - packaging==24.1
       - pandas==2.2.2
+      - git+https://github.com/microsoft/responsible-ai-toolbox-privacy.git@6c8f6089ac4c84663614812d03c6ba7c79abf8b9
       - pyarrow==16.1.0
       - pyarrow-hotfix==0.6
       - python-dateutil==2.9.0.post0

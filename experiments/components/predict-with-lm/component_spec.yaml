@@ -32,9 +32,11 @@ outputs:
     description: Output directory
 
 code: ./
+additional_includes:
+  - "../../data"
 
 command: >-
-  python inference.py \
+  python predict.py \
     --model_path ${{inputs.model}} \
     --per_device_batch_size ${{inputs.per_device_batch_size}} \
     --data_path ${{inputs.data}} \

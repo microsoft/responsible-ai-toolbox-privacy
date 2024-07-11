@@ -14,7 +14,9 @@ from torch import nn
 from dataclasses import dataclass, field
 from typing import Optional, Dict, List
 from pathlib import Path
-from privacy_estimates.experiments.attacks.signals import Signal, SIGNALS
+from privacy_estimates.experiments.attacks.signals import CrossEntropy, Signal
+
+from data.preprocess import preprocess_text
 
 
 logger = logging.getLogger(__name__)
@@ -23,17 +25,20 @@ mp.set_start_method('spawn', force=True)  # force=True can be used to reset the 
 
 @dataclass
 class Arguments:
-    model_path: Optional[Path] = field(default=None, metadata={
+    model_path: Optional[Path] = field(metadata={
         "help": "Path to the base model"
     })
-    per_device_batch_size: int = field(default=8, metadata={
-        "help": "Batch size per device"
+    data_path: Optional[Path] = field(metadata={
+        "help": "Path to data in HF dataset format"
     })
-    data_path: Optional[Path] = field(default=None, metadata={
-        "help": "Path to tokenized data in HF dataset format"
+    text_column: str = field(metadata={
+        "help": "Column name for text"
     })
     predictions_path: Optional[Path] = field(default=None, metadata={
         "help": "Path to save predictions"
+    })
+    per_device_batch_size: int = field(default=8, metadata={
+        "help": "Batch size per device"
     })
     log_level: str = field(default="INFO", metadata={
         "help": "Log level"
@@ -50,12 +55,11 @@ class Arguments:
 
 
 class DistributedEvaluator:
-    def __init__(self, model: nn.Module, devices: List[str], signal_method: Signal, signal_aggregation: str):
+    def __init__(self, model: nn.Module, devices: List[str], signal_method: Signal):
         logger.info(f"Initializing evaluator on devices {devices}")
         self.models = [copy.deepcopy(model).to(d) for d in devices]
         self.devices = devices
         self.signal_method = signal_method
-        self.signal_aggregation = signal_aggregation
 
     def evaluate(self, batch: Dict[str, torch.Tensor], rank: Optional[int] = None) -> Dict[str, torch.Tensor]:
         if rank is None:
@@ -74,18 +78,18 @@ class DistributedEvaluator:
 
             logits = output.logits[:, :-1, :] # remove the last token prediction
             labels = batch["labels"][:, 1:] # Remove the first token in the labels
-
-            completion_mask_np = attention_mask.cpu().numpy()
+            completion_mask_np = attention_mask[:, 1:].cpu().numpy()
 
         labels_np = labels.cpu().numpy()
         completion_mask_np[labels_np == -100] = 0
 
-        mi_signal = self.signal_method.compute_mi_signal_from_logits(
+        log_mi_signal_seq = self.signal_method.compute_mi_signal_from_logits(
             logits=logits.cpu().numpy(), labels=labels.cpu().numpy(), completion_mask=completion_mask_np
-        ).sum(axis=1, where=completion_mask_np)
+        )
+        log_mi_signal = log_mi_signal_seq.sum(axis=1, where=completion_mask_np.astype(bool))
 
-        assert np.isnan(mi_signal).any() == False, "NaN values in MI signal"
-        return {"mi_signal": mi_signal}
+        assert np.isnan(log_mi_signal).any() == False, "NaN values in MI signal"
+        return {"mi_signal": np.exp(log_mi_signal), "log_mi_signal": log_mi_signal}
 
 
 def main(args: Arguments):
@@ -108,10 +112,12 @@ def main(args: Arguments):
     logger.info(f"MP start method: {mp.get_start_method()}")
 
     # Load dataset
-    dataset: datasets.Dataset = datasets.load_from_disk(args.tokenized_data_path, keep_in_memory=True)
+    dataset: datasets.Dataset = datasets.load_from_disk(args.data_path, keep_in_memory=True)
 
+    tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_path)
 
-
+    dataset = preprocess_text(dataset, tokenizer=tokenizer, text_column=args.text_column, add_lm_labels=True)
+    dataset = dataset.rename_column("label", "labels")
     dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 
     # Load model
@@ -119,7 +125,7 @@ def main(args: Arguments):
 
     model = transformers.AutoModelForCausalLM.from_pretrained(args.model_path)
 
-    mi_signal_method = SIGNALS[args.mi_signal_method](**args.mi_signal_extra_args)
+    mi_signal_method = CrossEntropy()
 
     if args.use_cpu:
         devices = [torch.device("cpu")]
@@ -131,10 +137,7 @@ def main(args: Arguments):
     if args.disable_distributed:
         num_proc = None
 
-    evaluator = DistributedEvaluator(model=model, devices=devices, signal_method=mi_signal_method,
-                                     signal_aggregation=args.mi_signal_aggregation)
-    print('Batch size: ', args.per_device_batch_size)
-    print('Dataset: ', dataset[0])
+    evaluator = DistributedEvaluator(model=model, devices=devices, signal_method=mi_signal_method)
     results = dataset.map(
         evaluator.evaluate,
         batched=True, batch_size=args.per_device_batch_size,

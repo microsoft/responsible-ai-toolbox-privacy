@@ -50,7 +50,8 @@ def main(train_args: TrainingArguments, data_args: DataArguments, model_args: Mo
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path)
+    with train_args.main_process_first():
+        model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path)
 
     train_dataset = preprocess_text(train_dataset, tokenizer=tokenizer, text_column=data_args.text_column,
                                     max_sequence_length=data_args.max_sequence_length, add_lm_labels=True)

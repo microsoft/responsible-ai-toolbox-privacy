@@ -11,7 +11,7 @@ shared_training_parameters:
   max_sequence_length: 512
 
 shared_inference_parameters:
-  per_device_batch_size: 512
+  per_device_batch_size: 32
 
 game_config:
   num_models: 1
