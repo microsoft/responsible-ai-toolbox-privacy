@@ -27,10 +27,10 @@ outputs:
 code: .
 command: >-
   python rmia.py \
-    --challenge_points ${{inputs.challenge_points}} \
-    --mi_statistics ${{inputs.mi_statistics}} \
-    $[[ --offline_a ${{inputs.offline_a}} ]] \
-    $[[ --use_log_column ${{inputs.use_log_column}} ]] \
+    --challenge-points ${{inputs.challenge_points}} \
+    --mi-statistics ${{inputs.mi_statistics}} \
+    $[[ --offline-a ${{inputs.offline_a}} ]] \
+    $[[ --use-log-column ${{inputs.use_log_column}} ]] \
     --scores ${{outputs.scores}} 
 environment:
   conda_file: environment.yaml
