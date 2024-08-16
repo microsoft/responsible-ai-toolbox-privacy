@@ -32,23 +32,16 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RegistryConfig:
     registry_name: str
-    location: str
+    location: str = None
+    credential: Optional[DefaultAzureCredential] = None
 
     def __post_init__(self) -> None:
         self.ml_client = self._get_ml_client()
 
     def _get_ml_client(self) -> MLClient:
-        try:
+        credential = self.credential
+        if credential is None:
             credential = DefaultAzureCredential()
-            # Check if given credential can get token successfully.
-            credential.get_token("https://management.azure.com/.default")
-        except ClientAuthenticationError:
-            try:
-                credential = AzureCliCredential()
-                credential.get_token("https://management.azure.com/.default")
-            except ClientAuthenticationError:
-                # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
-                credential = InteractiveBrowserCredential()
         return MLClient(credential=credential, registry_name=self.registry_name, registry_location=self.location)
 
 
@@ -178,6 +171,32 @@ class WorkspaceConfig:
         except CalledProcessError:
             return None
         return cls(subscription_id=sub, workspace_name=name, resource_group=group, **kwargs)
+    
+    @classmethod
+    def create(cls, yaml_path: Optional[Path] = None, **kwargs):
+        """
+        Creates an instance of the class first by trying to load the configuration from a YAML file, then by trying to load the configuration from environment variables, and finally by trying to load the configuration from the Azure CLI.
+
+        Args:
+            yaml_path (Optional[Path]): Path to a YAML file containing configuration settings. If provided, the class instance will be created using the settings from the YAML file.
+            **kwargs: Additional keyword arguments that can be used to customize the class instance creation.
+
+        Returns:
+            An instance of the class.
+
+        Raises:
+            None.
+
+        """
+        if yaml_path is not None:
+            return cls.from_yaml(yaml_path)
+        if (
+            {"AZUREML_ARM_SUBSCRIPTION", "AZUREML_ARM_WORKSPACE_NAME", "AZUREML_ARM_RESOURCE_GROUP"}.issubset(
+                set(os.environ.keys())
+            )
+        ):
+            return cls.from_env_vars(**kwargs)
+        return cls.from_az_cli(**kwargs)
 
 
 T = TypeVar("T")
