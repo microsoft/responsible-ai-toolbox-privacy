@@ -419,6 +419,8 @@ class DatastoreURI(str):
         match = re.search(pattern, uri)
         if match:
             data = match.group(1)
+        else:
+            raise ValueError(f"URI {uri} does not match pattern {pattern}. Verify that the URI is a valid Asset URI.")
 
         pattern = re.compile(r"/versions/([^/]+)")
         match = re.search(pattern, uri)
