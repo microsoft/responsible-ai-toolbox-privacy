@@ -21,7 +21,7 @@ from typing import TypeVar, Type, Any, get_type_hints, Dict, Union, List, Ordere
 from dataclasses import is_dataclass
 from yaml import safe_load
 from parmap import map as pmap
-from typing import Optional, Callable, Optional, Iterable
+from typing import Optional, Callable, Optional, Iterable, get_args, get_origin
 from collections.abc import Mapping
 from subprocess import check_output, CalledProcessError
 from tqdm import tqdm
@@ -209,6 +209,8 @@ def dictconfig_to_dataclass(cfg: DictConfig, dataclass_type: Type[T]) -> T:
             mutable_dict = OmegaConf.to_container(cfg_obj, resolve=True) if isinstance(cfg_obj, DictConfig) else cfg_obj
             for key, value in fields.items():
                 if key in mutable_dict:
+                    if get_origin(value) == list and len(get_args(value)) == 1 and is_dataclass(get_args(value)[0]):
+                        mutable_dict[key] = [convert_nested(item, get_args(value)[0]) for item in mutable_dict[key]]
                     if isinstance(mutable_dict[key], DictConfig) or isinstance(mutable_dict[key], dict):
                         mutable_dict[key] = convert_nested(mutable_dict[key], fields[key])
             try:
