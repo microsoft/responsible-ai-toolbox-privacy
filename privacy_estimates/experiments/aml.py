@@ -84,6 +84,21 @@ class ClusterComputeConfig(ComputeConfig):
         return job
 
 
+def from_dict(cls, d: Dict) -> ClusterComputeConfig:
+    d = d.copy()
+    type = d.pop("type", None)
+    if type is None:
+        raise ValueError("Creating ClusterComputeConfig from dict requires a 'type' key")
+    if type == "serverless":
+        return ServerlessComputeConfig(**d)
+    elif type == "cluster":
+        return ClusterComputeConfig(**d)
+    else:
+        raise ValueError(f"Unknown compute type {type}")
+
+setattr(ComputeConfig, "from_dict", classmethod(from_dict))
+
+
 @dataclass
 class WorkspaceConfig:
     workspace_name: str
