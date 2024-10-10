@@ -55,6 +55,7 @@ setup(
         "pipelines": [
             "azure-ai-ml",
             "azureml-core",
+            "azureml-fsspec",
             "datasets",
             "guidance",
             "hydra-core",
