@@ -61,6 +61,7 @@ setup(
             "mldesigner",
             "mlflow-skinny",
             "mltable",
+            "numpy<2",
             "tqdm-loggable",
         ],
     },
