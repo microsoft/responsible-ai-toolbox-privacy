@@ -11,8 +11,7 @@ import requests
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
 from azure.ai.ml.entities import Component, PipelineJob, Job, JobResourceConfiguration, QueueSettings
-from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, AzureCliCredential
-from azure.core.exceptions import ClientAuthenticationError
+from azure.identity import DefaultAzureCredential, AzureCliCredential, ChainedTokenCredential
 from dataclasses import dataclass, field
 from hydra.core.hydra_config import HydraConfig
 from pathlib import Path
@@ -25,9 +24,19 @@ from typing import Optional, Callable, Optional, Iterable, get_args, get_origin
 from collections.abc import Mapping
 from subprocess import check_output, CalledProcessError
 from tqdm import tqdm
+from functools import lru_cache
 
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=None)
+def get_credential() -> ChainedTokenCredential:
+    return ChainedTokenCredential(
+        AzureCliCredential(),
+        DefaultAzureCredential(),
+    )
+
 
 @dataclass
 class RegistryConfig:
@@ -41,7 +50,7 @@ class RegistryConfig:
     def _get_ml_client(self) -> MLClient:
         credential = self.credential
         if credential is None:
-            credential = DefaultAzureCredential()
+            credential = get_credential()
         return MLClient(credential=credential, registry_name=self.registry_name, registry_location=self.location)
 
 
@@ -125,17 +134,7 @@ class WorkspaceConfig:
             self.large_memory_cpu_compute = self.cpu_compute
 
     def _get_ml_client(self) -> MLClient:
-        try:
-            credential = DefaultAzureCredential(process_timeout=45)
-            # Check if given credential can get token successfully.
-            credential.get_token("https://management.azure.com/.default")
-        except ClientAuthenticationError:
-            # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
-            try:
-                credential = AzureCliCredential()
-                credential.get_token("https://management.azure.com/.default")
-            except ClientAuthenticationError:
-                credential = InteractiveBrowserCredential()
+        credential = get_credential()
         return MLClient(credential=credential, subscription_id=self.subscription_id, resource_group_name=self.resource_group,
                         workspace_name=self.workspace_name)
 
