@@ -4,7 +4,7 @@ from azure.ai.ml import Input
 from privacy_estimates.experiments.loaders import TrainSingleModelAndPredictArguments
 
 
-class TrainModelGroupBase(ABC):
+class TrainArtifactsGroupBase(ABC):
     def __init__(self, num_models: int, group_size: int, single_model_arguments: TrainSingleModelAndPredictArguments):
         self.num_models = num_models
         self.group_size = group_size

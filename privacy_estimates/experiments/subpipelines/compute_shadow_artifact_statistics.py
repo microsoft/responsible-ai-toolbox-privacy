@@ -2,21 +2,21 @@ from azure.ai.ml import dsl, Input
 from azure.ai.ml.entities import PipelineComponent
 
 from privacy_estimates.experiments.aml import WorkspaceConfig
-from privacy_estimates.experiments.subpipelines import TrainManyModelsLoader
+from privacy_estimates.experiments.subpipelines import TrainManyArtifactsLoader
 from privacy_estimates.experiments.components import (
     create_in_out_data_for_shadow_model_statistics, compute_shadow_model_statistics, convert_uri_file_to_int
 )
-from privacy_estimates.experiments.loaders import TrainingComponentLoader, InferenceComponentLoader
+from privacy_estimates.experiments.loaders import TrainingComponentLoader, ScoreComponentLoader
 
 
-class ComputeShadowModelStatisticsLoader:
-    def __init__(self, train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader,
+class ComputeShadowArtifactStatisticsLoader:
+    def __init__(self, train_loader: TrainingComponentLoader, score_loader: ScoreComponentLoader,
                  num_models: int, workspace: WorkspaceConfig, in_fraction: float, num_concurrent_jobs_per_node: int = 1,
                  num_models_per_group: int = 32, num_repetitions: int = 1) -> None:
         self.workspace = workspace
         self.in_fraction = in_fraction
-        self.train_many_models_loader = TrainManyModelsLoader(
-            num_models=num_models, train_loader=train_loader, inference_loader=inference_loader, sample_selection="partitioned",
+        self.train_many_models_loader = TrainManyArtifactsLoader(
+            num_models=num_models, train_loader=train_loader, score_loader=score_loader, sample_selection="partitioned",
             merge_unused_samples="none", num_concurrent_jobs_per_node=num_concurrent_jobs_per_node,
             num_models_per_group=num_models_per_group, tag_model_index=True, num_repetitions=num_repetitions
         )

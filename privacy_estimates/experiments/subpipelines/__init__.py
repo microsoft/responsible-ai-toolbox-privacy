@@ -1,4 +1,3 @@
-from .train_many_models import TrainManyModelsLoader
-from .compute_shadow_model_statistics import ComputeShadowModelStatisticsLoader
-from .compute_reference_model_statistics import ComputeSingleOfflineReferenceModelStatisticsLoader
+from .train_many_artifacts import TrainManyArtifactsLoader
+from .compute_shadow_artifact_statistics import ComputeShadowArtifactStatisticsLoader
 from .add_index_to_dataset import add_index_to_dataset

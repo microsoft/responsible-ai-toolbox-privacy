@@ -469,19 +469,15 @@ class DatastoreURI(str):
 
 
 class Job:
-    def __init__(self, aml_run, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None):
-        from azureml.core import Run
-        self.aml_run: Run = aml_run
+    def __init__(self, aml_job, workspace: WorkspaceConfig, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None):
+        self.aml_job = aml_job
+        self.ws = workspace
+
+        self.aml_run = self.ws.workspace.get_run(aml_job.name)
         if add_tags is None:
             add_tags = dict()
-        self.details = aml_run.get_details()
-        self.ws = WorkspaceConfig(
-            workspace_name=aml_run.experiment.workspace.name,
-            resource_group=aml_run.experiment.workspace.resource_group,
-            subscription_id=aml_run.experiment.workspace.subscription_id,
-        )
+        self.details = self.aml_run.get_details()
         self.local_name = local_name
-        self.aml_job = self.ws.ml_client.jobs.get(aml_run.id)
 
         existing_tags = self.aml_run.get_tags()
         duplicate_keys = set(existing_tags.keys()).intersection(add_tags.keys())
@@ -491,7 +487,6 @@ class Job:
 
     @classmethod
     def from_url(cls, url: str, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None) -> "Job":
-        from azureml.core import Run
         parsed_url = urlparse(url)
 
         query_dict = parse_qs(parsed_url.query)
@@ -508,36 +503,40 @@ class Job:
         run_value_index = path_segments.index('runs') + 1
         run_id = path_segments[run_value_index]
 
-        run = Run.get(ws.workspace, run_id=run_id)
+        aml_job = ws.ml_client.jobs.get(run_id)
 
         node_path, = query_dict.get('nsq', [None])
         if node_path is not None:
             node_path = node_path.replace("nodePath == ", "").replace("\\/", "/")
             node_path_ls = [ p for p in node_path.split("/") if p ]
-            job = Job(aml_run=run)
+            job = Job(aml_job=aml_job, workspace=ws)
             while len(node_path_ls) > 0:
                 job = job.get_node(node_path_ls.pop(0))
-            run = job.aml_run
-        return Job(aml_run=run, local_name=local_name, add_tags=add_tags)
+            aml_job = job.aml_job
+        return Job(aml_job=aml_job, workspace=ws, local_name=local_name, add_tags=add_tags)
 
     @classmethod
     def from_id(cls, workspace: WorkspaceConfig, run_id: str, local_name: Optional[str] = None) -> "Job":
-        from azureml.core import Run
-        run = Run.get(workspace.workspace, run_id=run_id)
-        return Job(aml_run=run, local_name=local_name)
+        aml_job = workspace.ml_client.jobs.get(run_id)
+        return Job(aml_job=aml_job, local_name=local_name)
 
     def get_node(self, name: str) -> "Job":
-        children = list(self.aml_run.get_children())
-        if len(children) == 1 and children[0].type == "azureml.PipelineRun":
-            children = list(children[0].get_children())
-        try:
-            node = next(filter(lambda x: x.display_name == name, children))
-        except StopIteration:
+        children = self.ws.ml_client.jobs.list(parent_job_name=self.aml_job.name)
+        node = None
+        for c in children:
+            if c.display_name == name:
+                node = c
+                break
+        if node is None:
             raise ValueError(
-                f"Node {name} not found in job {self.aml_run.id}. "
+                f"Node {name} not found in job {self.aml_job.name}. "
                 f"Available nodes: {', '.join([c.display_name for c in children])}"
             )
-        return Job(aml_run=node)
+        if node.properties["StepType"] == "SubGraphCloudStep":
+            children = list(self.ws.ml_client.jobs.list(parent_job_name=node.name))
+            assert len(children) == 1
+            node = self.ws.ml_client.jobs.get(children[0].name)
+        return Job(aml_job=node, workspace=self.ws)
 
     def download_input(self, name: str, path: str, match_pattern: str = "*") -> Path:
         input_details = self.details['runDefinition']['inputAssets'][name]
