@@ -1,11 +1,11 @@
 from abc import ABC
 from azure.ai.ml import Input
 
-from privacy_estimates.experiments.loaders import TrainSingleModelAndPredictArguments
+from privacy_estimates.experiments.loaders import TrainSingleArtifactAndScoreArguments
 
 
 class TrainArtifactsGroupBase(ABC):
-    def __init__(self, num_models: int, group_size: int, single_model_arguments: TrainSingleModelAndPredictArguments):
+    def __init__(self, num_models: int, group_size: int, single_model_arguments: TrainSingleArtifactAndScoreArguments):
         self.num_models = num_models
         self.group_size = group_size
         self.single_model_arguments = single_model_arguments
