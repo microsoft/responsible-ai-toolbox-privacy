@@ -31,25 +31,25 @@ def log_mean_exp(log_column: pd.Series):
     return np.log(np.mean(np.exp(np.array(log_column.values, dtype=np.longdouble)))).astype(np.double)
 
 
-def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: Dataset) -> Dataset:
-    print(f"Computing loss statistics for {len(in_predictions)} in-sample predictions and {len(out_predictions)} out-sample "
-          "predictions...")
-    in_predictions = drop_null_rows(in_predictions)
-    out_predictions = drop_null_rows(out_predictions)
-    print(f"Computing loss statistics for {len(in_predictions)} in-sample predictions and {len(out_predictions)} out-sample "
-          "predictions...")
+def _compute_shadow_artifact_statistics(in_scores: Dataset, out_scores: Dataset) -> Dataset:
+    print(f"Computing loss statistics for {len(in_scores)} in-sample scores and {len(out_scores)} out-sample "
+          "scores...")
+    in_scores = drop_null_rows(in_scores)
+    out_scores = drop_null_rows(out_scores)
+    print(f"Computing loss statistics for {len(in_scores)} in-sample scores and {len(out_scores)} out-sample "
+          "scores...")
 
-    in_samples = set(zip(in_predictions["sample_index"], in_predictions["split"]))
-    out_samples = set(zip(out_predictions["sample_index"], out_predictions["split"]))
+    in_samples = set(zip(in_scores["sample_index"], in_scores["split"]))
+    out_samples = set(zip(out_scores["sample_index"], out_scores["split"]))
     all_samples = in_samples.union(out_samples)
     missing_in_samples = all_samples - in_samples
     missing_out_samples = all_samples - out_samples
 
-    in_df = in_predictions.to_pandas()
-    out_df = out_predictions.to_pandas()
+    in_df = in_scores.to_pandas()
+    out_df = out_scores.to_pandas()
 
     group_by = ["sample_index", "split"]
-    aggregate = {"model_index": [list]}
+    aggregate = {"artifact_index": [list]}
 
     if "label" in in_df.columns:
         group_by.append("label")
@@ -85,8 +85,8 @@ def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: D
 
     in_df.columns = ['_'.join(col) for col in in_df.columns.values]
     out_df.columns = ['_'.join(col) for col in out_df.columns.values]
-    in_df = in_df.rename(columns={"model_index_list": "model_index"})
-    out_df = out_df.rename(columns={"model_index_list": "model_index"})
+    in_df = in_df.rename(columns={"artifact_index_list": "artifact_index"})
+    out_df = out_df.rename(columns={"artifact_index_list": "artifact_index"})
 
     samples = in_df.join(out_df, on=group_by, lsuffix="_in", rsuffix="_out").reset_index()
 
@@ -99,10 +99,10 @@ def _compute_shadow_model_statistics(in_predictions: Dataset, out_predictions: D
         "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
     }
 )
-def compute_shadow_model_statistics(predictions_in: Input, predictions_out: Input, statistics: Output):
-    stats = _compute_shadow_model_statistics(
-        in_predictions=load_from_disk(predictions_in),
-        out_predictions=load_from_disk(predictions_out)
+def compute_shadow_artifact_statistics(scores_in: Input, scores_out: Input, statistics: Output):
+    stats = _compute_shadow_artifact_statistics(
+        in_scores=load_from_disk(scores_in),
+        out_scores=load_from_disk(scores_out)
     )
 
     print(f"Writing {len(stats)} loss statistics to {statistics}...")

@@ -1,16 +1,16 @@
 from azure.ai.ml import dsl, Input
 
-from privacy_estimates.experiments.loaders import TrainingComponentLoader, InferenceComponentLoader
+from privacy_estimates.experiments.loaders import TrainComponentLoader, ScoreComponentLoader
 from privacy_estimates.experiments.components import aggregate_output
-from .aml_parallel import TrainModelGroupAMLParallelLoader
-from .distributed import TrainModelGroupDistributedLoader
-from .base import TrainSingleModelAndPredictArguments
+from .aml_parallel import TrainArtifactGroupAMLParallelLoader
+from .distributed import TrainArtifactGroupDistributedLoader
+from .base import TrainSingleArtifactAndScoreArguments
 
 
-class TrainManyModelsLoader:
-    def __init__(self, train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader,
-                 num_models: int, sample_selection: str, merge_unused_samples: str, num_repetitions: int = 1,
-                 num_models_per_group: int = 32, num_concurrent_jobs_per_node: int = 1, tag_model_index: bool = False):
+class TrainManyArtifactsLoader:
+    def __init__(self, train_loader: TrainComponentLoader, score_loader: ScoreComponentLoader,
+                 num_artifacts: int, sample_selection: str, merge_unused_samples: str, num_repetitions: int = 1,
+                 num_artifacts_per_group: int = 32, num_concurrent_jobs_per_node: int = 1, tag_artifact_index: bool = False):
         """
         Args:
             train_loader: ComponentLoader for training a single model
@@ -22,71 +22,71 @@ class TrainManyModelsLoader:
             group_on_single_node: If True, the models_per_group are trained on the same node. If False, a new node is allocated
                                     for each model.
         """
-        self.num_models = num_models
-        self.models_per_group = num_models_per_group
+        self.num_artifacts = num_artifacts
+        self.articats_per_group = num_artifacts_per_group
 
-        self.single_model_arguments = TrainSingleModelAndPredictArguments(
-            train_loader=train_loader, inference_loader=inference_loader, sample_selection=sample_selection,
-            tag_model_index=tag_model_index, merge_unused_samples=merge_unused_samples, num_repetitions=num_repetitions,
+        self.single_artifact_arguments = TrainSingleArtifactAndScoreArguments(
+            train_loader=train_loader, score_loader=score_loader, sample_selection=sample_selection,
+            tag_artifact_index=tag_artifact_index, merge_unused_samples=merge_unused_samples, num_repetitions=num_repetitions,
         )
 
         if num_concurrent_jobs_per_node > 1:
-            self.train_model_group_loader = TrainModelGroupAMLParallelLoader(
-                num_models=self.models_per_group, group_size=self.models_per_group,
-                single_model_arguments=self.single_model_arguments, num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
+            self.train_artifact_group_loader = TrainArtifactGroupAMLParallelLoader(
+                num_artifacts=self.articats_per_group, group_size=self.articats_per_group,
+                single_artifact_arguments=self.single_artifact_arguments, num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
             )
-            self.train_final_model_group_loader = TrainModelGroupAMLParallelLoader(
-                num_models=self.num_models % self.models_per_group, group_size=self.models_per_group,
-                single_model_arguments=self.single_model_arguments, num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
+            self.train_final_artifact_group_loader = TrainArtifactGroupAMLParallelLoader(
+                num_articats=self.num_artifacts % self.artifacts_per_group, group_size=self.artifacts_per_group,
+                single_artifact_arguments=self.single_artifact_arguments, num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
             )
         else:
-            self.train_model_group_loader = TrainModelGroupDistributedLoader(
-                num_models=self.models_per_group, group_size=self.models_per_group,
-                single_model_arguments=self.single_model_arguments
+            self.train_artifact_group_loader = TrainArtifactGroupDistributedLoader(
+                num_artifacts=self.artifacts_per_group, group_size=self.artifacts_per_group,
+                single_artifact_arguments=self.single_artifact_arguments
             )
-            self.train_final_model_group_loader = TrainModelGroupDistributedLoader(
-                num_models=self.num_models % self.models_per_group, group_size=self.models_per_group,
-                single_model_arguments=self.single_model_arguments
+            self.train_final_artifact_group_loader = TrainArtifactGroupDistributedLoader(
+                num_artifact=self.num_artifacts % self.articats_per_group, group_size=self.articats_per_group,
+                single_artifact_arguments=self.single_artifact_arguments
             )
 
     def load(self, train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input,
              out_indices: Input, base_seed: int, num_points_per_model: int):
-        @dsl.pipeline(name=f"train_{self.num_models}_models")
+        @dsl.pipeline(name=f"train_{self.num_artifacts}_artifacts")
         def pipeline(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input,
-                     out_indices: Input, base_seed: int, num_points_per_model: int):
-            predictions_in = []
-            predictions_out = []
+                     out_indices: Input, base_seed: int, num_points_per_artifact: int):
+            scores_in = []
+            scores_out = []
             metrics_avg = []
             dp_parameters = []
-            num_groups = self.num_models // self.models_per_group
-            for model_group in range(0, num_groups):
-                train_model_group = self.train_model_group_loader.load(
+            num_groups = self.num_artifacts // self.articats_per_group
+            for artifact_group in range(0, num_groups):
+                train_artifact_group = self.train_artifact_group_loader.load(
                     train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                     in_indices=in_indices, out_indices=out_indices, base_seed=base_seed,
-                    model_group_index=model_group, num_points_per_model=num_points_per_model
+                    artifact_group_index=artifact_group, num_points_per_artifact=num_points_per_artifact
                 )
-                predictions_in.append(train_model_group.outputs.predictions_in)
-                predictions_out.append(train_model_group.outputs.predictions_out)
-                if "metrics_avg" in train_model_group.outputs:
-                    metrics_avg.append(train_model_group.outputs.metrics_avg)
-                if "dp_parameters" in train_model_group.outputs:
-                    dp_parameters.append(train_model_group.outputs.dp_parameters)
-            if self.num_models % self.models_per_group != 0:
-                train_final_model_group = self.train_final_model_group_loader.load(
+                scores_in.append(train_artifact_group.outputs.predictions_in)
+                scores_out.append(train_artifact_group.outputs.predictions_out)
+                if "metrics_avg" in train_artifact_group.outputs:
+                    metrics_avg.append(train_artifact_group.outputs.metrics_avg)
+                if "dp_parameters" in train_artifact_group.outputs:
+                    dp_parameters.append(train_artifact_group.outputs.dp_parameters)
+            if self.num_artifacts % self.articats_per_group != 0:
+                train_final_artifact_group = self.train_final_artifact_group_loader.load(
                     train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
-                    in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, model_group_index=num_groups,
+                    in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, artifact_group_index=num_groups,
                     num_points_per_model=num_points_per_model
                 )
-                predictions_in.append(train_final_model_group.outputs.predictions_in)
-                predictions_out.append(train_final_model_group.outputs.predictions_out)
-                if "metrics_avg" in train_final_model_group.outputs:
-                    metrics_avg.append(train_final_model_group.outputs.metrics_avg)
-                if "dp_parameters" in train_final_model_group.outputs:
-                    dp_parameters.append(train_final_model_group.outputs.dp_parameters)
+                scores_in.append(train_final_artifact_group.outputs.predictions_in)
+                scores_out.append(train_final_artifact_group.outputs.predictions_out)
+                if "metrics_avg" in train_final_artifact_group.outputs:
+                    metrics_avg.append(train_final_artifact_group.outputs.metrics_avg)
+                if "dp_parameters" in train_final_artifact_group.outputs:
+                    dp_parameters.append(train_final_artifact_group.outputs.dp_parameters)
 
             outputs =  {
-                "predictions_in": aggregate_output(predictions_in, aggregator="concatenate_datasets"),
-                "predictions_out": aggregate_output(predictions_out, aggregator="concatenate_datasets")
+                "scores_in": aggregate_output(scores_in, aggregator="concatenate_datasets"),
+                "scores_out": aggregate_output(scores_out, aggregator="concatenate_datasets")
             }
             if len(metrics_avg) > 0:
                 outputs["metrics_avg"] = aggregate_output(metrics_avg, aggregator="average_json")
@@ -95,4 +95,4 @@ class TrainManyModelsLoader:
             return outputs
         return pipeline(train_base_data=train_base_data, in_out_data=in_out_data, in_indices=in_indices,
                         out_indices=out_indices, validation_base_data=validation_base_data, base_seed=base_seed,
-                        num_points_per_model=num_points_per_model)
+                        num_points_per_model=num_points_per_artifact)

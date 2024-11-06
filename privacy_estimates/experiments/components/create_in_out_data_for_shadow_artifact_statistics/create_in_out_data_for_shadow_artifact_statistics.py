@@ -32,7 +32,7 @@ def empty_dataset(features: dataset_features.Features) -> Dataset:
 @dataclass
 class InOutIndices:
     """
-    Class representing input-output indices for shadow model statistics.
+    Class representing input-output indices for shadow artifact statistics.
     """
 
     in_: Sequence[Tuple[str, int]]
@@ -107,7 +107,7 @@ def check_in_out_indices(in_: Dataset, out: Dataset):
     out_indices = list(zip(out["split"], out["sample_index"]))
 
     is_offline_setting = (set(in_indices) == {(None, None)})
-    # offline setting is if we don't have any shadow models with canaries present
+    # offline setting is if we don't have any shadow artifact with canaries present
     # we need to infer all mi info from out samples
     if is_offline_setting:
         logger.info("Offline setting detected. All samples are out samples. This will reduce the number of checks")
@@ -145,7 +145,7 @@ def compute_in_out_indices_using_cross_validation(indices: Sequence, in_fraction
         seed (int): The random seed for shuffling the indices.
 
     Returns:
-        Tuple[InOutIndices, int]: A tuple containing the cross-validation sets and the number of samples per model.
+        Tuple[InOutIndices, int]: A tuple containing the cross-validation sets and the number of samples per artifact.
     """
     assert 0 <= in_fraction <= 1, "in_fraction must be between 0 and 1"
     in_fraction = Fraction(in_fraction)
@@ -156,7 +156,7 @@ def compute_in_out_indices_using_cross_validation(indices: Sequence, in_fraction
 
     folds = [[indices[i] for i in f] for f in np.array_split(range(len(indices)), in_fraction.denominator)]
 
-    n_samples_per_model = max(
+    n_samples_per_artifact = max(
         sum(sorted((len(fold) for fold in folds), reverse=True)[:in_fraction.numerator]),
         sum(sorted((len(fold) for fold in folds), reverse=True)[in_fraction.numerator:])
     )
@@ -171,38 +171,38 @@ def compute_in_out_indices_using_cross_validation(indices: Sequence, in_fraction
             InOutIndices.from_sequences(
                 in_=reduce(lambda a, b: a+b, rolled_indices[1:], []),
                 out=rolled_indices[0],
-                pad_to_length=n_samples_per_model
+                pad_to_length=n_samples_per_artifact
             )
         )
-    return cross_validation_sets, n_samples_per_model
+    return cross_validation_sets, n_samples_per_artifact
 
 
 @command_component(environment={
     "conda_file": Path(__file__).parent / "environment.conda.yaml",
     "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
 })
-def create_in_out_data_for_shadow_model_statistics(
+def create_in_out_data_for_shadow_artifact_statistics(
     in_out_data: Input,
     in_indices: Output,
     out_indices: Output,
-    num_points_per_model: Output(type="uri_file"),  # noqa: F821
+    num_points_per_artifact: Output(type="uri_file"),  # noqa: F821
     seed: int,
     split_type: str,
     in_fraction: float,
-    max_num_models: int = 1_024,
+    max_num_artifact: int = 1_024,
 ):
     """
-    Creates in and out indices for shadow model statistics.
+    Creates in and out indices for shadow artifact statistics.
 
     Args:
         in_out_data (Input): The input data.
         in_indices (Output): The output file path to save the in indices.
         out_indices (Output): The output file path to save the out indices.
-        num_points_per_model (Output): The output file path to save the number of in samples per model.
+        num_points_per_artifact (Output): The output file path to save the number of in samples per artifact.
         seed (int): The seed for random number generation.
         split_type (str): The type of split to use.
         in_fraction (float): The fraction of in samples.
-        max_num_models (int, optional): The maximum number of models. Defaults to 1_024.
+        max_num_artifact (int, optional): The maximum number of artifact. Defaults to 1_024.
     """
     fmt = f"%(filename)-20s:%(lineno)-4d %(asctime)s %(message)s"
     logging.basicConfig(level=logging.INFO, format=fmt, handlers=[logging.StreamHandler()])
@@ -230,26 +230,26 @@ def create_in_out_data_for_shadow_model_statistics(
     if split_type == SplitType.RANDOM_SPLITS:
         raise NotImplementedError("Random splits not implemented")
     elif split_type == SplitType.ROTATING_SPLITS:
-        compute_in_out_indices_for_models = partial(compute_in_out_indices_using_cross_validation, in_fraction=in_fraction)
+        compute_in_out_indices_for_artifact = partial(compute_in_out_indices_using_cross_validation, in_fraction=in_fraction)
 
     rng = np.random.default_rng(seed+129120)
-    in_out_indices_i, points_per_model = compute_in_out_indices_for_models(indices=indices, seed=rng.integers(0, 2**32-1))
-    models_per_iter = len(in_out_indices_i)//points_per_model
+    in_out_indices_i, points_per_artifact = compute_in_out_indices_for_artifacts(indices=indices, seed=rng.integers(0, 2**32-1))
+    artifacts_per_iter = len(in_out_indices_i)//points_per_artifact
     in_out_indices_dsd = [in_out_indices_i.as_dataset()]
-    for _ in tqdm(range(models_per_iter, max_num_models, models_per_iter), desc="Computing in-out indices"):
-        in_out_indices_i, points_per_model_i = compute_in_out_indices_for_models(indices=indices, seed=rng.integers(0, 2**32-1))
-        assert points_per_model == points_per_model_i, "Number of points per model must be the same for all models"
+    for _ in tqdm(range(artifacts_per_iter, max_num_artifacts, artifacts_per_iter), desc="Computing in-out indices"):
+        in_out_indices_i, points_per_artifact_i = compute_in_out_indices_for_artifacts(indices=indices, seed=rng.integers(0, 2**32-1))
+        assert points_per_artifact == points_per_artifact_i, "Number of points per artifact must be the same for all artifacts"
         in_out_indices_dsd.append(in_out_indices_i.as_dataset(features=index_features))
 
     indices_in_ds = concatenate_datasets([dsd["in"] for dsd in in_out_indices_dsd])
     indices_out_ds = concatenate_datasets([dsd["out"] for dsd in in_out_indices_dsd])
 
-    logger.info("Number of in samples per model: %s", points_per_model)
+    logger.info("Number of in samples per artifact: %s", points_per_artifact)
     logger.info("Number of total samples: %s", len(indices_in_ds))
 
-    # Save the number of in samples per model to a file
-    with open(num_points_per_model, "w") as f:
-        f.write(str(points_per_model))
+    # Save the number of in samples per artifact to a file
+    with open(num_points_per_artifact, "w") as f:
+        f.write(str(points_per_artifact))
 
     check_in_out_indices(in_=indices_in_ds, out=indices_out_ds)
 
