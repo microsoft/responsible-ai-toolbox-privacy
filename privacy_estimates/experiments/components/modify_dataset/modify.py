@@ -62,27 +62,27 @@ def append_column_incrementing(data: Input, name: str, output: Output):
     ds.save_to_disk(output)
 
 
-@command_component(display_name="Append model index column to dataset", environment=ENV)
-def append_model_index_column_aml_parallel(data: Input, output: Output):
+@command_component(display_name="Append artifact index column to dataset", environment=ENV)
+def append_artifact_index_column_aml_parallel(data: Input, output: Output):
     """
-    Appends a 'model_index' column to each dataset in the input directory and saves the modified datasets to the output directory.
+    Appends a 'artifact_index' column to each dataset in the input directory and saves the modified datasets to the output directory.
 
     Args:
         data (str): The path to the input directory containing the datasets.
 
     Raises:
-        ValueError: If a model directory in the input directory does not start with 'model_index'.
+        ValueError: If a artifact directory in the input directory does not start with 'artifact_index'.
 
     Returns:
         output (str): The path to the output directory where the modified datasets will be saved.
     """
-    for model_dir in Path(data).iterdir():
-        if not model_dir.name.startswith("model_index"):
-            raise ValueError(f"Expected model directory to start with 'model_index', but got {model_dir.name}")
-        model_index = int(model_dir.name.split("-")[1])
-        ds = load_from_disk(model_dir)
-        ds = ds.add_column("model_index", [model_index for _ in range(len(ds))])
-        ds.save_to_disk(str(Path(output)/model_dir.name))
+    for artifact_dir in Path(data).iterdir():
+        if not artifact_dir.name.startswith("artifact_index"):
+            raise ValueError(f"Expected artifact directory to start with 'artifact_index', but got {artifact_dir.name}")
+        artifact_index = int(artifact_dir.name.split("-")[1])
+        ds = load_from_disk(artifact_dir)
+        ds = ds.add_column("artifact_index", [artifact_index for _ in range(len(ds))])
+        ds.save_to_disk(str(Path(output)/artifact_dir.name))
 
 
 @command_component(display_name="Select columns from dataset", environment=ENV)
