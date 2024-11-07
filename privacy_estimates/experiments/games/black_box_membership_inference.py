@@ -6,9 +6,9 @@ from abc import abstractmethod
 
 from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig, ClusterComputeConfig
 from privacy_estimates.experiments.subpipelines import (
-	ComputeShadowModelStatisticsLoader, TrainManyModelsLoader, add_index_to_dataset
+	ComputeShadowArtifactStatisticsLoader, TrainManyArtifactsLoader, add_index_to_dataset
 )
-from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainingComponentLoader, ComponentLoader
+from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainComponentLoader, ComponentLoader
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.challenge_point_selectors import ChallengePointSelectionLoader
 from privacy_estimates.experiments.components import (
@@ -43,7 +43,7 @@ class MISignalConfig:
 class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def __init__(
             self, game_config: GameConfig, shadow_model_config: ShadowModelConfig, workspace: WorkspaceConfig,
-            train_loader: TrainingComponentLoader, inference_loader: InferenceComponentLoader, attack_loader: AttackLoader,
+            train_loader: TrainComponentLoader, inference_loader: InferenceComponentLoader, attack_loader: AttackLoader,
             challenge_point_selection_loader: ChallengePointSelectionLoader, 
             privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
     ) -> None:
@@ -61,21 +61,21 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             self.challenge_point_selection_loader.requires_shadow_model_statistics or
             self.attack_loader.requires_shadow_model_statistics
         ):
-            self.mi_statistics_loader = ComputeShadowModelStatisticsLoader(
+            self.mi_statistics_loader = ComputeShadowArtifactStatisticsLoader(
                 train_loader=self.train_loader, inference_loader=self.inference_loader,
-                num_models=self.shadow_model_config.num_models, in_fraction=self.shadow_model_config.in_fraction,
+                num_artifacts=self.shadow_model_config.num_models, in_fraction=self.shadow_model_config.in_fraction,
                 num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
-                num_models_per_group=self.game_config.num_models_per_group, workspace=workspace,
+                num_artifacts_per_group=self.game_config.num_models_per_group, workspace=workspace,
                 num_repetitions=self.game_config.num_repetitions
             )
         else:
             self.mi_statistics_loader = None
 
-        self.train_many_models_loader = TrainManyModelsLoader(
-            num_models=self.game_config.num_models, train_loader=train_loader, inference_loader=inference_loader,
+        self.train_many_models_loader = TrainManyArtifactsLoader(
+            num_artifacts=self.game_config.num_models, train_loader=train_loader, inference_loader=inference_loader,
             sample_selection="partitioned", merge_unused_samples="all_with_train",
             num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
-            num_models_per_group=self.game_config.num_models_per_group, tag_model_index=False,
+            num_artifacts_per_group=self.game_config.num_models_per_group, tag_artifact_index=False,
             num_repetitions=self.game_config.num_repetitions
         )
 
@@ -109,7 +109,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 ).outputs.statistics
 
             select_challenge_points = self.challenge_point_selection_loader.load(
-                data=canary_data, shadow_model_statistics=mi_statistics
+                data=canary_data, shadow_artifact_statistics=mi_statistics
             )
 
             create_challenge = create_in_out_data_for_membership_inference_challenge(
@@ -121,7 +121,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 train_base_data=create_challenge.outputs.train_base_data, validation_base_data=validation_data,
                 in_out_data=create_challenge.outputs.in_out_data, in_indices=create_challenge.outputs.in_indices,
                 out_indices=create_challenge.outputs.out_indices, base_seed=self.game_config.seed,
-                num_points_per_model=self.game_config.num_challenge_points_per_model
+                num_points_per_artifact=self.game_config.num_challenge_points_per_model
             )
             optional_training_outputs = {}
             if "dp_parameters" in train_many_models.outputs:
@@ -130,8 +130,8 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 optional_training_outputs["smallest_delta"] = self.privacy_estimation_config.smallest_delta
 
             convert_to_challenge = convert_in_out_to_challenge(
-                predictions_in=train_many_models.outputs.predictions_in,
-                predictions_out=train_many_models.outputs.predictions_out,
+                scores_in=train_many_models.outputs.scores_in,
+                scores_out=train_many_models.outputs.scores_out,
                 all_challenge_bits=create_challenge.outputs.challenge_bits
             )
 
