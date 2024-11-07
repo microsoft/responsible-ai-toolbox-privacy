@@ -8,7 +8,7 @@ from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig, C
 from privacy_estimates.experiments.subpipelines import (
 	ComputeShadowArtifactStatisticsLoader, TrainManyArtifactsLoader, add_index_to_dataset
 )
-from privacy_estimates.experiments.loaders import InferenceComponentLoader, TrainComponentLoader, ComponentLoader
+from privacy_estimates.experiments.loaders import ScoreComponentLoader, TrainComponentLoader, ComponentLoader
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.challenge_point_selectors import ChallengePointSelectionLoader
 from privacy_estimates.experiments.components import (
@@ -43,7 +43,7 @@ class MISignalConfig:
 class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def __init__(
             self, game_config: GameConfig, shadow_model_config: ShadowModelConfig, workspace: WorkspaceConfig,
-            train_loader: TrainComponentLoader, inference_loader: InferenceComponentLoader, attack_loader: AttackLoader,
+            train_loader: TrainComponentLoader, score_loader: ScoreComponentLoader, attack_loader: AttackLoader,
             challenge_point_selection_loader: ChallengePointSelectionLoader, 
             privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
     ) -> None:
@@ -54,7 +54,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
         self.attack_loader = attack_loader
         self.challenge_point_selection_loader = challenge_point_selection_loader
         self.train_loader = train_loader
-        self.inference_loader = inference_loader
+        self.score_loader = score_loader
         self.privacy_estimation_config = privacy_estimation_config
 
         if (
@@ -62,7 +62,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             self.attack_loader.requires_shadow_model_statistics
         ):
             self.mi_statistics_loader = ComputeShadowArtifactStatisticsLoader(
-                train_loader=self.train_loader, inference_loader=self.inference_loader,
+                train_loader=self.train_loader, score_loader=self.score_loader,
                 num_artifacts=self.shadow_model_config.num_models, in_fraction=self.shadow_model_config.in_fraction,
                 num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
                 num_artifacts_per_group=self.game_config.num_models_per_group, workspace=workspace,
@@ -72,7 +72,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             self.mi_statistics_loader = None
 
         self.train_many_models_loader = TrainManyArtifactsLoader(
-            num_artifacts=self.game_config.num_models, train_loader=train_loader, inference_loader=inference_loader,
+            num_artifacts=self.game_config.num_models, train_loader=train_loader, score_loader=score_loader,
             sample_selection="partitioned", merge_unused_samples="all_with_train",
             num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
             num_artifacts_per_group=self.game_config.num_models_per_group, tag_artifact_index=False,
