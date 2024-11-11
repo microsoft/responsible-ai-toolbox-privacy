@@ -15,12 +15,8 @@ from privacy_estimates.experiments.components import (
 from privacy_estimates.experiments.games.black_box_membership_inference import (
     BlackBoxMembershipInferenceGameBase, ShadowArtifactConfig, GameConfig, MISignalConfig, PrivacyEstimationConfig,
 )
+from privacy_estimates.experiments.scorers.dataset.loader import ScoreDataLoader
 
-
-class ScoreDataLoader(ScoreComponentLoader):
-    def load(self, artifact: Input, dataset: Input):
-        component = load_component()
-        return component(artifact=artifact, dataset=dataset)
 
 
 class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
