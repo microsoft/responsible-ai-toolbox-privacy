@@ -19,17 +19,17 @@ from privacy_estimates.experiments.games.configs import PrivacyEstimationConfig
 
 @dataclass
 class GameConfig:
-    num_models: int
+    num_artifacts: int
     seed: int
     num_repetitions: int = 1
-    num_challenge_points_per_model: int = 1
-    num_models_per_group: int = 32
+    num_challenge_points_per_artifact: int = 1
+    num_artifacts_per_group: int = 32
     num_concurrent_jobs_per_node: int = 1
 
 
 @dataclass
-class ShadowModelConfig:
-    num_models: int
+class ShadowArtifactConfig:
+    num_artifacts: int
     in_fraction: float
 
 
@@ -42,14 +42,14 @@ class MISignalConfig:
 
 class BlackBoxMembershipInferenceGameBase(ExperimentBase):
     def __init__(
-            self, game_config: GameConfig, shadow_model_config: ShadowModelConfig, workspace: WorkspaceConfig,
+            self, game_config: GameConfig, shadow_artifact_config: ShadowArtifactConfig, workspace: WorkspaceConfig,
             train_loader: TrainComponentLoader, score_loader: ScoreComponentLoader, attack_loader: AttackLoader,
             challenge_point_selection_loader: ChallengePointSelectionLoader, 
             privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
     ) -> None:
         super().__init__(workspace=workspace)
         self.game_config = game_config
-        self.shadow_model_config = shadow_model_config
+        self.shadow_artifact_config = shadow_artifact_config
 
         self.attack_loader = attack_loader
         self.challenge_point_selection_loader = challenge_point_selection_loader
@@ -58,24 +58,24 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
         self.privacy_estimation_config = privacy_estimation_config
 
         if (
-            self.challenge_point_selection_loader.requires_shadow_model_statistics or
-            self.attack_loader.requires_shadow_model_statistics
+            self.challenge_point_selection_loader.requires_shadow_artifact_statistics or
+            self.attack_loader.requires_shadow_artifact_statistics
         ):
             self.mi_statistics_loader = ComputeShadowArtifactStatisticsLoader(
                 train_loader=self.train_loader, score_loader=self.score_loader,
-                num_artifacts=self.shadow_model_config.num_models, in_fraction=self.shadow_model_config.in_fraction,
+                num_artifacts=self.shadow_artifact_config.num_artifacts, in_fraction=self.shadow_artifact_config.in_fraction,
                 num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
-                num_artifacts_per_group=self.game_config.num_models_per_group, workspace=workspace,
+                num_artifacts_per_group=self.game_config.num_artifacts_per_group, workspace=workspace,
                 num_repetitions=self.game_config.num_repetitions
             )
         else:
             self.mi_statistics_loader = None
 
-        self.train_many_models_loader = TrainManyArtifactsLoader(
-            num_artifacts=self.game_config.num_models, train_loader=train_loader, score_loader=score_loader,
+        self.train_many_artifacts_loader = TrainManyArtifactsLoader(
+            num_artifacts=self.game_config.num_artifacts, train_loader=train_loader, score_loader=score_loader,
             sample_selection="partitioned", merge_unused_samples="all_with_train",
             num_concurrent_jobs_per_node=self.game_config.num_concurrent_jobs_per_node,
-            num_artifacts_per_group=self.game_config.num_models_per_group, tag_artifact_index=False,
+            num_artifacts_per_group=self.game_config.num_artifacts_per_group, tag_artifact_index=False,
             num_repetitions=self.game_config.num_repetitions
         )
 
@@ -117,21 +117,21 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 seed=self.game_config.seed, max_num_challenge_points=self.challenge_point_selection_loader.num_challenge_points
             )
 
-            train_many_models = self.train_many_models_loader.load(
+            train_many_artifacts = self.train_many_artifacts_loader.load(
                 train_base_data=create_challenge.outputs.train_base_data, validation_base_data=validation_data,
                 in_out_data=create_challenge.outputs.in_out_data, in_indices=create_challenge.outputs.in_indices,
                 out_indices=create_challenge.outputs.out_indices, base_seed=self.game_config.seed,
-                num_points_per_artifact=self.game_config.num_challenge_points_per_model
+                num_points_per_artifact=self.game_config.num_challenge_points_per_artifact
             )
             optional_training_outputs = {}
-            if "dp_parameters" in train_many_models.outputs:
-                optional_training_outputs["dp_parameters"] = train_many_models.outputs.dp_parameters
+            if "dp_parameters" in train_many_artifacts.outputs:
+                optional_training_outputs["dp_parameters"] = train_many_artifacts.outputs.dp_parameters
             if self.privacy_estimation_config.smallest_delta is not None:
                 optional_training_outputs["smallest_delta"] = self.privacy_estimation_config.smallest_delta
 
             convert_to_challenge = convert_in_out_to_challenge(
-                scores_in=train_many_models.outputs.scores_in,
-                scores_out=train_many_models.outputs.scores_out,
+                scores_in=train_many_artifacts.outputs.scores_in,
+                scores_out=train_many_artifacts.outputs.scores_out,
                 all_challenge_bits=create_challenge.outputs.challenge_bits
             )
 
