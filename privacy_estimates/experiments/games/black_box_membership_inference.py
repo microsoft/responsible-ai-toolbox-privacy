@@ -85,7 +85,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
 
     @property
     def default_compute(self) -> str:
-        return self.workspace.cpu_compute
+        return self.workspace.default_compute
 
     def pipeline(self) -> PipelineJob:
         if not isinstance(self.default_compute, ClusterComputeConfig):

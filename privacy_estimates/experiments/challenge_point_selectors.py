@@ -15,13 +15,13 @@ class ChallengePointSelectionLoader(ComponentLoader):
         pass
 
     @property
-    def requires_shadow_model_statistics(self) -> bool:
+    def requires_shadow_artifact_statistics(self) -> bool:
         return False
 
 
 @dataclass
 class NaturalCanaryCrossValidationConfig:
-    n_models: int
+    n_artifacts: int
 
 
 class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader):
@@ -29,13 +29,13 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
         self.attack_loader = attack_loader
         self.num_challenge_points = num_challenge_points
 
-    def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
+    def load(self, data: Input, shadow_artifact_statistics: Input) -> Pipeline:
         @dsl.pipeline(name="Select natural cross validation challenge points")
-        def p(data: Input, shadow_model_statistics: Input) -> Pipeline:
-            preprocess = select_cross_validation_challenge_points.preprocess(shadow_model_statistics=shadow_model_statistics)
+        def p(data: Input, shadow_artifact_statistics: Input) -> Pipeline:
+            preprocess = select_cross_validation_challenge_points.preprocess(shadow_artifact_statistics=shadow_artifact_statistics)
             attack = self.attack_loader.load(
                 challenge_points=preprocess.outputs.challenge_points_for_cross_validation,
-                shadow_model_statistics=preprocess.outputs.shadow_model_statistics_for_cross_validation
+                shadow_artifact_statistics=preprocess.outputs.shadow_artifact_statistics_for_cross_validation
             )
             postprocess = select_cross_validation_challenge_points.postprocess(
                 data=data, scores=attack.outputs.scores, num_challenge_points=self.num_challenge_points,
@@ -44,7 +44,7 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
             return {
                 "challenge_points": postprocess.outputs.mi_challenge_points,
             }
-        return p(data=data, shadow_model_statistics=shadow_model_statistics)
+        return p(data=data, shadow_artifact_statistics=shadow_artifact_statistics)
     
 
 class TopKChallengePoints(ChallengePointSelectionLoader):
@@ -52,12 +52,12 @@ class TopKChallengePoints(ChallengePointSelectionLoader):
         self.num_challenge_points = num_challenge_points
         self.allow_fewer = allow_fewer
 
-    def load(self, data: Input, shadow_model_statistics: Input) -> Pipeline:
+    def load(self, data: Input, shadow_artifact_statistics: Input) -> Pipeline:
         @dsl.pipeline(name="Select top-k challenge points")
-        def p(data: Input, shadow_model_statistics: Input) -> Pipeline:
+        def p(data: Input, shadow_artifact_statistics: Input) -> Pipeline:
             return {
                 "challenge_points": select_top_k_rows(
                     data=data, k=self.num_challenge_points, allow_fewer=self.allow_fewer
                 ).outputs.output
             }
-        return p(data=data, shadow_model_statistics=shadow_model_statistics)
+        return p(data=data, shadow_artifact_statistics=shadow_artifact_statistics)

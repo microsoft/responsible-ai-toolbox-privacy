@@ -113,25 +113,26 @@ class WorkspaceConfig:
     workspace_name: str
     resource_group: str
     subscription_id: str
-    cpu_compute: Optional[str] = None
-    gpu_compute: Optional[str] = None
-    large_memory_cpu_compute: Optional[str] = None
+    default_compute: Optional[str] = None
     compute: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.ml_client = self._get_ml_client()
 
-        if self.cpu_compute is not None:
-            self.cpu_compute = ClusterComputeConfig(cluster_name=self.cpu_compute)
+        if self.default_compute is not None:
+            if "default" in self.compute:
+                raise ValueError("Cannot specify both default_compute and 'default' in compute")
+            self.compute["default"] = self.default_compute
 
-        if self.gpu_compute is not None:
-            self.gpu_compute = ClusterComputeConfig(cluster_name=self.gpu_compute)
-
-        if self.large_memory_cpu_compute is not None:
-            self.large_memory_cpu_compute = ClusterComputeConfig(cluster_name=self.large_memory_cpu_compute)
-
-        if self.large_memory_cpu_compute is None:
-            self.large_memory_cpu_compute = self.cpu_compute
+        for n, c in self.compute.items():
+            if isinstance(c, str):
+                self.compute[n] = ClusterComputeConfig(cluster_name=c)
+            elif isinstance(c, Mapping):
+                self.compute[n] = ComputeConfig.from_dict(c)
+            else:
+                raise ValueError(f"Invalid compute configuration for {n}")
+        
+        self.default_compute = self.compute.get("default", None)
 
     def _get_ml_client(self) -> MLClient:
         credential = get_credential()

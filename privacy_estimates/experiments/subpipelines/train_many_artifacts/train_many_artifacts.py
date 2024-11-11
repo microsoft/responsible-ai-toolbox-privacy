@@ -13,17 +13,17 @@ class TrainManyArtifactsLoader:
                  num_artifacts_per_group: int = 32, num_concurrent_jobs_per_node: int = 1, tag_artifact_index: bool = False):
         """
         Args:
-            train_loader: ComponentLoader for training a single model
-            inference_loader: ComponentLoader for inference on a single model
-            num_models: Number of models to train
-            models_per_group: Group size of models that are grouped together. This parameter does not have any effect on 
-                              the models trained, it simply creates nested pipelines to reduce the rendering of the 
-                              pipeline in the studio or groups model training on the same node.
-            group_on_single_node: If True, the models_per_group are trained on the same node. If False, a new node is allocated
-                                    for each model.
+            train_loader: ComponentLoader for training a single artifact
+            inference_loader: ComponentLoader for inference on a single artifact
+            num_artifacts: Number of artifacts to train
+            artifacts_per_group: Group size of artifacts that are grouped together. This parameter does not have any effect on 
+                              the artifacts trained, it simply creates nested pipelines to reduce the rendering of the 
+                              pipeline in the studio or groups artifacts training on the same node.
+            group_on_single_node: If True, the artifacts_per_group are trained on the same node. If False, a new node is allocated
+                                    for each artifact.
         """
         self.num_artifacts = num_artifacts
-        self.articats_per_group = num_artifacts_per_group
+        self.artifacts_per_group = num_artifacts_per_group
 
         self.single_artifact_arguments = TrainSingleArtifactAndScoreArguments(
             train_loader=train_loader, score_loader=score_loader, sample_selection=sample_selection,
@@ -32,11 +32,11 @@ class TrainManyArtifactsLoader:
 
         if num_concurrent_jobs_per_node > 1:
             self.train_artifact_group_loader = TrainArtifactGroupAMLParallelLoader(
-                num_artifacts=self.articats_per_group, group_size=self.articats_per_group,
+                num_artifacts=self.artifacts_per_group, group_size=self.artifacts_per_group,
                 single_artifact_arguments=self.single_artifact_arguments, num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
             )
             self.train_final_artifact_group_loader = TrainArtifactGroupAMLParallelLoader(
-                num_articats=self.num_artifacts % self.artifacts_per_group, group_size=self.artifacts_per_group,
+                num_artifacts=self.num_artifacts % self.artifacts_per_group, group_size=self.artifacts_per_group,
                 single_artifact_arguments=self.single_artifact_arguments, num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
             )
         else:
@@ -45,12 +45,12 @@ class TrainManyArtifactsLoader:
                 single_artifact_arguments=self.single_artifact_arguments
             )
             self.train_final_artifact_group_loader = TrainArtifactGroupDistributedLoader(
-                num_artifact=self.num_artifacts % self.articats_per_group, group_size=self.articats_per_group,
+                num_artifacts=self.num_artifacts % self.artifacts_per_group, group_size=self.artifacts_per_group,
                 single_artifact_arguments=self.single_artifact_arguments
             )
 
     def load(self, train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input,
-             out_indices: Input, base_seed: int, num_points_per_model: int):
+             out_indices: Input, base_seed: int, num_points_per_artifact: int):
         @dsl.pipeline(name=f"train_{self.num_artifacts}_artifacts")
         def pipeline(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input,
                      out_indices: Input, base_seed: int, num_points_per_artifact: int):
@@ -58,7 +58,7 @@ class TrainManyArtifactsLoader:
             scores_out = []
             metrics_avg = []
             dp_parameters = []
-            num_groups = self.num_artifacts // self.articats_per_group
+            num_groups = self.num_artifacts // self.artifacts_per_group
             for artifact_group in range(0, num_groups):
                 train_artifact_group = self.train_artifact_group_loader.load(
                     train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
@@ -71,11 +71,11 @@ class TrainManyArtifactsLoader:
                     metrics_avg.append(train_artifact_group.outputs.metrics_avg)
                 if "dp_parameters" in train_artifact_group.outputs:
                     dp_parameters.append(train_artifact_group.outputs.dp_parameters)
-            if self.num_artifacts % self.articats_per_group != 0:
+            if self.num_artifacts % self.artifacts_per_group != 0:
                 train_final_artifact_group = self.train_final_artifact_group_loader.load(
                     train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                     in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, artifact_group_index=num_groups,
-                    num_points_per_model=num_points_per_model
+                    num_points_per_artifact=num_points_per_artifact
                 )
                 scores_in.append(train_final_artifact_group.outputs.predictions_in)
                 scores_out.append(train_final_artifact_group.outputs.predictions_out)
@@ -95,4 +95,4 @@ class TrainManyArtifactsLoader:
             return outputs
         return pipeline(train_base_data=train_base_data, in_out_data=in_out_data, in_indices=in_indices,
                         out_indices=out_indices, validation_base_data=validation_base_data, base_seed=base_seed,
-                        num_points_per_model=num_points_per_artifact)
+                        num_points_per_artifact=num_points_per_artifact)

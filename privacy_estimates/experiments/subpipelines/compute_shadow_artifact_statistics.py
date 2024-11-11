@@ -30,13 +30,13 @@ class ComputeShadowArtifactStatisticsLoader:
                 in_out_data=canary_data, seed=seed, split_type="rotating_splits", in_fraction=self.in_fraction
             )
             convert_num_points_per_artifact = convert_uri_file_to_int(uri_file=data_for_shadow_artifacts.outputs.num_points_per_artifact)
-            data_for_shadow_artifacts = self.workspace.large_memory_cpu_compute.apply(data_for_shadow_artifacts)
+
             train_shadow_artifacts = self.train_many_artifacts_loader.load(
                 train_base_data=train_data,
                 validation_base_data=validation_data,
                 in_out_data=canary_data, in_indices=data_for_shadow_artifacts.outputs.in_indices,
                 out_indices=data_for_shadow_artifacts.outputs.out_indices, base_seed=seed,
-                convert_num_points_per_artifact=convert_num_points_per_artifact.outputs.output
+                num_points_per_artifact=convert_num_points_per_artifact.outputs.output
             )
 
             shadow_artifact_statistics_job = compute_shadow_artifact_statistics(

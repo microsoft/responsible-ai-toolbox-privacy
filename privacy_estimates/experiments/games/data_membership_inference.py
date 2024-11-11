@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Optional
-from azure.ai.ml import Input, Output, dsl
-from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
+from azure.ai.ml import Input, Output, dsl, load_component
+from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig, AMLComponentLoader
 from privacy_estimates.experiments.subpipelines import (
 	ComputeShadowArtifactStatisticsLoader, TrainManyArtifactsLoader, add_index_to_dataset
 )
@@ -18,13 +18,8 @@ from privacy_estimates.experiments.games.black_box_membership_inference import (
 
 
 class ScoreDataLoader(ScoreComponentLoader):
-    def __init__(self, workspace: WorkspaceConfig) -> None:
-        super().__init__(workspace=workspace)
-
     def load(self, artifact: Input, dataset: Input):
-        component = self.aml_loader.load_from_component_spec(
-
-        )
+        component = load_component()
         return component(artifact=artifact, dataset=dataset)
 
 
@@ -50,7 +45,7 @@ class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
         if shadow_dataset_config is None:
             shadow_dataset_config = ShadowArtifactConfig(num_artifacts=4, in_fraction=0.5)
 
-        score_loader = ScoreDataLoader(workspace=workspace)
+        score_loader = ScoreDataLoader()
 
         super().__init__(
             game_config=game_config, shadow_artifact_config=shadow_dataset_config, workspace=workspace,
