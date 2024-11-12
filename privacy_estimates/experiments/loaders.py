@@ -96,7 +96,7 @@ class TrainSingleArtifactAndScoreLoader:
             score_in = self.arguments.score_loader.load(
                 dataset=filter_in_data.outputs.filtered, artifact=train.outputs.artifact
             )
-            score_out = self.arguments.inference_loader.load(
+            score_out = self.arguments.score_loader.load(
                 dataset=filter_out_data.outputs.filtered, artifact=train.outputs.artifact
             )
 

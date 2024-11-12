@@ -77,8 +77,8 @@ class TrainManyArtifactsLoader:
                     in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, artifact_group_index=num_groups,
                     num_points_per_artifact=num_points_per_artifact
                 )
-                scores_in.append(train_final_artifact_group.outputs.predictions_in)
-                scores_out.append(train_final_artifact_group.outputs.predictions_out)
+                scores_in.append(train_final_artifact_group.outputs.scores_in)
+                scores_out.append(train_final_artifact_group.outputs.scores_out)
                 if "metrics_avg" in train_final_artifact_group.outputs:
                     metrics_avg.append(train_final_artifact_group.outputs.metrics_avg)
                 if "dp_parameters" in train_final_artifact_group.outputs:

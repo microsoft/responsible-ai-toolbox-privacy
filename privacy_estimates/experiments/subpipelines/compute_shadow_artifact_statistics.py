@@ -40,10 +40,9 @@ class ComputeShadowArtifactStatisticsLoader:
             )
 
             shadow_artifact_statistics_job = compute_shadow_artifact_statistics(
-                predictions_in=train_shadow_artifacts.outputs.predictions_in,
-                predictions_out=train_shadow_artifacts.outputs.predictions_out
+                scores_in=train_shadow_artifacts.outputs.scores_in,
+                scores_out=train_shadow_artifacts.outputs.scores_out,
             )
-            shadow_artifact_statistics_job = self.workspace.large_memory_cpu_compute.apply(shadow_artifact_statistics_job)
 
             return {
                 "statistics": shadow_artifact_statistics_job.outputs.statistics,

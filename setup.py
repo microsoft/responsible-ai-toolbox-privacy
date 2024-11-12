@@ -33,7 +33,13 @@ setup(
             "*/environment.yml",
             "*/component_spec.yml",
             "*/component_spec.yaml",
-        ]
+        ],
+        "privacy_estimates.experiments.scorers": [
+            "*/environment.yaml",
+            "*/environment.yml",
+            "*/component_spec.yml",
+            "*/component_spec.yaml",
+        ],
     },
     install_requires=[
         "argparse_dataclass",
