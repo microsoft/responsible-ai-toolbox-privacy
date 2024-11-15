@@ -538,6 +538,13 @@ class Job:
                 f"Available nodes: {', '.join([c.display_name for c in children])}"
             )
         return Job(aml_run=node)
+    
+    @property
+    def node_names(self) -> List[str]:
+        children = list(self.aml_run.get_children())
+        if len(children) == 1 and children[0].type == "azureml.PipelineRun":
+            children = list(children[0].get_children())
+        return [c.display_name for c in children]
 
     def download_input(self, name: str, path: str, match_pattern: str = "*") -> Path:
         input_details = self.details['runDefinition']['inputAssets'][name]
