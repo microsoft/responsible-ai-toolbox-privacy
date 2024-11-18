@@ -254,17 +254,23 @@ class AMLComponentLoader:
             logger.info("Using component version from PRIVACY_ESTIMATES_COMPONENT_VERSION environment variable")
             self.override_version = os.environ.get("PRIVACY_ESTIMATES_COMPONENT_VERSION", None)
 
+    def load_from_function(self, func, version: str = "local"):
+        if version == "local":
+            return func
+        else:
+            raise NotImplementedError("Loading components from functions with versions is not yet supported")
+
     def load_from_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         version = self.override_version or version
 
         if path.exists():
-            return self.load_from_local_component_spec(path, version)
+            return self._load_from_local_component_spec(path, version)
         elif is_url(path):
-            return self.load_from_remote_component_spec(path, version)
+            return self._load_from_remote_component_spec(path, version)
         else:
             raise FileNotFoundError(f"Could not find component spec at {path}. Path does not exist.")
 
-    def load_from_local_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
+    def _load_from_local_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         if not path.exists():
             raise FileNotFoundError(f"Could not find component spec at {path}. Path does not exist.")
 
@@ -281,7 +287,7 @@ class AMLComponentLoader:
             name = spec["name"]
             return load_component(client=self.workspace.ml_client, name=name, version=version)
         
-    def load_from_remote_component_spec(self, url: str, version: str = "local") -> Callable[..., Component]:
+    def _load_from_remote_component_spec(self, url: str, version: str = "local") -> Callable[..., Component]:
         raise NotImplementedError("Loading components from remote URLs is not yet supported")
 
 
