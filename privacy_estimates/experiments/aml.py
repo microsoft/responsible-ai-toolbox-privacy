@@ -250,6 +250,9 @@ class AMLComponentLoader:
         self.workspace = workspace
         self.override_version = None
 
+        if self.override_version is None:
+            self.override_version = os.environ.get("PRIVACY_ESTIMATES_COMPONENT_VERSION", None)
+
     def load_from_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         version = self.override_version or version
 
