@@ -254,7 +254,9 @@ class AMLComponentLoader:
             logger.info("Using component version from PRIVACY_ESTIMATES_COMPONENT_VERSION environment variable")
             self.override_version = os.environ.get("PRIVACY_ESTIMATES_COMPONENT_VERSION", None)
 
-    def load_from_function(self, func, version: str = "local"):
+    def load_from_function(self, func: Callable[..., Component], version: str = "local") -> Callable[..., Component]:
+        version = self.override_version or version
+
         if version == "local":
             return func
         else:
@@ -619,6 +621,12 @@ class Job:
             return json.loads(properties['azureml.parameters'])
         else:
             return {}
+        
+    @property
+    def input_parameters(self) -> Dict[str, Any]:
+        env_vars = self.details["runDefinition"]["environmentVariables"]
+        input_params = {k.replace("AZUREML_PARAMETER_", ""): v for k, v in env_vars.items() if k.startswith("AZUREML_PARAMETER_")}
+        return input_params
 
     @property
     def experiment_name(self) -> str:

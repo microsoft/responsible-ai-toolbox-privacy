@@ -85,13 +85,13 @@ class TrainManyArtifactsLoader:
                     dp_parameters.append(train_final_artifact_group.outputs.dp_parameters)
 
             outputs =  {
-                "scores_in": aggregate_output(scores_in, aggregator="concatenate_datasets"),
-                "scores_out": aggregate_output(scores_out, aggregator="concatenate_datasets")
+                "scores_in": aggregate_output(scores_in, aggregator="concatenate_datasets", load_component=self.aml_component_loader.load_from_function),
+                "scores_out": aggregate_output(scores_out, aggregator="concatenate_datasets", load_component=self.aml_component_loader.load_from_function)
             }
             if len(metrics_avg) > 0:
-                outputs["metrics_avg"] = aggregate_output(metrics_avg, aggregator="average_json")
+                outputs["metrics_avg"] = aggregate_output(metrics_avg, aggregator="average_json", load_component=self.aml_component_loader.load_from_function)
             if len(dp_parameters) > 0:
-                outputs["dp_parameters"] = aggregate_output(dp_parameters, aggregator="assert_json_equal")
+                outputs["dp_parameters"] = aggregate_output(dp_parameters, aggregator="assert_json_equal", load_component=self.aml_component_loader.load_from_function)
             return outputs
         return pipeline(train_base_data=train_base_data, in_out_data=in_out_data, in_indices=in_indices,
                         out_indices=out_indices, validation_base_data=validation_base_data, base_seed=base_seed,

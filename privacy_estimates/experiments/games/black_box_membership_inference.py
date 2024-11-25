@@ -112,7 +112,9 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 data=canary_data, shadow_artifact_statistics=mi_statistics
             )
 
-            create_challenge = create_in_out_data_for_membership_inference_challenge(
+            create_challenge = self.aml_component_loader.load_from_function(
+                create_in_out_data_for_membership_inference_challenge
+            )(
                 train_data=train_data, challenge_points=select_challenge_points.outputs.challenge_points,
                 seed=self.game_config.seed, max_num_challenge_points=self.challenge_point_selection_loader.num_challenge_points
             )
@@ -129,7 +131,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             if self.privacy_estimation_config.smallest_delta is not None:
                 optional_training_outputs["smallest_delta"] = self.privacy_estimation_config.smallest_delta
 
-            convert_to_challenge = convert_in_out_to_challenge(
+            convert_to_challenge = self.aml_component_loader.load_from_function(convert_in_out_to_challenge)(
                 scores_in=train_many_artifacts.outputs.scores_in,
                 scores_out=train_many_artifacts.outputs.scores_out,
                 all_challenge_bits=create_challenge.outputs.challenge_bits

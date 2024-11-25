@@ -1,7 +1,7 @@
 import datasets
 import numpy as np
 import json
-from typing import List, Union
+from typing import List, Union, Optional, Callable
 from mldesigner import command_component, Input, Output
 from contextlib import ExitStack
 from pathlib import Path
@@ -129,13 +129,16 @@ def aggregate_16_output_files(
     )
 
 
-def aggregate_output(data: List[Union[Input, Output]], aggregator: str) -> Output:
+def aggregate_output(data: List[Union[Input, Output]], aggregator: str, load_component: Optional[Callable] = None) -> Output:
+    if load_component is None:
+        load_component = lambda comp: comp
+
     if AGGREGATOR_OUTPUTS[aggregator] == "uri_folder":
-        aggregate_2_outputs = aggregate_2_output_dirs
-        aggregate_16_outputs = aggregate_16_output_dirs
+        aggregate_2_outputs = load_component(aggregate_2_output_dirs)
+        aggregate_16_outputs = load_component(aggregate_16_output_dirs)
     elif AGGREGATOR_OUTPUTS[aggregator] == "uri_file":
-        aggregate_2_outputs = aggregate_2_output_files
-        aggregate_16_outputs = aggregate_16_output_files
+        aggregate_2_outputs = load_component(aggregate_2_output_files)
+        aggregate_16_outputs = load_component(aggregate_16_output_files)
 
     # use divide and conquer to concatenate all datasets
     if len(data) == 1:
