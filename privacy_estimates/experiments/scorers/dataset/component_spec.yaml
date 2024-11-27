@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: privacy_estimates_experiments_scorer_dataset
+name: privacy_estimates__experiments__scorer__dataset
 display_name: dataset_scorer
 version: local1
 type: command

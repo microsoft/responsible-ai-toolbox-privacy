@@ -59,6 +59,7 @@ setup(
             "tensorflow-privacy",
         ],
         "pipelines": [
+            "argparse_dataclass",
             "azure-ai-ml",
             "azureml-core",
             "azureml-fsspec",
@@ -70,6 +71,7 @@ setup(
             "mltable",
             "numpy<2",
             "tqdm-loggable",
+            "pyyaml",
         ],
     },
     scripts=[

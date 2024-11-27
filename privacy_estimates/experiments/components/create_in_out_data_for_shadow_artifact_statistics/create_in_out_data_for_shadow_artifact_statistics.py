@@ -177,7 +177,7 @@ def compute_in_out_indices_using_cross_validation(indices: Sequence, in_fraction
     return cross_validation_sets, n_samples_per_artifact
 
 
-@command_component(environment={
+@command_component(name="privacy_estimates__create_in_out_data_for_shadow_artifact_statistics", environment={
     "conda_file": Path(__file__).parent / "environment.conda.yaml",
     "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
 })

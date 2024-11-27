@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: privacy_estimates_experiments_attacks_lira
+name: privacy_estimates__experiments__attacks__lira
 display_name: lira
 version: local1
 type: command

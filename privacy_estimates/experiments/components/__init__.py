@@ -1,7 +1,10 @@
 from .create_in_out_data_for_shadow_artifact_statistics.create_in_out_data_for_shadow_artifact_statistics import (
     create_in_out_data_for_shadow_artifact_statistics
 )
-from .aggregate_output.aggregate import aggregate_output, collect_from_aml_parallel
+from .aggregate_output.aggregate import (
+    aggregate_output, collect_from_aml_parallel, aggregate_16_output_dirs, aggregate_2_output_dirs, aggregate_16_output_files,
+    aggregate_2_output_files
+)
 from .prepare_data.prepare_data import prepare_data, prepare_data_for_aml_parallel
 from .filter.filter import filter_aux_data, reinsert_aux_data, filter_aux_data_aml_parallel, reinsert_aux_data_aml_parallel
 from .modify_dataset.modify import (
