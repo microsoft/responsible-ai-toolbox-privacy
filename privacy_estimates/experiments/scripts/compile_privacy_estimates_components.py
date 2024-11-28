@@ -164,7 +164,11 @@ def main(args: Arguments):
         yaml_dump({"component_paths": [str(p) for p in component_paths]}, f)
 
 
-if __name__ == "__main__":
+def run_main():
     parser = ArgumentParser(Arguments)
     args = parser.parse_args()
     main(args)
+
+
+if __name__ == "__main__":
+    run_main()
