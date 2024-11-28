@@ -106,6 +106,7 @@ def compile_py_component(component: Callable, output_dir: Path, override_version
         component_spec_path = Path(temp_dir) / component_name / (component_name + ".yaml")
         with component_spec_path.open("r") as f:
             component_spec = yaml_load(f)
+        component_spec_path.unlink()
 
         if override_version is not None:
             component_spec["version"] = override_version
