@@ -118,7 +118,7 @@ def compile_py_component(component: Callable, output_dir: Path, override_version
         rel_component_spec_path = component_spec_path.relative_to(temp_dir)
         
         # copy the compiled component to the output directory
-        compiled_component_path = output_dir / rel_component_spec_path.parent
+        compiled_component_path = output_dir / rel_component_spec_path.parent.parent
         compiled_component_path.mkdir(parents=True, exist_ok=True)
         shutil.copytree(temp_dir, compiled_component_path, dirs_exist_ok=True)
     return rel_component_spec_path
