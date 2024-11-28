@@ -238,7 +238,7 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     )
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__prepare_data_for_aml_parallel", environment=ENV)
 def prepare_data_for_aml_parallel(
     train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
     artifact_index_start: int, artifact_index_end: int, group_base_seed: int, num_points_per_artifact: int,
@@ -273,7 +273,7 @@ def prepare_data_for_aml_parallel(
             f.write(str(group_base_seed+artifact_index))
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__prepare_data", environment=ENV)
 def prepare_data(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
                  artifact_index: int, seed: int, num_points_per_artifact: int, in_data_for_artifact: Output, out_data_for_artifact: Output,
                  train_data_for_artifact: Output, validation_data_for_artifact: Output, sample_selection: str,

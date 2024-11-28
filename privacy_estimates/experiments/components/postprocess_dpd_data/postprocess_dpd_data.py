@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @command_component(
+    name="privacy_estimates__postprocess_dpd_data",
     display_name="Postprocess DP Distinguisher data",
     environment={
         "conda_file": Path(__file__).parent / "environment.conda.yaml",

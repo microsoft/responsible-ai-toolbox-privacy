@@ -9,10 +9,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-@command_component(environment={
-    "conda_file": Path(__file__).parent / "environment.conda.yaml",
-    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
-})
+@command_component(
+    name="privacy_estimates__create_empty_dataset",
+    environment={
+        "conda_file": Path(__file__).parent / "environment.conda.yaml",
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+    }
+)
 def create_empty_dataset(
     dataset_for_features: Input,
     dataset: Output,

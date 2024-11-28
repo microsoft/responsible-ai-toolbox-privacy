@@ -76,5 +76,10 @@ setup(
     },
     scripts=[
         "experiments/scripts/debug-component.py",
-    ]
+    ],
+    entry_points={
+        'console_scripts': [
+            'compile-privacy-estimates-components=privacy_estimates.experiments.scripts.compile_components:run_main',
+        ],
+    },
 )

@@ -83,19 +83,22 @@ AGGREGATOR_OUTPUTS = {
 }
 
 
-@command_component(display_name="Aggregate 2 output directories", environment=ENV)
+@command_component(name="privacy_estimates__aggregate_2_output_dirs", display_name="Aggregate 2 output directories",
+                   environment=ENV)
 def aggregate_2_output_dirs(data0: Input(type="uri_folder"), data1: Input(type="uri_folder"),  # noqa: F821
                             output: Output(type="uri_folder"), aggregator: str):  # noqa: F821
     AGGREGATORS[aggregator]([data0, data1], output=output)
 
 
-@command_component(display_name="Aggregate 2 output files", environment=ENV)
+@command_component(name="privacy_estimates__aggregate_2_output_files", display_name="Aggregate 2 output files",
+                   environment=ENV)
 def aggregate_2_output_files(data0: Input(type="uri_file"), data1: Input(type="uri_file"),  # noqa: F821
                              output: Output(type="uri_file"), aggregator: str):  # noqa: F821
     AGGREGATORS[aggregator]([data0, data1], output=output)
 
 
-@command_component(display_name="Aggregate 16 output directories", environment=ENV)
+@command_component(name="privacy_estimates__aggregate_16_output_dirs", display_name="Aggregate 16 output directories",
+                   environment=ENV)
 def aggregate_16_output_dirs(
     data0: Input(type="uri_folder"), data1: Input(type="uri_folder"), data2: Input(type="uri_folder"),  # noqa: F821
     data3: Input(type="uri_folder"), data4: Input(type="uri_folder"), data5: Input(type="uri_folder"),  # noqa: F821
@@ -112,7 +115,8 @@ def aggregate_16_output_dirs(
     )
 
 
-@command_component(display_name="Aggregate 16 output files", environment=ENV)
+@command_component(name="privacy_estimates__aggregate_16_output_files", display_name="Aggregate 16 output files",
+                   environment=ENV)
 def aggregate_16_output_files(
     data0: Input(type="uri_file"), data1: Input(type="uri_file"), data2: Input(type="uri_file"),  # noqa: F821
     data3: Input(type="uri_file"), data4: Input(type="uri_file"), data5: Input(type="uri_file"),  # noqa: F821

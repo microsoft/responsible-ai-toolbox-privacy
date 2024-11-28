@@ -45,7 +45,7 @@ def _filter_aux_data(data: datasets.Dataset) -> FilteredOutput:
     return FilteredOutput(filtered=data, aux=aux_ds)
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__filter_aux_data", environment=ENV)
 def filter_aux_data(full: Input, aux: Output, filtered: Output):
     """
     Filters out aux data from the input dataset and saves the resulting dataset to disk.
@@ -63,7 +63,7 @@ def filter_aux_data(full: Input, aux: Output, filtered: Output):
     filtered_output.filtered.save_to_disk(filtered)
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__filter_aux_data_aml_parallel", environment=ENV)
 def filter_aux_data_aml_parallel(full: Input, aux: Output(mode="rw_mount"), filtered: Output(mode="rw_mount")):  # noqa: F821
     for path in Path(full).iterdir():
         model_index_str = path.name
@@ -108,7 +108,7 @@ def _reinsert_aux_data(filtered_data: datasets.Dataset, aux_data: datasets.Datas
     return full_data
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__reinsert_aux_data", environment=ENV)
 def reinsert_aux_data(filtered: Input, aux: Input, full: Output):
     """
     Reinserts aux data into a filtered dataset based on a mask.
@@ -129,7 +129,7 @@ def reinsert_aux_data(filtered: Input, aux: Input, full: Output):
     full_data.save_to_disk(full)
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__reinsert_aux_data_aml_parallel", environment=ENV)
 def reinsert_aux_data_aml_parallel(
     filtered: Input(mode="rw_mount"), aux: Input(mode="rw_mount"), full: Output(mode="rw_mount")  # noqa: F821
 ):

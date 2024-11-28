@@ -1,6 +1,6 @@
 import shutil
 from argparse_dataclass import ArgumentParser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from mldesigner import compile
 from tqdm import tqdm
@@ -22,6 +22,16 @@ from privacy_estimates.experiments.components import (
     convert_in_out_to_challenge, compute_mi_signals, convert_chat_jsonl_to_hfd, convert_hfd_to_jsonl, generate_canaries_with_secrets, convert_uri_file_to_int,
     aggregate_2_output_dirs, aggregate_2_output_files, aggregate_16_output_dirs, aggregate_16_output_files
 )
+
+
+DESCRIPTION = """
+Compile components for the privacy estimates experiments pipeline.
+
+This script compiles all components for the privacy estimates experiments pipeline.
+The compiled components are stored in the output directory.
+The output directory will contain a directory for each component, which contains the compiled component code and a component spec file.
+The component spec file is a YAML file that describes the component and its dependencies.
+"""
 
 
 EXPERIMENT_DIR = Path(__file__).parent.parent
@@ -71,9 +81,9 @@ YAML_COMPONENTS = [
 
 @dataclass
 class Arguments:
-    output_dir: Path
-    version: Optional[str] = None
-    disable_tqdm: bool = False
+    output_dir: Path = field(metadata={"help": "Output directory for compiled components"})
+    version: Optional[str] = field(default=None, metadata={"help": "Version to override the component versions with"})
+    disable_tqdm: bool = field(default=False, metadata={"help": "Disable tqdm progress bars"})
 
     def __post_init__(self):
         if self.version is None:
@@ -90,7 +100,6 @@ def compile_py_component(component: Callable, output_dir: Path, override_version
         
         component_name = component.component.name
 
-        breakpoint()
         if not component_name.startswith("privacy_estimates__"):
             raise ValueError(f"Component name {component_name} does not start with 'privacy_estimates__'")
 
@@ -108,7 +117,7 @@ def compile_py_component(component: Callable, output_dir: Path, override_version
         rel_component_spec_path = component_spec_path.relative_to(temp_dir)
         
         # copy the compiled component to the output directory
-        compiled_component_path = output_dir / component_dir.name
+        compiled_component_path = output_dir / rel_component_spec_path.parent
         compiled_component_path.mkdir(parents=True, exist_ok=True)
         shutil.copytree(temp_dir, compiled_component_path, dirs_exist_ok=True)
     return rel_component_spec_path
@@ -165,7 +174,7 @@ def main(args: Arguments):
 
 
 def run_main():
-    parser = ArgumentParser(Arguments)
+    parser = ArgumentParser(Arguments, description=DESCRIPTION)
     args = parser.parse_args()
     main(args)
 

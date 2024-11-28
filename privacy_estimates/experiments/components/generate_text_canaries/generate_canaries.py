@@ -128,7 +128,7 @@ def generate_natural_canaries_with_aoai(
     return canaries
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__generate_natural_canaries", environment=ENV)
 def generate_natural_canaries(
     num_canaries: int, seed: int, format: str, output: Output(type="uri_folder")
 ):
@@ -143,7 +143,7 @@ def generate_natural_canaries(
     canaries.save_to_disk(output)
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__generate_canaries_with_secrets", environment=ENV)
 def generate_canaries_with_secrets(
     num_canaries: int, seed: int, format: str, output: Output(type="uri_folder"),
     text_column: Input(type="string", optional=True) = None

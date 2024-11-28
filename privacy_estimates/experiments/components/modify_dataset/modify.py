@@ -9,7 +9,8 @@ ENV = {
 }
 
 
-@command_component(display_name="Append column to dataset", environment=ENV)
+@command_component(name="privacy_estimates__append_column_constant_int", display_name="Append column to dataset",
+                   environment=ENV)
 def append_column_constant_int(data: Input, name: str, value: int, output: Output):
     """
     Appends a new column with a constant integer value to the dataset.
@@ -27,7 +28,8 @@ def append_column_constant_int(data: Input, name: str, value: int, output: Outpu
     ds.save_to_disk(output)
 
 
-@command_component(display_name="Append column to dataset", environment=ENV)
+@command_component(name="privacy_estimates__append_column_constant_str", display_name="Append column to dataset",
+                   environment=ENV)
 def append_column_constant_str(data: Input, name: str, value: str, output: Output):
     """
     Appends a new column with a constant string value to the dataset.
@@ -45,7 +47,8 @@ def append_column_constant_str(data: Input, name: str, value: str, output: Outpu
     ds.save_to_disk(output)
 
 
-@command_component(display_name="Append column to dataset with incrementing index", environment=ENV)
+@command_component(name="privacy_estimates__append_column_incrementing", display_name="Append column to dataset with incrementing index", 
+                   environment=ENV)
 def append_column_incrementing(data: Input, name: str, output: Output):
     """
     Appends a new column to the dataset with incrementing values.
@@ -62,7 +65,8 @@ def append_column_incrementing(data: Input, name: str, output: Output):
     ds.save_to_disk(output)
 
 
-@command_component(display_name="Append artifact index column to dataset", environment=ENV)
+@command_component(name="privacy_estimates__append_artifact_index_column_aml_parallel", display_name="Append artifact index column to dataset",
+                   environment=ENV)
 def append_artifact_index_column_aml_parallel(data: Input, output: Output):
     """
     Appends a 'artifact_index' column to each dataset in the input directory and saves the modified datasets to the output directory.
@@ -85,7 +89,7 @@ def append_artifact_index_column_aml_parallel(data: Input, output: Output):
         ds.save_to_disk(str(Path(output)/artifact_dir.name))
 
 
-@command_component(display_name="Select columns from dataset", environment=ENV)
+@command_component(name="privacy_estimates__create_empty_dataset", display_name="Create empty dataset", environment=ENV)
 def select_columns(data: Input, columns: str, output: Output):
     """
     Selects specific columns from the input dataset and saves the modified dataset to the output location.
@@ -102,7 +106,7 @@ def select_columns(data: Input, columns: str, output: Output):
     ds.save_to_disk(output)
 
 
-@command_component(display_name="Rename columns in dataset", environment=ENV)
+@command_component(name="privacy_estimates__create_empty_dataset", display_name="Create empty dataset", environment=ENV)
 def rename_columns(data: Input, columns_old: str, columns_new: str, output: Output):
     """
     Renames columns in a dataset.
@@ -121,7 +125,7 @@ def rename_columns(data: Input, columns_old: str, columns_new: str, output: Outp
     ds.save_to_disk(output)
 
 
-@command_component(display_name="Select top k rows", environment=ENV)
+@command_component(name="privacy_estimates__select_top_k_rows", display_name="Select top k rows", environment=ENV)
 def select_top_k_rows(data: Input, k: int, output: Output, allow_fewer: Input(type="boolean", optional=True) = False):
     """
     Selects the top k rows from the input dataset and saves the result to the output dataset.
@@ -142,7 +146,7 @@ def select_top_k_rows(data: Input, k: int, output: Output, allow_fewer: Input(ty
     ds.save_to_disk(output)
 
 
-@command_component(display_name="Move dataset", environment=ENV)
+@command_component(name="privacy_estimates__move_dataset", display_name="Move dataset", environment=ENV)
 def move_dataset(data: Input, output: Output):
     """
     Move a dataset from the input location to the output location.

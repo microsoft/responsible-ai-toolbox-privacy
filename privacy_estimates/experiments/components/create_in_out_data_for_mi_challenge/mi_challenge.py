@@ -13,10 +13,13 @@ def count_null(ds: Dataset) -> int:
     return len(ds.filter(lambda row: (row["split"] is None) and (row["sample_index"] is None)))
 
 
-@command_component(environment={
-    "conda_file": Path(__file__).parent / "environment.conda.yaml",
-    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
-})
+@command_component(
+    name="privacy_estimates__create_in_out_data_for_membership_inference_challenge",
+    environment={
+        "conda_file": Path(__file__).parent / "environment.conda.yaml",
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+    }
+)
 def create_in_out_data_for_membership_inference_challenge(
     train_data: Input, challenge_points: Input, seed: int, in_out_data: Output, in_indices: Output,
     out_indices: Output, challenge_bits: Output, train_base_data: Output, max_num_challenge_points: int = 2048,

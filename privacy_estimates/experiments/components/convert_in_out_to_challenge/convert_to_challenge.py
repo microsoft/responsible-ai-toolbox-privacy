@@ -30,10 +30,13 @@ def select_score_for_challenge(
     }
 
 
-@command_component(environment={
-    "conda_file": Path(__file__).parent / "environment.conda.yaml",
-    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
-})
+@command_component(
+    name="privacy_estimates__convert_in_out_to_challenge",
+    environment={
+        "conda_file": Path(__file__).parent / "environment.conda.yaml",
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
+    }
+)
 def convert_in_out_to_challenge(
     scores_in: Input, scores_out: Input, all_challenge_bits: Input, challenge: Output, challenge_bits: Output,
 ):

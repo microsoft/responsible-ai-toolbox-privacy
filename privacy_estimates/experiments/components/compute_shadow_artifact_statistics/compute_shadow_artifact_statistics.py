@@ -94,6 +94,7 @@ def _compute_shadow_artifact_statistics(in_scores: Dataset, out_scores: Dataset)
 
 
 @command_component(
+    name="privacy_estimates__compute_shadow_artifact_statistics",
     environment={
         "conda_file": Path(__file__).parent/"environment.conda.yaml",
         "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"

@@ -4,10 +4,13 @@ from mldesigner import command_component, Output
 from pathlib import Path
 
 
-@command_component(environment={
-    "conda_file": Path(__file__).parent/"environment.conda.yaml",
-    "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
-})
+@command_component(
+    name="privacy_estimates__create_artifact_indices_for_aml_parallel",
+    environment={
+        "conda_file": Path(__file__).parent/"environment.conda.yaml",
+        "image": "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04"
+    }
+)
 def create_artifact_indices_for_aml_parallel(
     artifact_index_start: int, artifact_index_end: int,
     artifact_indices: Output(mode="rw_mount")  # noqa: F821
