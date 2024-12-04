@@ -1,9 +1,10 @@
 from pathlib import Path
-from azure.ai.ml import load_component, Input
+from azure.ai.ml import Input
 from dataclasses import dataclass
 from typing import Optional
 
 from privacy_estimates.experiments.attacks.base import AttackLoader
+from privacy_estimates.experiments.aml import PrivacyEstimatesComponentLoader
 
 
 @dataclass
@@ -20,7 +21,7 @@ class RmiaLoader(AttackLoader):
         extra_args = {}
         if self.offline_a is not None:
             extra_args["offline_a"] = self.offline_a
-        return load_component(source=Path(__file__).parent/"component_spec.yaml")(
+        return PrivacyEstimatesComponentLoader().load_from_component_spec(source=Path(__file__).parent/"component_spec.yaml")(
             challenge_points=challenge_points, mi_statistics=mi_statistics, use_log_column=self.use_log_column,
             **extra_args
         )

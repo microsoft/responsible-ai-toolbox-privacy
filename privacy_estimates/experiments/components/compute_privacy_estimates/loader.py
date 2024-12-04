@@ -1,7 +1,8 @@
-from azure.ai.ml import load_component
 from mldesigner import Input
 from pathlib import Path
 from typing import Optional
+
+from privacy_estimates.experiments.aml import PrivacyEstimatesComponentLoader
 
 
 def compute_privacy_estimates(
@@ -16,7 +17,7 @@ def compute_privacy_estimates(
     if alpha is not None:
         optional_args["alpha"] = alpha
 
-    return load_component(
+    return PrivacyEstimatesComponentLoader().load_from_component_spec(
         source=str(Path(__file__).parent/"component_spec.yaml")
     )(
         scores=scores, challenge_bits=challenge_bits, **optional_args
