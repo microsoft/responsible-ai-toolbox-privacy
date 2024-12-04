@@ -4,23 +4,20 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-from privacy_estimates.experiments.aml import AMLComponentLoader
+from privacy_estimates.experiments.aml import ComputeConfig
 from privacy_estimates.experiments.components import (
     prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_int
 )
 
 
 class ComponentLoader(ABC):
-    def __init__(self, aml_component_loader: Optional[AMLComponentLoader] = None) -> None:
-        self.aml_loader = aml_component_loader
-
     @property
     def component(self):
         raise NotImplementedError(f"`component` needs to be implemented for {self.__class__.__name__}")
 
     @property 
-    def compute(self) -> Optional[str]:
-        raise NotImplementedError(f"`compute` needs to be implemented for {self.__class__.__name__}")
+    def compute(self) -> Optional[ComputeConfig]:
+        return None
 
     @property 
     def parameter_dict(self) -> Dict:
@@ -29,7 +26,7 @@ class ComponentLoader(ABC):
     def load(self, *args, **kwargs):
         job = self.component(*args, **kwargs, **self.parameter_dict)
         if self.compute is not None:
-            job.compute = self.compute
+            job = self.compute.apply(job)
         return job
 
 

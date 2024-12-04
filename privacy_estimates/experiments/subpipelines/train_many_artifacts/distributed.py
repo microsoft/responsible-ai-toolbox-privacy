@@ -7,11 +7,8 @@ from .base import TrainArtifactGroupBase, TrainSingleArtifactAndScoreArguments
 
 
 class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
-    def __init__(self, num_artifacts: int, group_size: int, single_artifact_arguments: TrainSingleArtifactAndScoreArguments,
-                 privacy_estimates_loader: PrivacyEstimatesComponentLoader):
+    def __init__(self, num_artifacts: int, group_size: int, single_artifact_arguments: TrainSingleArtifactAndScoreArguments):
         super().__init__(num_artifacts=num_artifacts, group_size=group_size, single_artifact_arguments=single_artifact_arguments)
-
-        self.privacy_estimates_loader = privacy_estimates_loader
 
         self.train_artifact_and_score_loader = TrainSingleArtifactAndScoreLoader(arguments=single_artifact_arguments)
 
@@ -43,7 +40,7 @@ class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
                 if hasattr(train_artifact_and_score.outputs, "dp_parameters"):
                     dp_parameters.append(train_artifact_and_score.outputs.dp_parameters)
 
-            load_from_function = self.privacy_estimates_loader.load_from_function
+            load_from_function = PrivacyEstimatesComponentLoader().load_from_function
 
             output = {
                 "scores_in": aggregate_output(

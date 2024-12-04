@@ -49,17 +49,14 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
     
 
 class TopKChallengePoints(ChallengePointSelectionLoader):
-    def __init__(self, num_challenge_points: int, 
-                 privacy_estimates_component_loader: PrivacyEstimatesComponentLoader,
-                 allow_fewer: bool = False):
+    def __init__(self, num_challenge_points: int, allow_fewer: bool = False):
         self.num_challenge_points = num_challenge_points
-        self.privacy_estimates_component_loader = privacy_estimates_component_loader
         self.allow_fewer = allow_fewer
 
     def load(self, data: Input, shadow_artifact_statistics: Input) -> Pipeline:
         @dsl.pipeline(name="Select top-k challenge points")
         def p(data: Input, shadow_artifact_statistics: Input) -> Pipeline:
-            select = self.privacy_estimates_component_loader.load_from_function(select_top_k_rows)
+            select = PrivacyEstimatesComponentLoader().load_from_function(select_top_k_rows)
             return {
                 "challenge_points": select(
                     data=data, k=self.num_challenge_points, allow_fewer=self.allow_fewer

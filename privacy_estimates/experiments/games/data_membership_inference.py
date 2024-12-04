@@ -17,18 +17,14 @@ class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
         shadow_dataset_config: Optional[ShadowArtifactConfig] = None, attack_loader: Optional[AttackLoader] = None,
         challenge_point_selection_loader: Optional[ChallengePointSelectionLoader] = None,
         privacy_estimation_config: Optional[PrivacyEstimationConfig] = None,
-        privacy_estimates_component_loader: Optional[PrivacyEstimatesComponentLoader] = None,
     ) -> None:
         # Set sensible defaults for the loaders
         if attack_loader is None:
             attack_loader = RmiaLoader(use_log_column=True, offline_a=None)
 
-        self.privacy_estimates_loader = privacy_estimates_component_loader or PrivacyEstimatesComponentLoader()
-
         if challenge_point_selection_loader is None:
             challenge_point_selection_loader = TopKChallengePoints(
                 num_challenge_points=game_config.num_challenge_points_per_artifact*game_config.num_artifacts,
-                privacy_estimates_component_loader=self.privacy_estimates_loader
             )
 
         if privacy_estimation_config is None:
@@ -44,7 +40,6 @@ class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
             train_loader=train_loader, score_loader=score_loader, attack_loader=attack_loader,
             challenge_point_selection_loader=challenge_point_selection_loader,
             privacy_estimation_config=privacy_estimation_config,
-            privacy_estimates_loader=self.privacy_estimates_loader
         )
 
     @property

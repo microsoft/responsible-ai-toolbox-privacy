@@ -46,11 +46,8 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             train_loader: TrainComponentLoader, score_loader: ScoreComponentLoader, attack_loader: AttackLoader,
             challenge_point_selection_loader: ChallengePointSelectionLoader, 
             privacy_estimation_config: PrivacyEstimationConfig = PrivacyEstimationConfig(),
-            privacy_estimates_loader: Optional[PrivacyEstimatesComponentLoader] = None
     ) -> None:
         super().__init__(workspace=workspace)
-
-        self.privacy_estimates_loader = privacy_estimates_loader or PrivacyEstimatesComponentLoader(client=workspace.ml_client)
 
         self.game_config = game_config
         self.shadow_artifact_config = shadow_artifact_config
@@ -116,7 +113,9 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 data=canary_data, shadow_artifact_statistics=mi_statistics
             )
 
-            create_challenge = self.aml_component_loader.load_from_function(
+            load_from_function = PrivacyEstimatesComponentLoader().load_from_function
+
+            create_challenge = load_from_function(
                 create_in_out_data_for_membership_inference_challenge
             )(
                 train_data=train_data, challenge_points=select_challenge_points.outputs.challenge_points,
@@ -135,7 +134,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
             if self.privacy_estimation_config.smallest_delta is not None:
                 optional_training_outputs["smallest_delta"] = self.privacy_estimation_config.smallest_delta
 
-            convert_to_challenge = self.aml_component_loader.load_from_function(convert_in_out_to_challenge)(
+            convert_to_challenge = load_from_function(convert_in_out_to_challenge)(
                 scores_in=train_many_artifacts.outputs.scores_in,
                 scores_out=train_many_artifacts.outputs.scores_out,
                 all_challenge_bits=create_challenge.outputs.challenge_bits

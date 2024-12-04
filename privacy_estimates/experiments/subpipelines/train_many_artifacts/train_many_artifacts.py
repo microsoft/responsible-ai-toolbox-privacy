@@ -2,13 +2,14 @@ from azure.ai.ml import dsl, Input
 
 from privacy_estimates.experiments.loaders import TrainComponentLoader, ScoreComponentLoader
 from privacy_estimates.experiments.components import aggregate_output
+from privacy_estimates.experiments.aml import PrivacyEstimatesComponentLoader
 from .aml_parallel import TrainArtifactGroupAMLParallelLoader
 from .distributed import TrainArtifactGroupDistributedLoader
 from .base import TrainSingleArtifactAndScoreArguments
 
 
 class TrainManyArtifactsLoader:
-    def __init__(self, train_loader: TrainComponentLoader, score_loader: ScoreComponentLoader,
+    def __init__(self, train_loader: TrainComponentLoader, score_loader: ScoreComponentLoader, *,
                  num_artifacts: int, sample_selection: str, merge_unused_samples: str, num_repetitions: int = 1,
                  num_artifacts_per_group: int = 32, num_concurrent_jobs_per_node: int = 1, tag_artifact_index: bool = False):
         """
@@ -84,14 +85,16 @@ class TrainManyArtifactsLoader:
                 if "dp_parameters" in train_final_artifact_group.outputs:
                     dp_parameters.append(train_final_artifact_group.outputs.dp_parameters)
 
+            load_from_function = PrivacyEstimatesComponentLoader().load_from_function
+
             outputs =  {
-                "scores_in": aggregate_output(scores_in, aggregator="concatenate_datasets", load_component=self.aml_component_loader.load_from_function),
-                "scores_out": aggregate_output(scores_out, aggregator="concatenate_datasets", load_component=self.aml_component_loader.load_from_function)
+                "scores_in": aggregate_output(scores_in, aggregator="concatenate_datasets", load_component=load_from_function),
+                "scores_out": aggregate_output(scores_out, aggregator="concatenate_datasets", load_component=load_from_function),
             }
             if len(metrics_avg) > 0:
-                outputs["metrics_avg"] = aggregate_output(metrics_avg, aggregator="average_json", load_component=self.aml_component_loader.load_from_function)
+                outputs["metrics_avg"] = aggregate_output(metrics_avg, aggregator="average_json", load_component=load_from_function)
             if len(dp_parameters) > 0:
-                outputs["dp_parameters"] = aggregate_output(dp_parameters, aggregator="assert_json_equal", load_component=self.aml_component_loader.load_from_function)
+                outputs["dp_parameters"] = aggregate_output(dp_parameters, aggregator="assert_json_equal", load_component=load_from_function)
             return outputs
         return pipeline(train_base_data=train_base_data, in_out_data=in_out_data, in_indices=in_indices,
                         out_indices=out_indices, validation_base_data=validation_base_data, base_seed=base_seed,

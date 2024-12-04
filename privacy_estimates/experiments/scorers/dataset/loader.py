@@ -5,11 +5,8 @@ from pathlib import Path
 
 
 class ScoreDataLoader(ScoreComponentLoader):
-    def __init__(self, privacy_estimates_component_loader: PrivacyEstimatesComponentLoader):
-        self.privacy_estimates_component_loader = privacy_estimates_component_loader
-
     def load(self, artifact: Input, dataset: Input):
-        component = self.privacy_estimates_component_loader.load_from_component_spec(
+        component = PrivacyEstimatesComponentLoader().load_from_component_spec(
             Path(__file__).parent / "component_spec.yaml"
         )
         return component(artifact=artifact, dataset=dataset)

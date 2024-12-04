@@ -6,7 +6,6 @@ import re
 import shlex
 import fnmatch
 import pandas as pd
-import requests
 
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
@@ -25,6 +24,8 @@ from collections.abc import Mapping
 from subprocess import check_output, CalledProcessError
 from tqdm import tqdm
 from functools import lru_cache
+
+from privacy_estimates.experiments.utils import SingletonMeta
 
 
 logger = logging.getLogger(__name__)
@@ -245,10 +246,15 @@ def is_url(path: str) -> bool:
     return str(path).startswith("http://") or str(path).startswith("https://")
 
 
-class PrivacyEstimatesComponentLoader:
+class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
     def __init__(self, client: Optional[MLClient] = None, override_version: Optional[str] = None):
         """
-        Initializes the AML class.
+        Singleton class to load privacy_estimates AML components.
+
+        This class is used to have universal way of loading components for the privacy estimates package.
+        Most of the time, you will not need to interact with this class directly, since the default is to load the components
+        locally i.e. from your local privacy_estimates installation. However, other use cases require signed AML components
+        in this case we want to globally select the version of the AML components to load.
 
         Args:
             client (Optional[MLClient]): An optional MLClient instance to interact with Azure Machine Learning services.
@@ -262,6 +268,12 @@ class PrivacyEstimatesComponentLoader:
         if self.override_version is None:
             logger.info("Using component version from PRIVACY_ESTIMATES_COMPONENT_VERSION environment variable")
             self.override_version = os.environ.get("PRIVACY_ESTIMATES_COMPONENT_VERSION", None)
+    
+    @classmethod
+    def set_client(cls, client: MLClient, version: str):
+        loader = PrivacyEstimatesComponentLoader(client=client, override_version=version)
+        if loader.client is not client or loader.override_version != version:
+            raise ValueError("Could not set global client and version. It probably has been set already.")
 
     def load_from_function(self, func: Callable[..., Component], version: str = "local") -> Callable[..., Component]:
         version = self.override_version or version
