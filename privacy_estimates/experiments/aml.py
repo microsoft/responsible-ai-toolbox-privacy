@@ -245,10 +245,19 @@ def is_url(path: str) -> bool:
     return str(path).startswith("http://") or str(path).startswith("https://")
 
 
-class AMLComponentLoader:
-    def __init__(self, workspace: WorkspaceConfig):
-        self.workspace = workspace
-        self.override_version = None
+class PrivacyEstimatesComponentLoader:
+    def __init__(self, client: Optional[MLClient] = None, override_version: Optional[str] = None):
+        """
+        Initializes the AML class.
+
+        Args:
+            client (Optional[MLClient]): An optional MLClient instance to interact with Azure Machine Learning services.
+            override_version (Optional[str]): An optional string to override the component version. If not provided, 
+                                              the version will be fetched from the PRIVACY_ESTIMATES_COMPONENT_VERSION 
+                                              environment variable.
+        """
+        self.client = client
+        self.override_version = override_version
 
         if self.override_version is None:
             logger.info("Using component version from PRIVACY_ESTIMATES_COMPONENT_VERSION environment variable")
@@ -260,7 +269,7 @@ class AMLComponentLoader:
         if version == "local":
             return func
         else:
-            raise NotImplementedError("Loading components from functions with versions is not yet supported")
+            return self.load_by_name(name=func.component.name, version=version)
 
     def load_from_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         version = self.override_version or version
@@ -287,19 +296,19 @@ class AMLComponentLoader:
             with path.open() as f:
                 spec = safe_load(f)
             name = spec["name"]
-            return load_component(client=self.workspace.ml_client, name=name, version=version)
+            return self.load_by_name(name=name, version=version)
         
     def _load_from_remote_component_spec(self, url: str, version: str = "local") -> Callable[..., Component]:
         raise NotImplementedError("Loading components from remote URLs is not yet supported")
 
-
     def load_by_name(self, name: str, version: str) -> Callable[..., Component]:
-        return load_component(client=self.workspace.ml_client, name=name, version=version)
+        if self.client is None:
+            raise ValueError("Cannot load component by name without a client")
+        return load_component(client=self.client, name=name, version=version)
 
 
 class ExperimentBase:
     def __init__(self, workspace: WorkspaceConfig):
-        self.aml_component_loader = AMLComponentLoader(workspace=workspace)
         self.workspace = workspace
 
         # initialize AML logging
@@ -365,12 +374,6 @@ class ExperimentBase:
         pipeline_parameters_dict = dict(**self.pipeline_parameters)
         self.pipeline(**pipeline_parameters_dict)
         logger.info("Pipeline validated")
-
-    def load_component_from_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
-        return self.aml_component_loader.load_from_component_spec(path, version)
-
-    def load_component_by_name(self, name: str, version: str) -> Callable[..., Component]:
-        return self.aml_component_loader.load_by_name(name, version)
 
     @classmethod
     def main(cls, config_path):

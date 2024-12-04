@@ -1,17 +1,9 @@
-from dataclasses import dataclass
 from typing import Dict, Optional
-from azure.ai.ml import Input, Output, dsl, load_component
-from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig, AMLComponentLoader
-from privacy_estimates.experiments.subpipelines import (
-	ComputeShadowArtifactStatisticsLoader, TrainManyArtifactsLoader, add_index_to_dataset
-)
+from privacy_estimates.experiments.aml import WorkspaceConfig, PrivacyEstimatesComponentLoader
 from privacy_estimates.experiments.loaders import ScoreComponentLoader, TrainComponentLoader, TrainSingleArtifactAndScoreLoader
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.attacks.rmia import RmiaLoader
 from privacy_estimates.experiments.challenge_point_selectors import ChallengePointSelectionLoader, TopKChallengePoints
-from privacy_estimates.experiments.components import (
-    create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates,
-)
 from privacy_estimates.experiments.games.black_box_membership_inference import (
     BlackBoxMembershipInferenceGameBase, ShadowArtifactConfig, GameConfig, MISignalConfig, PrivacyEstimationConfig,
 )
@@ -25,14 +17,18 @@ class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
         shadow_dataset_config: Optional[ShadowArtifactConfig] = None, attack_loader: Optional[AttackLoader] = None,
         challenge_point_selection_loader: Optional[ChallengePointSelectionLoader] = None,
         privacy_estimation_config: Optional[PrivacyEstimationConfig] = None,
+        privacy_estimates_component_loader: Optional[PrivacyEstimatesComponentLoader] = None,
     ) -> None:
         # Set sensible defaults for the loaders
         if attack_loader is None:
             attack_loader = RmiaLoader(use_log_column=True, offline_a=None)
 
+        self.privacy_estimates_loader = privacy_estimates_component_loader or PrivacyEstimatesComponentLoader()
+
         if challenge_point_selection_loader is None:
             challenge_point_selection_loader = TopKChallengePoints(
-                num_challenge_points=game_config.num_challenge_points_per_artifact*game_config.num_artifacts
+                num_challenge_points=game_config.num_challenge_points_per_artifact*game_config.num_artifacts,
+                privacy_estimates_component_loader=self.privacy_estimates_loader
             )
 
         if privacy_estimation_config is None:
@@ -48,6 +44,7 @@ class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
             train_loader=train_loader, score_loader=score_loader, attack_loader=attack_loader,
             challenge_point_selection_loader=challenge_point_selection_loader,
             privacy_estimation_config=privacy_estimation_config,
+            privacy_estimates_loader=self.privacy_estimates_loader
         )
 
     @property

@@ -2,14 +2,19 @@ from azure.ai.ml import dsl, Input
 
 from privacy_estimates.experiments.loaders import TrainSingleArtifactAndScoreLoader
 from privacy_estimates.experiments.components import aggregate_output, append_column_constant_int
+from privacy_estimates.experiments.aml import PrivacyEstimatesComponentLoader
 from .base import TrainArtifactGroupBase, TrainSingleArtifactAndScoreArguments
 
 
 class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
-    def __init__(self, num_artifacts: int, group_size: int, single_artifact_arguments: TrainSingleArtifactAndScoreArguments):
+    def __init__(self, num_artifacts: int, group_size: int, single_artifact_arguments: TrainSingleArtifactAndScoreArguments,
+                 privacy_estimates_loader: PrivacyEstimatesComponentLoader):
         super().__init__(num_artifacts=num_artifacts, group_size=group_size, single_artifact_arguments=single_artifact_arguments)
 
+        self.privacy_estimates_loader = privacy_estimates_loader
+
         self.train_artifact_and_score_loader = TrainSingleArtifactAndScoreLoader(arguments=single_artifact_arguments)
+
 
     def load(self, train_base_data: Input, validation_base_data, in_out_data: Input, in_indices: Input, out_indices: Input,
              base_seed: int, artifact_group_index: int, num_points_per_artifact: int):
@@ -38,15 +43,23 @@ class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
                 if hasattr(train_artifact_and_score.outputs, "dp_parameters"):
                     dp_parameters.append(train_artifact_and_score.outputs.dp_parameters)
 
+            load_from_function = self.privacy_estimates_loader.load_from_function
+
             output = {
-                "scores_in": aggregate_output(scores_in, aggregator="concatenate_datasets"), 
-                "scores_out": aggregate_output(scores_out, aggregator="concatenate_datasets")
+                "scores_in": aggregate_output(
+                    scores_in, aggregator="concatenate_datasets", load_component=load_from_function
+                ),
+                "scores_out": aggregate_output(
+                    scores_out, aggregator="concatenate_datasets", load_component=load_from_function
+                ),
             }
 
             if len(metrics) > 0:
-                output["metrics_avg"] = aggregate_output(metrics, aggregator="average_json")
+                output["metrics_avg"] = aggregate_output(metrics, aggregator="average_json", load_component=load_from_function)
             if len(dp_parameters) > 0:
-                output["dp_parameters"] = aggregate_output(dp_parameters, aggregator="assert_json_equal")
+                output["dp_parameters"] = aggregate_output(
+                    dp_parameters, aggregator="assert_json_equal", load_component=load_from_function
+                )
             return output
 
         return p(train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
