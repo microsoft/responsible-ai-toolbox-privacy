@@ -160,16 +160,16 @@ def aggregate_output(data: List[Union[Input, Output]], aggregator: str, load_com
         else:
             split = half + (16 - remainder)
         return aggregate_output(
-            [aggregate_output(data[:split], aggregator=aggregator)] + \
-            [aggregate_output(data=data[split:], aggregator=aggregator)],
-            aggregator=aggregator
+            [aggregate_output(data[:split], aggregator=aggregator, load_component=load_component)] + \
+            [aggregate_output(data=data[split:], aggregator=aggregator, load_component=load_component)],
+            aggregator=aggregator, load_component=load_component
         )
     else:
         split = len(data) // 2
         return aggregate_output(
-            [aggregate_output(data[:split], aggregator=aggregator)] + \
-            [aggregate_output(data=data[split:], aggregator=aggregator)],
-            aggregator=aggregator
+            [aggregate_output(data[:split], aggregator=aggregator, load_component=load_component)] + \
+            [aggregate_output(data=data[split:], aggregator=aggregator, load_component=load_component)],
+            aggregator=aggregator, load_component=load_component
         )
 
 

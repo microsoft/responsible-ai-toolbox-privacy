@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-from privacy_estimates.experiments.aml import ComputeConfig
+from privacy_estimates.experiments.aml import ComputeConfig, PrivacyEstimatesComponentLoader
 from privacy_estimates.experiments.components import (
     prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_int
 )
@@ -72,18 +72,19 @@ class TrainSingleArtifactAndScoreLoader:
         def p(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
               base_seed: int, artifact_index: int, num_points_per_artifact: int):
             seed = base_seed + artifact_index
+            load_from_function = PrivacyEstimatesComponentLoader().load_from_function
 
-            data_for_artifact = prepare_data(
+            data_for_artifact = load_from_function(prepare_data)(
                 train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                 in_indices=in_indices, out_indices=out_indices, seed=seed, num_points_per_artifact=num_points_per_artifact,
                 artifact_index=artifact_index, sample_selection=self.arguments.sample_selection,
                 merge_unused_samples=self.arguments.merge_unused_samples, num_repetitions=self.arguments.num_repetitions
             )
 
-            filter_train_data = filter_aux_data(full=data_for_artifact.outputs.train_data_for_artifact)
-            filter_validation_data = filter_aux_data(full=data_for_artifact.outputs.validation_data_for_artifact)
-            filter_in_data = filter_aux_data(full=data_for_artifact.outputs.in_data_for_artifact)
-            filter_out_data = filter_aux_data(full=data_for_artifact.outputs.out_data_for_artifact)
+            filter_train_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.train_data_for_artifact)
+            filter_validation_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.validation_data_for_artifact)
+            filter_in_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.in_data_for_artifact)
+            filter_out_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.out_data_for_artifact)
 
             train = self.arguments.train_loader.load(
                 train_data=filter_train_data.outputs.filtered, validation_data=filter_validation_data.outputs.filtered,
@@ -97,10 +98,10 @@ class TrainSingleArtifactAndScoreLoader:
                 dataset=filter_out_data.outputs.filtered, artifact=train.outputs.artifact
             )
 
-            reinsert_null_rows_in = reinsert_aux_data(
+            reinsert_null_rows_in = load_from_function(reinsert_aux_data)(
                 filtered=score_in.outputs.scores, aux=filter_in_data.outputs.aux
             )
-            reinsert_null_rows_out = reinsert_aux_data(
+            reinsert_null_rows_out = load_from_function(reinsert_aux_data)(
                 filtered=score_out.outputs.scores, aux=filter_out_data.outputs.aux
             )
 
@@ -108,10 +109,10 @@ class TrainSingleArtifactAndScoreLoader:
             scores_out_i = reinsert_null_rows_out.outputs.full
 
             if self.arguments.tag_artifact_index:
-                scores_in_i = append_column_constant_int(
+                scores_in_i = load_from_function(append_column_constant_int)(
                     data=scores_in_i, name="artifact_index", value=artifact_index
                 ).outputs.output
-                scores_out_i = append_column_constant_int(
+                scores_out_i = load_from_function(append_column_constant_int)(
                     data=scores_out_i, name="artifact_index", value=artifact_index
                 ).outputs.output
 

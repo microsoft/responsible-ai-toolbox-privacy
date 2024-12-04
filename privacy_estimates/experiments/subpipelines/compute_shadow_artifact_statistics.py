@@ -24,12 +24,14 @@ class ComputeShadowArtifactStatisticsLoader:
     def load(self, train_data: Input, validation_data: Input, canary_data: Input, seed: int) -> PipelineComponent:
         @dsl.pipeline(name="compute_shadow_artifact_statistics")
         def p(train_data: Input, validation_data: Input, canary_data: Input, seed: int) -> PipelineComponent:
+            load_from_function = PrivacyEstimatesComponentLoader().load_from_function
+
             # create_in_out_data_for_shadow_artifact_statistics requires sample_selection to be "partitioned"
             assert self.train_many_artifacts_loader.single_artifact_arguments.sample_selection == "partitioned"
-            data_for_shadow_artifacts = create_in_out_data_for_shadow_artifact_statistics(
+            data_for_shadow_artifacts = load_from_function(create_in_out_data_for_shadow_artifact_statistics)(
                 in_out_data=canary_data, seed=seed, split_type="rotating_splits", in_fraction=self.in_fraction
             )
-            convert_num_points_per_artifact = convert_uri_file_to_int(uri_file=data_for_shadow_artifacts.outputs.num_points_per_artifact)
+            convert_num_points_per_artifact = load_from_function(convert_uri_file_to_int)(uri_file=data_for_shadow_artifacts.outputs.num_points_per_artifact)
 
             train_shadow_artifacts = self.train_many_artifacts_loader.load(
                 train_base_data=train_data,
@@ -39,7 +41,7 @@ class ComputeShadowArtifactStatisticsLoader:
                 num_points_per_artifact=convert_num_points_per_artifact.outputs.output
             )
 
-            shadow_artifact_statistics_job = compute_shadow_artifact_statistics(
+            shadow_artifact_statistics_job = load_from_function(compute_shadow_artifact_statistics)(
                 scores_in=train_shadow_artifacts.outputs.scores_in,
                 scores_out=train_shadow_artifacts.outputs.scores_out,
             )
