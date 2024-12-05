@@ -24,6 +24,7 @@ from collections.abc import Mapping
 from subprocess import check_output, CalledProcessError
 from tqdm import tqdm
 from functools import lru_cache
+from importlib.metadata import version
 
 from privacy_estimates.experiments.utils import SingletonMeta
 
@@ -270,7 +271,14 @@ class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
             self.override_version = os.environ.get("PRIVACY_ESTIMATES_COMPONENT_VERSION", None)
     
     @classmethod
-    def set_client(cls, client: MLClient, version: str):
+    def set_client(cls, client: MLClient, version: str = version("privacy_estimates")) -> None:
+        """
+        Sets the global MLClient and version for the PrivacyEstimatesComponentLoader.
+
+        Args:
+            client (MLClient): The MLClient instance to be set globally.
+            version (str, optional): The version of the privacy estimates to override. Defaults to the version of the "privacy_estimates" package.
+        """
         loader = PrivacyEstimatesComponentLoader(client=client, override_version=version)
         if loader.client is not client or loader.override_version != version:
             raise ValueError("Could not set global client and version. It probably has been set already.")

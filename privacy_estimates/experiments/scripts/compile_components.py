@@ -8,7 +8,7 @@ from typing import Optional, Callable, List
 from tempfile import TemporaryDirectory
 from yaml import safe_load as yaml_load
 from yaml import safe_dump as yaml_dump
-from functools import reduce
+from importlib.metadata import version
 
 
 from privacy_estimates.experiments.components import (
@@ -76,6 +76,7 @@ YAML_COMPONENTS = [
     EXPERIMENT_DIR / "attacks" / "lira" / "component_spec.yaml",
     EXPERIMENT_DIR / "attacks" / "rmia" / "component_spec.yaml",
     EXPERIMENT_DIR / "scorers" / "dataset" / "component_spec.yaml",
+    EXPERIMENT_DIR / "components" / "compute_privacy_estimates" / "component_spec.yaml",
 ]
 
 
