@@ -18,7 +18,7 @@ def compute_privacy_estimates(
         optional_args["alpha"] = alpha
 
     return PrivacyEstimatesComponentLoader().load_from_component_spec(
-        source=str(Path(__file__).parent/"component_spec.yaml")
+        path=str(Path(__file__).parent/"component_spec.yaml")
     )(
         scores=scores, challenge_bits=challenge_bits, **optional_args
     )

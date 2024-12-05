@@ -21,7 +21,7 @@ class RmiaLoader(AttackLoader):
         extra_args = {}
         if self.offline_a is not None:
             extra_args["offline_a"] = self.offline_a
-        return PrivacyEstimatesComponentLoader().load_from_component_spec(source=Path(__file__).parent/"component_spec.yaml")(
+        return PrivacyEstimatesComponentLoader().load_from_component_spec(path=Path(__file__).parent/"component_spec.yaml")(
             challenge_points=challenge_points, mi_statistics=mi_statistics, use_log_column=self.use_log_column,
             **extra_args
         )
