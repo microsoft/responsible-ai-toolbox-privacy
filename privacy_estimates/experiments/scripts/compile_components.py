@@ -83,13 +83,8 @@ YAML_COMPONENTS = [
 @dataclass
 class Arguments:
     output_dir: Path = field(metadata={"help": "Output directory for compiled components"})
-    version: Optional[str] = field(default=None, metadata={"help": "Version to override the component versions with"})
+    version: str = field(default=version("privacy_estimates"), metadata={"help": "Version to override the component versions with"})
     disable_tqdm: bool = field(default=False, metadata={"help": "Disable tqdm progress bars"})
-
-    def __post_init__(self):
-        if self.version is None:
-            with (EXPERIMENT_DIR / "VERSION").open("r") as f:
-                self.version = f.read().strip()
 
 
 def compile_py_component(component: Callable, output_dir: Path, override_version: Optional[str] = None) -> Path:
