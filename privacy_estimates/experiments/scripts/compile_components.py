@@ -134,7 +134,7 @@ def compile_yaml_component(component: Path, output_dir: Path, override_version: 
     if override_version is not None:
         component_spec["version"] = override_version
 
-    component_output_dir = output_dir / component.parent.name
+    component_output_dir = output_dir / component_name
     shutil.copytree(component.parent / component_spec["code"], component_output_dir, dirs_exist_ok=True)
 
     additional_includes = [component.parent / s for s in component_spec.get("additional_includes", [])]
