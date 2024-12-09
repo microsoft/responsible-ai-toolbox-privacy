@@ -134,20 +134,21 @@ def compile_yaml_component(component: Path, output_dir: Path, override_version: 
     if override_version is not None:
         component_spec["version"] = override_version
 
-    src = [component_spec["code"]] + component_spec.get("additional_includes", [])
-    src = [component.parent / s for s in src]
+    component_output_dir = output_dir / component.parent.name
+    shutil.copytree(component.parent / component_spec["code"], component_output_dir, dirs_exist_ok=True)
 
-    for s in src:
+    additional_includes = [component.parent / s for s in component_spec.get("additional_includes", [])]
+    for s in additional_includes:
         # might be a file or a dir
         if s.is_dir():
-            shutil.copytree(s, output_dir / s.name, dirs_exist_ok=True)
+            shutil.copytree(s, component_output_dir / s.name, dirs_exist_ok=True)
         else:
-            shutil.copy(s, output_dir / s.name)
+            shutil.copy(s, component_output_dir / s.name)
 
     component_spec["code"] = "."
     component_spec["additional_includes"] = []
 
-    compiled_component_spec_path = output_dir / component.parent.name / component.name
+    compiled_component_spec_path = component_output_dir / component.name
 
     with compiled_component_spec_path.open("w") as f:
         yaml_dump(component_spec, f)
