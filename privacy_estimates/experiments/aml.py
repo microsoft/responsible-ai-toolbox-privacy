@@ -278,6 +278,7 @@ class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
         Args:
             client (MLClient): The MLClient instance to be set globally.
             version (str, optional): The version of the privacy estimates to override. Defaults to the version of the "privacy_estimates" package.
+                                     It is also possible to pass 'default' which will use the default version of the components in the workspace.
         """
         loader = PrivacyEstimatesComponentLoader(client=client, override_version=version)
         if loader.client is not client or loader.override_version != version:
@@ -324,7 +325,9 @@ class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
     def load_by_name(self, name: str, version: str) -> Callable[..., Component]:
         if self.client is None:
             raise ValueError("Cannot load component by name without a client")
-        return load_component(client=self.client, name=name, version=version)
+        if version == "default":
+            version = None
+        return self.client.components.get(name=name, version=version)
 
 
 class ExperimentBase:
