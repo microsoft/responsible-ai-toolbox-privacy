@@ -37,19 +37,21 @@ class NGramScorer:
         text_everygrams = list(everygrams(padded, max_len=self.n))
         text_ngrams = [ngram for ngram in text_everygrams if len(ngram) == self.n]
         log_likelihood = np.sum([np.log(self.model.score(ngram[-1], ngram[:-1])) for ngram in text_ngrams])
-        return log_likelihood
+        return {"logscore": log_likelihood}
 
 
 def main(args: Arguments):
     scoring_ds = load_from_disk(str(args.synthetic_dataset))
     synth_ds = load_from_disk(str(args.scoring_dataset))
 
-    scoring_ds = scoring_ds.map(lambda row: {"text": args.template.format(**row)}, delete_columns=scoring_ds.column_names)
-    synth_ds = synth_ds.map(lambda row: {"text": args.template.format(**row)}, delete_columns=synth_ds.column_names)
+    scoring_ds = scoring_ds.map(lambda row: {"text": args.template.format(**row)}, remove_columns=scoring_ds.column_names)
+    synth_ds = synth_ds.map(lambda row: {"text": args.template.format(**row)}, remove_columns=synth_ds.column_names)
 
     scorer = NGramScorer(n=3, train_data=synth_ds)
 
-    scoring_ds = scoring_ds.map(scorer.compute_score)
+    scoring_ds = scoring_ds.map(scorer.compute_logscore, input_columns=["text"], remove_columns=scoring_ds.column_names)
+
+    scoring_ds.save_to_disk(str(args.scores))
 
 
 if __name__ == "__main__":
