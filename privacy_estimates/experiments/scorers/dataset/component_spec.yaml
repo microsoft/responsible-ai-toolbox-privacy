@@ -11,6 +11,11 @@ inputs:
   dataset:
     type: uri_folder
     description: Dataset to be scored in Huggingface dataset format
+  template:
+    type: string
+    description: |
+      Template to convert a row of the dataset to a string.
+      For example if the dataset has columns: label and text: "Generate a {label} sentence: {text}"
 outputs:
   scores:
     type: uri_folder
@@ -18,8 +23,9 @@ outputs:
 code: .
 command: >-
   python scorer.py \
-    --artifact ${{inputs.artifact}} \
-    --dataset ${{inputs.dataset}} \
+    --synthetic-dataset ${{inputs.artifact}} \
+    --scoring-dataset ${{inputs.dataset}} \
+    --template "${{inputs.template}}" \
     --scores ${{outputs.scores}} 
 environment:
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
