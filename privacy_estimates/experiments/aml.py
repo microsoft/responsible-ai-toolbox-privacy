@@ -325,8 +325,10 @@ class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
     def load_by_name(self, name: str, version: str) -> Callable[..., Component]:
         if self.client is None:
             raise ValueError("Cannot load component by name without a client")
+        if version == "local":
+            raise ValueError("Cannot load component by name with version 'local'")
         if version == "default":
-            version = None
+            return self.client.components.get(name)
         return self.client.components.get(name=name, version=version)
 
 

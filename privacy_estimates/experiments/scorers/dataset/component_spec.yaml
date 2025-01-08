@@ -23,3 +23,4 @@ command: >-
     --scores ${{outputs.scores}} 
 environment:
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+  conda_file: environment.yaml

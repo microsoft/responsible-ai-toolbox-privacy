@@ -1,0 +1,14 @@
+name: ComponentEnvironment
+channels:
+  - defaults
+dependencies:
+  - pip
+  - python=3.8.12
+  - pip:
+    - azure-ai-ml
+    - argparse-dataclass
+    - datasets
+    - mldesigner
+    - scipy
+    - tensorflow_privacy
+    - tqdm-loggable
