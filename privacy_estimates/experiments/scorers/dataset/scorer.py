@@ -37,12 +37,12 @@ class NGramScorer:
         text_everygrams = list(everygrams(padded, max_len=self.n))
         text_ngrams = [ngram for ngram in text_everygrams if len(ngram) == self.n]
         log_likelihood = np.sum([np.log(self.model.score(ngram[-1], ngram[:-1])) for ngram in text_ngrams])
-        return {"logscore": log_likelihood}
+        return {"log_mi_signal": log_likelihood}
 
 
 def main(args: Arguments):
-    scoring_ds = load_from_disk(str(args.synthetic_dataset))
-    synth_ds = load_from_disk(str(args.scoring_dataset))
+    scoring_ds = load_from_disk(str(args.synthetic_dataset), keep_in_memory=True)
+    synth_ds = load_from_disk(str(args.scoring_dataset), keep_in_memory=True)
 
     scoring_ds = scoring_ds.map(lambda row: {"text": args.template.format(**row)}, remove_columns=scoring_ds.column_names)
     synth_ds = synth_ds.map(lambda row: {"text": args.template.format(**row)}, remove_columns=synth_ds.column_names)
