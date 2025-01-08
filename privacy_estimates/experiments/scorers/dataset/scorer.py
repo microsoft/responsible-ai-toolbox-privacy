@@ -37,7 +37,9 @@ class NGramScorer:
         text_everygrams = list(everygrams(padded, max_len=self.n))
         text_ngrams = [ngram for ngram in text_everygrams if len(ngram) == self.n]
         log_likelihood = np.sum([np.log(self.model.score(ngram[-1], ngram[:-1])) for ngram in text_ngrams])
-        return {"log_mi_signal": log_likelihood}
+        # Don't return a mi_signal since this is almost certainly useless since it underflows.
+        # Hence, we return nan to avoid anyone using this value.
+        return {"log_mi_signal": log_likelihood, "mi_signal": np.nan}
 
 
 def main(args: Arguments):
