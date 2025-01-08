@@ -7,14 +7,15 @@ from privacy_estimates.experiments.challenge_point_selectors import ChallengePoi
 from privacy_estimates.experiments.games.black_box_membership_inference import (
     BlackBoxMembershipInferenceGameBase, ShadowArtifactConfig, GameConfig, MISignalConfig, PrivacyEstimationConfig,
 )
-from privacy_estimates.experiments.scorers.dataset.loader import ScoreDataLoader
+from privacy_estimates.experiments.scorers.dataset.loader import ScoreDataLoader, DataScorerConfig
 
 
 
 class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
     def __init__(
         self, game_config: GameConfig, workspace: WorkspaceConfig, train_loader: TrainComponentLoader, 
-        shadow_dataset_config: Optional[ShadowArtifactConfig] = None, attack_loader: Optional[AttackLoader] = None,
+        data_scorer_config: DataScorerConfig, shadow_dataset_config: Optional[ShadowArtifactConfig] = None,
+        attack_loader: Optional[AttackLoader] = None,
         challenge_point_selection_loader: Optional[ChallengePointSelectionLoader] = None,
         privacy_estimation_config: Optional[PrivacyEstimationConfig] = None,
     ) -> None:
@@ -33,7 +34,7 @@ class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
         if shadow_dataset_config is None:
             shadow_dataset_config = ShadowArtifactConfig(num_artifacts=4, in_fraction=0.5)
 
-        score_loader = ScoreDataLoader()
+        score_loader = ScoreDataLoader(config=data_scorer_config)
 
         super().__init__(
             game_config=game_config, shadow_artifact_config=shadow_dataset_config, workspace=workspace,
