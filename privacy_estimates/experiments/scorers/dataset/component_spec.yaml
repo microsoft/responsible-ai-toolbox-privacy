@@ -16,6 +16,7 @@ inputs:
     description: |
       Template to convert a row of the dataset to a string.
       For example if the dataset has columns: label and text: "Generate a {label} sentence: {text}"
+      Another example, if there is just a single column could be just to select the column: "{text}"
 outputs:
   scores:
     type: uri_folder
