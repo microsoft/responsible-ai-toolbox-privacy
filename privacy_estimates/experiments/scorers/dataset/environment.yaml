@@ -9,6 +9,7 @@ dependencies:
     - argparse-dataclass
     - datasets
     - mldesigner
+    - nltk
     - scipy
     - tensorflow_privacy
     - tqdm-loggable

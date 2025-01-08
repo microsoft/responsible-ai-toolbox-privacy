@@ -41,8 +41,8 @@ class NGramScorer:
 
 
 def main(args: Arguments):
-    scoring_ds = load_from_disk(args.synthetic_dataset)
-    synth_ds = load_from_disk(args.scoring_dataset)
+    scoring_ds = load_from_disk(str(args.synthetic_dataset))
+    synth_ds = load_from_disk(str(args.scoring_dataset))
 
     scoring_ds = scoring_ds.map(lambda row: {"text": args.template.format(**row)}, delete_columns=scoring_ds.column_names)
     synth_ds = synth_ds.map(lambda row: {"text": args.template.format(**row)}, delete_columns=synth_ds.column_names)

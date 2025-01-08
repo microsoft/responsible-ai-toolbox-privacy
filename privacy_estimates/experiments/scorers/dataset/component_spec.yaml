@@ -14,7 +14,7 @@ inputs:
 outputs:
   scores:
     type: uri_folder
-    description: Trained model
+    description: membership scores for the dataset in Huggingface dataset format
 code: .
 command: >-
   python scorer.py \
