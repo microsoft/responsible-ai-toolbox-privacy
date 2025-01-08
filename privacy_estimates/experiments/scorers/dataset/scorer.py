@@ -43,6 +43,7 @@ class NGramScorer:
 def main(args: Arguments):
     scoring_ds = load_from_disk(str(args.scoring_dataset), keep_in_memory=True)
     synth_ds = load_from_disk(str(args.synthetic_dataset), keep_in_memory=True)
+    print(f"Loaded {len(scoring_ds)} scoring samples and {len(synth_ds)} synthetic samples")
 
     scoring_ds = scoring_ds.map(lambda row: {"text": args.template.format(**row)}, remove_columns=scoring_ds.column_names)
     synth_ds = synth_ds.map(lambda row: {"text": args.template.format(**row)}, remove_columns=synth_ds.column_names)
@@ -51,6 +52,7 @@ def main(args: Arguments):
 
     scoring_ds = scoring_ds.map(scorer.compute_logscore, input_columns=["text"], remove_columns=scoring_ds.column_names)
 
+    print(f"Saving {len(scoring_ds)} scores")
     scoring_ds.save_to_disk(str(args.scores))
 
 
