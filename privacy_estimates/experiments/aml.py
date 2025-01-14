@@ -247,6 +247,16 @@ def is_url(path: str) -> bool:
     return str(path).startswith("http://") or str(path).startswith("https://")
 
 
+def get_latest_version(client: MLClient, name: str) -> str:
+    latest_version = None
+    created_at = None
+    for component in client.components.list(name=name):
+        if created_at is None or component.creation_context.created_at > created_at:
+            latest_version = component.version
+            created_at = component.creation_context.created_at
+    return latest_version
+
+
 class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
     def __init__(self, client: Optional[MLClient] = None, override_version: Optional[str] = None):
         """
@@ -327,6 +337,8 @@ class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
             raise ValueError("Cannot load component by name without a client")
         if version == "local":
             raise ValueError("Cannot load component by name with version 'local'")
+        if version == "latest":
+            version = get_latest_version(self.client, name=name)
         if version == "default":
             return self.client.components.get(name)
         return self.client.components.get(name=name, version=version)
