@@ -1,7 +1,7 @@
 from azure.ai.ml import dsl, Input
 
 from privacy_estimates.experiments.loaders import TrainSingleArtifactAndScoreLoader
-from privacy_estimates.experiments.components import aggregate_output, append_column_constant_int
+from privacy_estimates.experiments.components import aggregate_output, get_global_artifact_index
 from privacy_estimates.experiments.aml import PrivacyEstimatesComponentLoader
 from .base import TrainArtifactGroupBase, TrainSingleArtifactAndScoreArguments
 
@@ -18,12 +18,17 @@ class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
         @dsl.pipeline(name="train_artifact_group_distributed")
         def p(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
               base_seed: int, artifact_group_index: int, num_points_per_artifact: int):
+
+            load_from_function = PrivacyEstimatesComponentLoader().load_from_function
+
             scores_in = []
             scores_out = []
             metrics = []
             dp_parameters = []
             for i in range(0, self.num_artifacts):
-                artifact_index = artifact_group_index * self.group_size + i
+                artifact_index = load_from_function(get_global_artifact_index)(
+                    group_index=artifact_group_index, group_size=self.group_size, index=i
+                )
                 train_artifact_and_score = self.train_artifact_and_score_loader.load(
                     train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                     in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, artifact_index=artifact_index,
@@ -40,7 +45,6 @@ class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
                 if hasattr(train_artifact_and_score.outputs, "dp_parameters"):
                     dp_parameters.append(train_artifact_and_score.outputs.dp_parameters)
 
-            load_from_function = PrivacyEstimatesComponentLoader().load_from_function
 
             output = {
                 "scores_in": aggregate_output(
