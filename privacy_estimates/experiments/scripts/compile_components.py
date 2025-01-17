@@ -20,7 +20,8 @@ from privacy_estimates.experiments.components import (
     create_artifact_indices_for_aml_parallel, compute_shadow_artifact_statistics, select_cross_validation_challenge_points,
     append_artifact_index_column_aml_parallel, move_dataset, select_top_k_rows, create_empty_dataset, 
     convert_in_out_to_challenge, compute_mi_signals, convert_chat_jsonl_to_hfd, convert_hfd_to_jsonl, generate_canaries_with_secrets, convert_uri_file_to_int,
-    aggregate_2_output_dirs, aggregate_2_output_files, aggregate_16_output_dirs, aggregate_16_output_files
+    aggregate_2_output_dirs, aggregate_2_output_files, aggregate_16_output_dirs, aggregate_16_output_files,
+    get_global_artifact_index
 )
 
 
@@ -69,6 +70,7 @@ PY_COMPONENTS = [
     convert_hfd_to_jsonl,
     generate_canaries_with_secrets,
     convert_uri_file_to_int,
+    get_global_artifact_index
 ]
 
 
