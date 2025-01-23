@@ -1,3 +1,5 @@
+import json
+
 from mldesigner import command_component, Input, Output
 from datasets import load_from_disk
 from pathlib import Path
@@ -9,20 +11,23 @@ ENV = {
 }
 
 
-@command_component(name="privacy_estimates__append_column_constant_int", display_name="Append column to dataset",
+@command_component(name="privacy_estimates__append_column_constant_uri_file_value", display_name="Append column to dataset",
                    environment=ENV)
-def append_column_constant_int(data: Input, name: str, value: int, output: Output):
+def append_column_constant_uri_file_value(data: Input, name: str, value: Input(type="uri_file"), output: Output):
     """
-    Appends a new column with a constant integer value to the dataset.
+    Appends a new column with a constant value from a file to the dataset.
 
     Args:
         data (Input): The input dataset.
         name (str): The name of the new column.
-        value (int): The constant integer value to be added to the column.
+        value (Input(type="uri_file")): The URI of the file containing the constant value to be added to the new column.
 
     Returns:
         output (Output): The output dataset.
     """
+    with open(value, "r") as f:
+        value = json.load(f)
+
     ds = load_from_disk(data)
     ds = ds.add_column(name, (value for _ in range(len(ds))))
     ds.save_to_disk(output)

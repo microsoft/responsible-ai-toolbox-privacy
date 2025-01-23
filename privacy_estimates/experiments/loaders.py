@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from privacy_estimates.experiments.aml import ComputeConfig, PrivacyEstimatesComponentLoader
 from privacy_estimates.experiments.components import (
-    prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_int, compute_seed
+    prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_uri_file_value, compute_seed
 )
 
 
@@ -109,10 +109,10 @@ class TrainSingleArtifactAndScoreLoader:
             scores_out_i = reinsert_null_rows_out.outputs.full
 
             if self.arguments.tag_artifact_index:
-                scores_in_i = load_from_function(append_column_constant_int)(
+                scores_in_i = load_from_function(append_column_constant_uri_file_value)(
                     data=scores_in_i, name="artifact_index", value=artifact_index
                 ).outputs.output
-                scores_out_i = load_from_function(append_column_constant_int)(
+                scores_out_i = load_from_function(append_column_constant_uri_file_value)(
                     data=scores_out_i, name="artifact_index", value=artifact_index
                 ).outputs.output
 

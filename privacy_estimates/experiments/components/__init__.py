@@ -8,7 +8,7 @@ from .aggregate_output.aggregate import (
 from .prepare_data.prepare_data import prepare_data, prepare_data_for_aml_parallel
 from .filter.filter import filter_aux_data, reinsert_aux_data, filter_aux_data_aml_parallel, reinsert_aux_data_aml_parallel
 from .modify_dataset.modify import (
-	append_column_constant_int, append_column_constant_str, append_column_incrementing,
+	append_column_constant_uri_file_value, append_column_constant_str, append_column_incrementing,
 	select_columns, rename_columns
 )
 from .postprocess_dpd_data.postprocess_dpd_data import postprocess_dpd_data
