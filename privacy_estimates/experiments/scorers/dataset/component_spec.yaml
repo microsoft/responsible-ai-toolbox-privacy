@@ -22,7 +22,7 @@ outputs:
     type: uri_folder
     description: membership scores for the dataset in Huggingface dataset format
 code: .
-command: python scorer.py --synthetic-dataset ${{inputs.artifact}} --scoring-dataset ${{inputs.dataset}} --template ${{inputs.template}} --scores ${{outputs.scores}} 
+command: python scorer.py --synthetic-dataset ${{inputs.artifact}} --scoring-dataset ${{inputs.dataset}} --template "${{inputs.template}}" --scores ${{outputs.scores}} 
 environment:
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
   conda_file: environment.yaml
