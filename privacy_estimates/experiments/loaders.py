@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from privacy_estimates.experiments.aml import ComputeConfig, PrivacyEstimatesComponentLoader
 from privacy_estimates.experiments.components import (
-    prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_int
+    prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_int, compute_seed
 )
 
 
@@ -71,7 +71,7 @@ class TrainSingleArtifactAndScoreLoader:
         @dsl.pipeline(name="train_artifact_and_predict")
         def p(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
               base_seed: int, artifact_index: int, num_points_per_artifact: int):
-            seed = base_seed + artifact_index
+            seed = compute_seed(base_seed=base_seed, artifact_index=artifact_index).outputs.artifact_seed
             load_from_function = PrivacyEstimatesComponentLoader().load_from_function
 
             data_for_artifact = load_from_function(prepare_data)(

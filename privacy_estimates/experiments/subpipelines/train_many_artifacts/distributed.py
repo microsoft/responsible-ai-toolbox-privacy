@@ -1,7 +1,7 @@
 from azure.ai.ml import dsl, Input
 
 from privacy_estimates.experiments.loaders import TrainSingleArtifactAndScoreLoader
-from privacy_estimates.experiments.components import aggregate_output, get_global_artifact_index
+from privacy_estimates.experiments.components import aggregate_output, create_artifact_index
 from privacy_estimates.experiments.aml import PrivacyEstimatesComponentLoader
 from .base import TrainArtifactGroupBase, TrainSingleArtifactAndScoreArguments
 
@@ -26,9 +26,9 @@ class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
             metrics = []
             dp_parameters = []
             for i in range(0, self.num_artifacts):
-                artifact_index = load_from_function(get_global_artifact_index)(
+                artifact_index = load_from_function(create_artifact_index)(
                     group_index=artifact_group_index, group_size=self.group_size, index=i
-                )
+                ).outputs.artifact_index
                 train_artifact_and_score = self.train_artifact_and_score_loader.load(
                     train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                     in_indices=in_indices, out_indices=out_indices, base_seed=base_seed, artifact_index=artifact_index,

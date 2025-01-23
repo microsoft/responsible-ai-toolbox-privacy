@@ -4,7 +4,7 @@ from azure.ai.ml.entities import PipelineComponent
 from privacy_estimates.experiments.aml import WorkspaceConfig, PrivacyEstimatesComponentLoader
 from privacy_estimates.experiments.subpipelines import TrainManyArtifactsLoader
 from privacy_estimates.experiments.components import (
-    create_in_out_data_for_shadow_artifact_statistics, compute_shadow_artifact_statistics, convert_uri_file_to_int
+    create_in_out_data_for_shadow_artifact_statistics, compute_shadow_artifact_statistics
 )
 from privacy_estimates.experiments.loaders import TrainComponentLoader, ScoreComponentLoader
 
@@ -31,14 +31,13 @@ class ComputeShadowArtifactStatisticsLoader:
             data_for_shadow_artifacts = load_from_function(create_in_out_data_for_shadow_artifact_statistics)(
                 in_out_data=canary_data, seed=seed, split_type="rotating_splits", in_fraction=self.in_fraction
             )
-            convert_num_points_per_artifact = load_from_function(convert_uri_file_to_int)(uri_file=data_for_shadow_artifacts.outputs.num_points_per_artifact)
 
             train_shadow_artifacts = self.train_many_artifacts_loader.load(
                 train_base_data=train_data,
                 validation_base_data=validation_data,
                 in_out_data=canary_data, in_indices=data_for_shadow_artifacts.outputs.in_indices,
                 out_indices=data_for_shadow_artifacts.outputs.out_indices, base_seed=seed,
-                num_points_per_artifact=convert_num_points_per_artifact.outputs.output
+                num_points_per_artifact=data_for_shadow_artifacts.outputs.num_points_per_artifact
             )
 
             shadow_artifact_statistics_job = load_from_function(compute_shadow_artifact_statistics)(
