@@ -12,7 +12,7 @@ from privacy_estimates.experiments.loaders import ScoreComponentLoader, TrainCom
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.challenge_point_selectors import ChallengePointSelectionLoader
 from privacy_estimates.experiments.components import (
-    create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates,
+    create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates, convert_int_to_uri_file
 )
 from privacy_estimates.experiments.games.configs import PrivacyEstimationConfig
 
@@ -122,11 +122,15 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 seed=self.game_config.seed, max_num_challenge_points=self.challenge_point_selection_loader.num_challenge_points
             )
 
+            convert_num_points_per_artifact = load_from_function(convert_int_to_uri_file)(
+                value=self.game_config.num_challenge_points_per_artifact
+            )
+
             train_many_artifacts = self.train_many_artifacts_loader.load(
                 train_base_data=create_challenge.outputs.train_base_data, validation_base_data=validation_data,
                 in_out_data=create_challenge.outputs.in_out_data, in_indices=create_challenge.outputs.in_indices,
                 out_indices=create_challenge.outputs.out_indices, base_seed=self.game_config.seed,
-                num_points_per_artifact=self.game_config.num_challenge_points_per_artifact
+                num_points_per_artifact=convert_num_points_per_artifact.outputs.output
             )
             optional_training_outputs = {}
             if "dp_parameters" in train_many_artifacts.outputs:

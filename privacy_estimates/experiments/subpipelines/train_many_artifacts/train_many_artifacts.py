@@ -51,10 +51,10 @@ class TrainManyArtifactsLoader:
             )
 
     def load(self, train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input,
-             out_indices: Input, base_seed: int, num_points_per_artifact: int):
+             out_indices: Input, base_seed: int, num_points_per_artifact: Input):
         @dsl.pipeline(name=f"train_{self.num_artifacts}_artifacts")
         def pipeline(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input,
-                     out_indices: Input, base_seed: int, num_points_per_artifact: int):
+                     out_indices: Input, base_seed: int, num_points_per_artifact: Input):
             scores_in = []
             scores_out = []
             metrics_avg = []

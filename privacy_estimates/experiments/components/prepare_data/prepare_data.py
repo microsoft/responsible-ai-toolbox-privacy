@@ -1,6 +1,7 @@
 import numpy as np
 import logging
 import os
+import json
 
 from mldesigner import command_component, Input, Output
 from pathlib import Path
@@ -275,7 +276,8 @@ def prepare_data_for_aml_parallel(
 
 @command_component(name="privacy_estimates__prepare_data", environment=ENV)
 def prepare_data(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
-                 artifact_index: int, seed: int, num_points_per_artifact: int, in_data_for_artifact: Output, out_data_for_artifact: Output,
+                 artifact_index: Input(type="uri_file"), seed: Input(type="uri_file"),
+                 num_points_per_artifact: Input(type="uri_file"), in_data_for_artifact: Output, out_data_for_artifact: Output,
                  train_data_for_artifact: Output, validation_data_for_artifact: Output, sample_selection: str,
                  merge_unused_samples: str, num_repetitions: int = 1):
     """
@@ -297,6 +299,13 @@ def prepare_data(train_base_data: Input, validation_base_data: Input, in_out_dat
                                                                Defaults to False.
         num_repetitions (int, optional): Number of times to repeat the inserted samples in the train data. Defaults to 1.
     """
+    with open(artifact_index, "r") as f:
+        artifact_index = json.load(f)
+    with open(seed, "r") as f:
+        seed = json.load(f)
+    with open(num_points_per_artifact, "r") as f:
+        num_points_per_artifact = json.load(f)
+
     prepared_data = _prepare_data(
         train_base_ds=load_from_disk(train_base_data),
         validation_base_ds=load_from_disk(validation_base_data),

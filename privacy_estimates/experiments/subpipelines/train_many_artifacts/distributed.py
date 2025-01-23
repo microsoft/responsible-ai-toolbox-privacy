@@ -14,10 +14,10 @@ class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
 
 
     def load(self, train_base_data: Input, validation_base_data, in_out_data: Input, in_indices: Input, out_indices: Input,
-             base_seed: int, artifact_group_index: int, num_points_per_artifact: int):
+             base_seed: int, artifact_group_index: int, num_points_per_artifact: Input):
         @dsl.pipeline(name="train_artifact_group_distributed")
         def p(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
-              base_seed: int, artifact_group_index: int, num_points_per_artifact: int):
+              base_seed: int, artifact_group_index: int, num_points_per_artifact: Input):
 
             load_from_function = PrivacyEstimatesComponentLoader().load_from_function
 
