@@ -21,7 +21,7 @@ from privacy_estimates.experiments.components import (
     append_artifact_index_column_aml_parallel, move_dataset, select_top_k_rows, create_empty_dataset, 
     convert_in_out_to_challenge, convert_chat_jsonl_to_hfd, convert_hfd_to_jsonl, generate_canaries_with_secrets, convert_uri_file_to_int,
     aggregate_2_output_dirs, aggregate_2_output_files, aggregate_16_output_dirs, aggregate_16_output_files,
-    create_artifact_index, compute_seed, convert_int_to_uri_file
+    create_artifact_index, compute_seed, convert_int_to_uri_file, append_column_constant_uri_file_value
 )
 
 
@@ -72,6 +72,7 @@ PY_COMPONENTS = [
     create_artifact_index,
     compute_seed,
     convert_int_to_uri_file,
+    append_column_constant_uri_file_value
 ]
 
 
