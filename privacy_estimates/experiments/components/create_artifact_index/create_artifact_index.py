@@ -11,7 +11,7 @@ ENV = {
 }
 
 
-@command_component(environment=ENV)
+@command_component(name="privacy_estimates__create_artifact_indices_for_aml_parallel", environment=ENV)
 def create_artifact_indices_for_aml_parallel(
     artifact_index_start: int, artifact_index_end: int,
     artifact_indices: Output(mode="rw_mount")  # noqa: F821

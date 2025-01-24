@@ -71,8 +71,8 @@ class TrainSingleArtifactAndScoreLoader:
         @dsl.pipeline(name="train_artifact_and_predict")
         def p(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
               base_seed: int, artifact_index: Input, num_points_per_artifact: Input):
-            seed = compute_seed(base_seed=base_seed, artifact_index=artifact_index).outputs.artifact_seed
             load_from_function = PrivacyEstimatesComponentLoader().load_from_function
+            seed = load_from_function(compute_seed)(base_seed=base_seed, artifact_index=artifact_index).outputs.artifact_seed
 
             data_for_artifact = load_from_function(prepare_data)(
                 train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,

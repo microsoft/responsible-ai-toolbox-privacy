@@ -14,14 +14,14 @@ from importlib.metadata import version
 from privacy_estimates.experiments.components import (
     create_in_out_data_for_shadow_artifact_statistics, prepare_data,
     prepare_data_for_aml_parallel, filter_aux_data, reinsert_aux_data, filter_aux_data_aml_parallel,
-    reinsert_aux_data_aml_parallel, append_column_constant_int, append_column_constant_str, append_column_incrementing,
+    reinsert_aux_data_aml_parallel, append_column_constant_str, append_column_incrementing,
     select_columns, rename_columns, postprocess_dpd_data,
     create_in_out_data_for_membership_inference_challenge, random_split_dataset, create_challenge_bits_aml_parallel,
-    create_artifact_indices_for_aml_parallel, compute_shadow_artifact_statistics, select_cross_validation_challenge_points,
+    create_artifact_indices_for_aml_parallel, compute_shadow_artifact_statistics,
     append_artifact_index_column_aml_parallel, move_dataset, select_top_k_rows, create_empty_dataset, 
-    convert_in_out_to_challenge, compute_mi_signals, convert_chat_jsonl_to_hfd, convert_hfd_to_jsonl, generate_canaries_with_secrets, convert_uri_file_to_int,
+    convert_in_out_to_challenge, convert_chat_jsonl_to_hfd, convert_hfd_to_jsonl, generate_canaries_with_secrets, convert_uri_file_to_int,
     aggregate_2_output_dirs, aggregate_2_output_files, aggregate_16_output_dirs, aggregate_16_output_files,
-    get_global_artifact_index
+    create_artifact_index, compute_seed, convert_int_to_uri_file
 )
 
 
@@ -50,7 +50,6 @@ PY_COMPONENTS = [
     reinsert_aux_data,
     filter_aux_data_aml_parallel,
     reinsert_aux_data_aml_parallel,
-    append_column_constant_int,
     append_column_constant_str,
     append_column_incrementing,
     select_columns,
@@ -70,7 +69,9 @@ PY_COMPONENTS = [
     convert_hfd_to_jsonl,
     generate_canaries_with_secrets,
     convert_uri_file_to_int,
-    get_global_artifact_index
+    create_artifact_index,
+    compute_seed,
+    convert_int_to_uri_file,
 ]
 
 
