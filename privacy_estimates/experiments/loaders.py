@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from privacy_estimates.experiments.aml import ComputeConfig, PrivacyEstimatesComponentLoader
 from privacy_estimates.experiments.components import (
-    prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_uri_file_value, compute_seed
+    prepare_data, filter_aux_data, reinsert_aux_data, append_column_constant_uri_file_value, compute_seed, convert_hfd_to_userprompt
 )
 
 
@@ -85,9 +85,10 @@ class TrainSingleArtifactAndScoreLoader:
             filter_validation_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.validation_data_for_artifact)
             filter_in_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.in_data_for_artifact)
             filter_out_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.out_data_for_artifact)
-
+            converted_train_data = load_from_function(convert_hfd_to_userprompt)(data=filter_train_data.outputs.filtered)
+            converted_validation_data = load_from_function(convert_hfd_to_userprompt)(data=filter_validation_data.outputs.filtered)
             train = self.arguments.train_loader.load(
-                train_data=filter_train_data.outputs.filtered, validation_data=filter_validation_data.outputs.filtered,
+                train_data=converted_train_data.outputs.output, validation_data=converted_validation_data.outputs.output,
                 seed=seed
             )
 
