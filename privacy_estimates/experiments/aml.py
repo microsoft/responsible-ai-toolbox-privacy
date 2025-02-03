@@ -663,6 +663,10 @@ class Job:
             return {}
         
     @property
+    def environment_variables(self) -> Dict[str, Any]:
+        return self.details["runDefinition"]["environmentVariables"]
+        
+    @property
     def input_parameters(self) -> Dict[str, Any]:
         env_vars = self.details["runDefinition"]["environmentVariables"]
         input_params = {k.replace("AZUREML_PARAMETER_", ""): v for k, v in env_vars.items() if k.startswith("AZUREML_PARAMETER_")}
