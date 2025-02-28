@@ -57,11 +57,10 @@ class RMIA:
         if (reference_signals_in is None) == (offline_a is None):
             raise ValueError("Either reference_signals_in or offline_a must be provided, but not both.")
 
-    
-        if any((v<0 or 1<v) for v in reference_signals_out.values()):
+        if any((v < 0 or 1 < v) for v in reference_signals_out.values()):
             warnings.warn(f"In-reference signals must be in the range [0, 1].", RuntimeWarning)
         if reference_signals_in is not None:
-            if any((v<0 or 1<v) for v in reference_signals_in.values()):
+            if any((v < 0 or 1 < v) for v in reference_signals_in.values()):
                 warnings.warn(f"Out-reference signals must be in the range [0, 1].", RuntimeWarning)
 
         if offline_a is not None:
@@ -115,7 +114,7 @@ class RMIA:
             }
         return RMIA(offline_a=offline_a, reference_signals_out=reference_signals_out,
                     reference_signals_in=reference_signals_in)
-	
+
     def compute_score(self, index: Sequence[Hashable], target_signals: Sequence[float]) -> np.ndarray:
         target_signals = np.array(target_signals)
         reference_signals_in = np.array([self.reference_signals_in[i] for i in index])
@@ -152,7 +151,6 @@ def main(args: Arguments):
 
     mi_scores_ds = Dataset.from_dict({"score": mi_scores})
     mi_scores_ds.save_to_disk(str(args.scores))
-
 
 
 if __name__ == "__main__":

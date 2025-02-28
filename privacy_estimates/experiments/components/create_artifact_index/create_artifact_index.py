@@ -24,6 +24,6 @@ def create_artifact_indices_for_aml_parallel(
 
 
 @command_component(name="privacy_estimates__create_artifact_index", environment=ENV)
-def create_artifact_index(group_index: int, group_size: int, index: int, artifact_index: Output(type="uri_file")):
+def create_artifact_index(group_index: int, group_size: int, index: int, artifact_index: Output(type="uri_file")):  # noqa: F821
     with open(artifact_index, "w") as f:
         json.dump(group_index*group_size + index, f)

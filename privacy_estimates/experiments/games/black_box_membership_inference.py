@@ -4,15 +4,18 @@ from azure.ai.ml import dsl, Input, Output
 from azure.ai.ml.entities import PipelineJob
 from abc import abstractmethod
 
-from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig, ClusterComputeConfig, PrivacyEstimatesComponentLoader
+from privacy_estimates.experiments.aml import (
+    ExperimentBase, WorkspaceConfig, ClusterComputeConfig, PrivacyEstimatesComponentLoader
+)
 from privacy_estimates.experiments.subpipelines import (
-	ComputeShadowArtifactStatisticsLoader, TrainManyArtifactsLoader, add_index_to_dataset
+    ComputeShadowArtifactStatisticsLoader, TrainManyArtifactsLoader, add_index_to_dataset
 )
 from privacy_estimates.experiments.loaders import ScoreComponentLoader, TrainComponentLoader, ComponentLoader
 from privacy_estimates.experiments.attacks import AttackLoader
 from privacy_estimates.experiments.challenge_point_selectors import ChallengePointSelectionLoader
 from privacy_estimates.experiments.components import (
-    create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates, convert_int_to_uri_file
+    create_in_out_data_for_membership_inference_challenge, convert_in_out_to_challenge, compute_privacy_estimates,
+    convert_int_to_uri_file
 )
 from privacy_estimates.experiments.games.configs import PrivacyEstimationConfig
 
@@ -155,7 +158,7 @@ class BlackBoxMembershipInferenceGameBase(ExperimentBase):
                 "privacy_report": estimate_privacy.outputs.privacy_report,
             }
         return game_pipeline()
-    
+
     @abstractmethod
     def preprocess_datasets(
         self

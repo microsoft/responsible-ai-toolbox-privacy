@@ -239,7 +239,9 @@ def create_in_out_data_for_shadow_artifact_statistics(
     artifacts_per_iter = len(in_out_indices_i)//points_per_artifact
     in_out_indices_dsd = [in_out_indices_i.as_dataset()]
     for _ in tqdm(range(artifacts_per_iter, max_num_artifacts, artifacts_per_iter), desc="Computing in-out indices"):
-        in_out_indices_i, points_per_artifact_i = compute_in_out_indices_for_artifact(indices=indices, seed=rng.integers(0, 2**32-1))
+        in_out_indices_i, points_per_artifact_i = compute_in_out_indices_for_artifact(
+            indices=indices, seed=rng.integers(0, 2**32-1)
+        )
         assert points_per_artifact == points_per_artifact_i, "Number of points per artifact must be the same for all artifacts"
         in_out_indices_dsd.append(in_out_indices_i.as_dataset(features=index_features))
 

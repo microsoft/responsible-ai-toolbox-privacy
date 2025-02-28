@@ -20,8 +20,8 @@ class TrainManyArtifactsLoader:
             artifacts_per_group: Group size of artifacts that are grouped together. This parameter does not have any effect on 
                               the artifacts trained, it simply creates nested pipelines to reduce the rendering of the 
                               pipeline in the studio or groups artifacts training on the same node.
-            group_on_single_node: If True, the artifacts_per_group are trained on the same node. If False, a new node is allocated
-                                    for each artifact.
+            group_on_single_node: If True, the artifacts_per_group are trained on the same node. If False, a new node is
+                                  allocated for each artifact.
         """
         self.num_artifacts = num_artifacts
         self.artifacts_per_group = num_artifacts_per_group
@@ -34,11 +34,13 @@ class TrainManyArtifactsLoader:
         if num_concurrent_jobs_per_node > 1:
             self.train_artifact_group_loader = TrainArtifactGroupAMLParallelLoader(
                 num_artifacts=self.artifacts_per_group, group_size=self.artifacts_per_group,
-                single_artifact_arguments=self.single_artifact_arguments, num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
+                single_artifact_arguments=self.single_artifact_arguments,
+                num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
             )
             self.train_final_artifact_group_loader = TrainArtifactGroupAMLParallelLoader(
                 num_artifacts=self.num_artifacts % self.artifacts_per_group, group_size=self.artifacts_per_group,
-                single_artifact_arguments=self.single_artifact_arguments, num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
+                single_artifact_arguments=self.single_artifact_arguments,
+                num_concurrent_jobs_per_node=num_concurrent_jobs_per_node
             )
         else:
             self.train_artifact_group_loader = TrainArtifactGroupDistributedLoader(
@@ -89,12 +91,18 @@ class TrainManyArtifactsLoader:
 
             outputs =  {
                 "scores_in": aggregate_output(scores_in, aggregator="concatenate_datasets", load_component=load_from_function),
-                "scores_out": aggregate_output(scores_out, aggregator="concatenate_datasets", load_component=load_from_function),
+                "scores_out": aggregate_output(
+                    scores_out, aggregator="concatenate_datasets", load_component=load_from_function
+                ),
             }
             if len(metrics_avg) > 0:
-                outputs["metrics_avg"] = aggregate_output(metrics_avg, aggregator="average_json", load_component=load_from_function)
+                outputs["metrics_avg"] = aggregate_output(
+                    metrics_avg, aggregator="average_json", load_component=load_from_function
+                )
             if len(dp_parameters) > 0:
-                outputs["dp_parameters"] = aggregate_output(dp_parameters, aggregator="assert_json_equal", load_component=load_from_function)
+                outputs["dp_parameters"] = aggregate_output(
+                    dp_parameters, aggregator="assert_json_equal", load_component=load_from_function
+                )
             return outputs
         return pipeline(train_base_data=train_base_data, in_out_data=in_out_data, in_indices=in_indices,
                         out_indices=out_indices, validation_base_data=validation_base_data, base_seed=base_seed,

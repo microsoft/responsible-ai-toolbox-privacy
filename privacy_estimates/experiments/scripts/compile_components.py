@@ -19,9 +19,10 @@ from privacy_estimates.experiments.components import (
     create_in_out_data_for_membership_inference_challenge, random_split_dataset, create_challenge_bits_aml_parallel,
     create_artifact_indices_for_aml_parallel, compute_shadow_artifact_statistics,
     append_artifact_index_column_aml_parallel, move_dataset, select_top_k_rows, create_empty_dataset, 
-    convert_in_out_to_challenge, convert_chat_jsonl_to_hfd, convert_hfd_to_jsonl, generate_canaries_with_secrets, convert_uri_file_to_int,
-    aggregate_2_output_dirs, aggregate_2_output_files, aggregate_16_output_dirs, aggregate_16_output_files,
-    create_artifact_index, compute_seed, convert_int_to_uri_file, append_column_constant_uri_file_value
+    convert_in_out_to_challenge, convert_chat_jsonl_to_hfd, convert_hfd_to_jsonl, generate_canaries_with_secrets,
+    convert_uri_file_to_int, aggregate_2_output_dirs, aggregate_2_output_files, aggregate_16_output_dirs,
+    aggregate_16_output_files, create_artifact_index, compute_seed, convert_int_to_uri_file,
+    append_column_constant_uri_file_value
 )
 
 
@@ -30,8 +31,8 @@ Compile components for the privacy estimates experiments pipeline.
 
 This script compiles all components for the privacy estimates experiments pipeline.
 The compiled components are stored in the output directory.
-The output directory will contain a directory for each component, which contains the compiled component code and a component spec file.
-The component spec file is a YAML file that describes the component and its dependencies.
+The output directory will contain a directory for each component, which contains the compiled component code and
+a component spec file. The component spec file is a YAML file that describes the component and its dependencies.
 """
 
 
@@ -87,7 +88,9 @@ YAML_COMPONENTS = [
 @dataclass
 class Arguments:
     output_dir: Path = field(metadata={"help": "Output directory for compiled components"})
-    version: str = field(default=version("privacy_estimates"), metadata={"help": "Version to override the component versions with"})
+    version: str = field(
+        default=version("privacy_estimates"), metadata={"help": "Version to override the component versions with"}
+    )
     disable_tqdm: bool = field(default=False, metadata={"help": "Disable tqdm progress bars"})
 
 
@@ -97,7 +100,7 @@ def compile_py_component(component: Callable, output_dir: Path, override_version
             compile(source=component, output=temp_dir)
         except Exception as e:
             raise RuntimeError(f"Failed to compile component {component.__name__}") from e
-        
+
         component_name = component.component.name
 
         if not component_name.startswith("privacy_estimates__"):
@@ -116,7 +119,7 @@ def compile_py_component(component: Callable, output_dir: Path, override_version
         with component_spec_path.open("w") as f:
             yaml_dump(component_spec, f)
         rel_component_spec_path = component_spec_path.relative_to(temp_dir)
-        
+
         # copy the compiled component to the output directory
         compiled_component_path = output_dir / rel_component_spec_path.parent.parent
         compiled_component_path.mkdir(parents=True, exist_ok=True)
@@ -129,7 +132,9 @@ def compile_yaml_component(component: Path, output_dir: Path, override_version: 
         component_spec = yaml_load(f)
 
     if not component.name.endswith("spec.yaml"):
-        raise ValueError(f"Component spec file {component} does not end with 'spec.yaml' and may not be picked up by the build pipeline")
+        raise ValueError(
+            f"Component spec file {component} does not end with 'spec.yaml' and may not be picked up by the build pipeline"
+        )
 
     component_name = component_spec["name"]
     if not component_name.startswith("privacy_estimates__"):
@@ -156,7 +161,7 @@ def compile_yaml_component(component: Path, output_dir: Path, override_version: 
 
     with compiled_component_spec_path.open("w") as f:
         yaml_dump(component_spec, f)
-    
+
     return compiled_component_spec_path
 
 

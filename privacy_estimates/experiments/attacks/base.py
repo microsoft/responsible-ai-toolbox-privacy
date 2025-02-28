@@ -9,4 +9,3 @@ class AttackLoader(ABC):
     @property
     def requires_shadow_artifact_statistics(self) -> bool:
         return False
-    

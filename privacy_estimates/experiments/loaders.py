@@ -82,7 +82,9 @@ class TrainSingleArtifactAndScoreLoader:
             )
 
             filter_train_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.train_data_for_artifact)
-            filter_validation_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.validation_data_for_artifact)
+            filter_validation_data = load_from_function(filter_aux_data)(
+                full=data_for_artifact.outputs.validation_data_for_artifact
+            )
             filter_in_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.in_data_for_artifact)
             filter_out_data = load_from_function(filter_aux_data)(full=data_for_artifact.outputs.out_data_for_artifact)
 

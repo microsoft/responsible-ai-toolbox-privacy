@@ -68,7 +68,7 @@ class ServerlessComputeConfig(ComputeConfig):
     job_tier: str = "Standard"
     process_count_per_instance: int = 1
     locations: Optional[List[str]] = None
-    
+
     def apply(self, job: Job) -> Job:
         job.compute = "serverless"
         job.resources = JobResourceConfiguration(instance_count=self.instance_count, instance_type=self.instance_type,
@@ -133,7 +133,7 @@ class WorkspaceConfig:
                 self.compute[n] = ComputeConfig.from_dict(c)
             else:
                 raise ValueError(f"Invalid compute configuration for {n}")
-        
+
         self.default_compute = self.compute.get("default", None)
 
     def _get_ml_client(self) -> MLClient:
@@ -188,14 +188,16 @@ class WorkspaceConfig:
         except CalledProcessError:
             return None
         return cls(subscription_id=sub, workspace_name=name, resource_group=group, **kwargs)
-    
+
     @classmethod
     def create(cls, yaml_path: Optional[Path] = None, **kwargs):
         """
-        Creates an instance of the class first by trying to load the configuration from a YAML file, then by trying to load the configuration from environment variables, and finally by trying to load the configuration from the Azure CLI.
+        Creates an instance of the class first by trying to load the configuration from a YAML file, then by trying to load
+        the configuration from environment variables, and finally by trying to load the configuration from the Azure CLI.
 
         Args:
-            yaml_path (Optional[Path]): Path to a YAML file containing configuration settings. If provided, the class instance will be created using the settings from the YAML file.
+            yaml_path (Optional[Path]): Path to a YAML file containing configuration settings. If provided, the class instance
+                                        will be created using the settings from the YAML file.
             **kwargs: Additional keyword arguments that can be used to customize the class instance creation.
 
         Returns:
@@ -279,7 +281,7 @@ class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
         if self.override_version is None:
             logger.info("Using component version from PRIVACY_ESTIMATES_COMPONENT_VERSION environment variable")
             self.override_version = os.environ.get("PRIVACY_ESTIMATES_COMPONENT_VERSION", None)
-    
+
     @classmethod
     def set_client(cls, client: MLClient, version: str = version("privacy_estimates")) -> None:
         """
@@ -287,8 +289,9 @@ class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
 
         Args:
             client (MLClient): The MLClient instance to be set globally.
-            version (str, optional): The version of the privacy estimates to override. Defaults to the version of the "privacy_estimates" package.
-                                     It is also possible to pass 'default' which will use the default version of the components in the workspace.
+            version (str, optional): The version of the privacy estimates to override. Defaults to the version of the 
+                                     "privacy_estimates" package. It is also possible to pass 'default' which will use
+                                     the default version of the components in the workspace.
         """
         loader = PrivacyEstimatesComponentLoader(client=client, override_version=version)
         if loader.client is not client or loader.override_version != version:
@@ -328,7 +331,7 @@ class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
                 spec = safe_load(f)
             name = spec["name"]
             return self.load_by_name(name=name, version=version)
-        
+
     def _load_from_remote_component_spec(self, url: str, version: str = "local") -> Callable[..., Component]:
         raise NotImplementedError("Loading components from remote URLs is not yet supported")
 
@@ -522,7 +525,9 @@ class DatastoreURI(str):
 
 
 class Job:
-    def __init__(self, aml_job, workspace: WorkspaceConfig, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None):
+    def __init__(
+        self, aml_job, workspace: WorkspaceConfig, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None
+    ):
         self.aml_job = aml_job
         self.ws = workspace
 
@@ -607,7 +612,7 @@ class Job:
         uri = DatastoreURI.from_datastore_uri(uri=uri_path, workspace=self.ws)
         local_path = uri.download_content(path=path, match_pattern=match_pattern)
         return local_path
-    
+
     def resubmit(self):
         breakpoint()
         return self.ws.ml_client.jobs.create_or_update(self.aml_job) 
@@ -661,15 +666,17 @@ class Job:
             return json.loads(properties['azureml.parameters'])
         else:
             return {}
-        
+
     @property
     def environment_variables(self) -> Dict[str, Any]:
         return self.details["runDefinition"]["environmentVariables"]
-        
+
     @property
     def input_parameters(self) -> Dict[str, Any]:
         env_vars = self.details["runDefinition"]["environmentVariables"]
-        input_params = {k.replace("AZUREML_PARAMETER_", ""): v for k, v in env_vars.items() if k.startswith("AZUREML_PARAMETER_")}
+        input_params = {
+            k.replace("AZUREML_PARAMETER_", ""): v for k, v in env_vars.items() if k.startswith("AZUREML_PARAMETER_")
+        }
         return input_params
 
     @property
@@ -791,12 +798,16 @@ class JobList:
             JobList: A JobList object containing the jobs specified in the list of URLs.
         """
         if add_tags is not None:
-            tags = [{k: v} for i, (k, v) in enumerate(add_tags.items()) if i == j for j in range(len(urls))]
+            tags = [{k: v} for j in range(len(urls)) for i, (k, v) in enumerate(add_tags.items()) if i == j]
         else:
             tags = [{} for _ in range(len(urls))]
 
         if isinstance(urls, Mapping):
-            jobs = [Job.from_url(url=url, local_name=name, add_tags=tags) for (name, url), tags in tqdm(zip(urls.items(), tags), disable=disable_pbar)]
+            jobs = [
+                Job.from_url(url=url, local_name=name, add_tags=tags)
+                for (name, url), tags
+                in tqdm(zip(urls.items(), tags), disable=disable_pbar)
+            ]
         else:
             jobs = [Job.from_url(url=url, add_tags=tag) for url, tag in tqdm(zip(urls, tags), disable=disable_pbar)]
         return cls(jobs=list(jobs))

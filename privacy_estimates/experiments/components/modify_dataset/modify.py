@@ -13,7 +13,7 @@ ENV = {
 
 @command_component(name="privacy_estimates__append_column_constant_uri_file_value", display_name="Append column to dataset",
                    environment=ENV)
-def append_column_constant_uri_file_value(data: Input, name: str, value: Input(type="uri_file"), output: Output):
+def append_column_constant_uri_file_value(data: Input, name: str, value: Input(type="uri_file"), output: Output):  # noqa: F821
     """
     Appends a new column with a constant value from a file to the dataset.
 
@@ -52,8 +52,10 @@ def append_column_constant_str(data: Input, name: str, value: str, output: Outpu
     ds.save_to_disk(output)
 
 
-@command_component(name="privacy_estimates__append_column_incrementing", display_name="Append column to dataset with incrementing index", 
-                   environment=ENV)
+@command_component(
+    name="privacy_estimates__append_column_incrementing", display_name="Append column to dataset with incrementing index", 
+    environment=ENV
+)
 def append_column_incrementing(data: Input, name: str, output: Output):
     """
     Appends a new column to the dataset with incrementing values.
@@ -70,11 +72,14 @@ def append_column_incrementing(data: Input, name: str, output: Output):
     ds.save_to_disk(output)
 
 
-@command_component(name="privacy_estimates__append_artifact_index_column_aml_parallel", display_name="Append artifact index column to dataset",
-                   environment=ENV)
+@command_component(
+    name="privacy_estimates__append_artifact_index_column_aml_parallel", display_name="Append artifact index column to dataset",
+    environment=ENV
+)
 def append_artifact_index_column_aml_parallel(data: Input, output: Output):
     """
-    Appends a 'artifact_index' column to each dataset in the input directory and saves the modified datasets to the output directory.
+    Appends a 'artifact_index' column to each dataset in the input directory and saves the modified datasets to the
+    output directory.
 
     Args:
         data (str): The path to the input directory containing the datasets.
@@ -131,7 +136,9 @@ def rename_columns(data: Input, columns_old: str, columns_new: str, output: Outp
 
 
 @command_component(name="privacy_estimates__select_top_k_rows", display_name="Select top k rows", environment=ENV)
-def select_top_k_rows(data: Input, k: int, output: Output, allow_fewer: Input(type="boolean", optional=True) = False):
+def select_top_k_rows(
+    data: Input, k: int, output: Output, allow_fewer: Input(type="boolean", optional=True) = False   # noqa: F821
+):
     """
     Selects the top k rows from the input dataset and saves the result to the output dataset.
 

@@ -108,4 +108,3 @@ def compute_eps_lo_hi(
         return Dirichlet(count=count).eps_lo_hi(delta=delta, alpha=alpha, bracket=bracket)
     else:
         raise ValueError("Unknown method: {}".format(method))
-

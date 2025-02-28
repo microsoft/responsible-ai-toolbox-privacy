@@ -10,7 +10,6 @@ from privacy_estimates.experiments.games.black_box_membership_inference import (
 from privacy_estimates.experiments.scorers.dataset.loader import ScoreDataLoader, DataScorerConfig
 
 
-
 class DataMembershipInferenceGameBase(BlackBoxMembershipInferenceGameBase):
     def __init__(
         self, game_config: GameConfig, workspace: WorkspaceConfig, train_loader: TrainComponentLoader, 

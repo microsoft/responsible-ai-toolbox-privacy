@@ -33,7 +33,9 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
     def load(self, data: Input, shadow_artifact_statistics: Input) -> Pipeline:
         @dsl.pipeline(name="Select natural cross validation challenge points")
         def p(data: Input, shadow_artifact_statistics: Input) -> Pipeline:
-            preprocess = select_cross_validation_challenge_points.preprocess(shadow_artifact_statistics=shadow_artifact_statistics)
+            preprocess = select_cross_validation_challenge_points.preprocess(
+                shadow_artifact_statistics=shadow_artifact_statistics
+            )
             attack = self.attack_loader.load(
                 challenge_points=preprocess.outputs.challenge_points_for_cross_validation,
                 shadow_artifact_statistics=preprocess.outputs.shadow_artifact_statistics_for_cross_validation
@@ -46,7 +48,7 @@ class SelectNaturalCrossValidationChallengePoints(ChallengePointSelectionLoader)
                 "challenge_points": postprocess.outputs.mi_challenge_points,
             }
         return p(data=data, shadow_artifact_statistics=shadow_artifact_statistics)
-    
+
 
 class TopKChallengePoints(ChallengePointSelectionLoader):
     def __init__(self, num_challenge_points: int, allow_fewer: bool = False):

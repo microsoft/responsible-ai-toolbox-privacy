@@ -69,7 +69,9 @@ class AOAIConfig:
         )
 
 
-def generate_natural_chat_canary(model_config: AOAIConfig, temp: float) -> Dict[Literal["messages"], List[Dict[Literal["system", "user", "assistant"], str]]]:
+def generate_natural_chat_canary(
+    model_config: AOAIConfig, temp: float
+) -> Dict[Literal["messages"], List[Dict[Literal["system", "user", "assistant"], str]]]:
     model = model_config.get_model()
 
     with system():
@@ -98,19 +100,11 @@ def generate_natural_chat_canary(model_config: AOAIConfig, temp: float) -> Dict[
     ]}
 
 
-
 def generate_natural_canaries_with_aoai(
     num_canaries: int, seed: int, format: Format, model: str, azure_endpoint: str, azure_deployment: str,
     keyvault_api_key_name: Optional[str] = None
 ) -> Dataset:
-
-    if keyvault_api_key_name is not None:
-        credential = DefaultAzureCredential()
-        ml_client = MLClient.from_config(credential=credential, path="path/to/config.json")
-        vault_name = os.path.basename(ml_client.workspaces.get(ml_client.workspace_name).key_vault)
-        secret_client = SecretClient(vault_url=f"https://{vault_name}.azure.net/", credential=credential)
-        secret_client.set_secret("my_secret_name", "XXX")
-
+    raise DeprecationWarning("Key based auth is deprecated")
 
     model_config = AOAIConfig(
         model=model,
@@ -130,13 +124,13 @@ def generate_natural_canaries_with_aoai(
 
 @command_component(name="privacy_estimates__generate_natural_canaries", environment=ENV)
 def generate_natural_canaries(
-    num_canaries: int, seed: int, format: str, output: Output(type="uri_folder")
+    num_canaries: int, seed: int, format: str, output: Output(type="uri_folder")  # noqa: F821
 ):
     format = Format(format)
     if format == Format.LANGUAGE_MODELLING:
         raise NotImplementedError("Natural canaries are only supported in chat format.")
     elif format == Format.CHAT:
-        canaries = generate_gpt4_canaries(num_canaries=num_canaries, seed=seed, format=format)
+        canaries = generate_natural_canaries_with_aoai(num_canaries=num_canaries, seed=seed, format=format)
     else:
         raise ValueError(f"Invalid format: {format}")
     assert len(canaries) == num_canaries
@@ -145,8 +139,8 @@ def generate_natural_canaries(
 
 @command_component(name="privacy_estimates__generate_canaries_with_secrets", environment=ENV)
 def generate_canaries_with_secrets(
-    num_canaries: int, seed: int, format: str, output: Output(type="uri_folder"),
-    text_column: Input(type="string", optional=True) = None
+    num_canaries: int, seed: int, format: str, output: Output(type="uri_folder"),  # noqa: F821
+    text_column: Input(type="string", optional=True) = None  # noqa: F821
 ):
     format = Format(format)
 

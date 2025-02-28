@@ -111,7 +111,7 @@ class Game(BlackBoxMembershipInferenceGameBase):
     @property
     def validation_data(self) -> Input:
         return self.workspace.ml_client.data.get(name="SST2-test", version="3")
-    
+
     @property
     def canary_data(self) -> Input:
         return self.workspace.ml_client.data.get(name="SST2-test", version="3")

@@ -9,7 +9,8 @@ def process_batch(
     max_sequence_length: int, add_lm_labels: bool = False
 ):
     if text_2_column is not None:
-        tokenized_batch = tokenizer(batch[text_column], batch[text_2_column], padding="max_length", max_length=max_sequence_length)
+        tokenized_batch = tokenizer(batch[text_column], batch[text_2_column], padding="max_length",
+                                    max_length=max_sequence_length)
     else:
         tokenized_batch = tokenizer(batch[text_column], padding="max_length", max_length=max_sequence_length)
     if add_lm_labels:

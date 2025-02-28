@@ -87,7 +87,7 @@ class SST2(DatasetLoader):
     @property
     def description(self) -> str:
         return "GLUE SST2 dataset in the HuggingFace format"
-    
+
 
 class AmazonPolarity5k(DatasetLoader):
     def __init__(self, split: str):
@@ -100,7 +100,7 @@ class AmazonPolarity5k(DatasetLoader):
         ds = ds.rename_columns({"content": "sentence"}).select_columns(["sentence", "label"])
 
         return ds
-    
+
     @property
     def description(self) -> str:
         return "Amazon Polarity 5k dataset in the HuggingFace format"
@@ -157,7 +157,6 @@ def main(args: Arguments):
         client = WorkspaceConfig.from_yaml(args.workspace_config).ml_client
     else:
         client = RegistryConfig(registry_name=args.registry_name, location=args.registry_location).ml_client
-
 
     with TemporaryDirectory() as dataset_dir:
         loader.as_dataset().save_to_disk(dataset_dir)

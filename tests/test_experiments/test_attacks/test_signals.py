@@ -39,7 +39,6 @@ def test_taylor_soft_margin(temp, m, n):
     logits = np.random.rand(10, 5)
     labels = np.random.randint(0, 5, 10)
 
-
     reference_signal = compute_signal_reference(logits, labels, temp=temp, m=m, n=n)
 
     signal = signal_method.compute_mi_signal_from_logits(logits=logits, labels=labels)

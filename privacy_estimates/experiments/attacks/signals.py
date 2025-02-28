@@ -57,7 +57,7 @@ class Signal(ABC):
             are evidence for in-membership.
         """
         raise NotImplementedError("This method should be implemented by the subclass")
-    
+
     def compute_mi_signal_from_probs(self, probs: np.ndarray, labels: np.ndarray,
                                      completion_mask: Optional[np.ndarray]) -> np.ndarray:
         """
@@ -105,10 +105,10 @@ class TaylorSoftMargin(Signal):
             The signal for the membership inference attack. of shape [n_samples, (seq_len)]. Larger values
             are evidence for in-membership.
         """
-        if attention_mask is None:
-            attention_mask = np.ones_like(labels)
-        attention_mask = attention_mask.astype(bool)
-        labels[~attention_mask] = 0
+        if completion_mask is None:
+            completion_mask = np.ones_like(labels)
+        completion_mask = completion_mask.astype(bool)
+        labels[~completion_mask] = 0
         self.assert_inputs_valid(logits=logits, labels=labels, completion_mask=completion_mask)
         logit_signals = logits/self.temp
         taylor_logits = get_taylor(logit_signals, self.n)
@@ -121,7 +121,7 @@ class TaylorSoftMargin(Signal):
         signal = (soft_taylor_true_logit / taylor_logit_sum)
         signal[~completion_mask] = np.nan
         return signal
-    
+
 
 class CrossEntropy(Signal):
     def __init__(self, temp: float = 1.0):
@@ -159,7 +159,7 @@ class CrossEntropy(Signal):
 
         signal[~completion_mask] = np.nan
         return signal
-    
+
 
 SIGNALS = {cls.__name__: cls for cls in Signal.__subclasses__()}
 

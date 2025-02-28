@@ -31,7 +31,8 @@ class SharedInferenceParameters:
 
 
 class TrainLMComponentLoader(TrainingComponentLoader):
-    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedTrainingParameters, compute_config: ComputeConfig):
+    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedTrainingParameters,
+                 compute_config: ComputeConfig):
         super().__init__(aml_component_loader=aml_component_loader)
         self.parameters = parameters
         self.compute_config = compute_config
@@ -47,7 +48,8 @@ class TrainLMComponentLoader(TrainingComponentLoader):
 
 
 class LMInferenceComponentLoader(InferenceComponentLoader):
-    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedInferenceParameters, compute_config: ComputeConfig):
+    def __init__(self, aml_component_loader: AMLComponentLoader, parameters: SharedInferenceParameters,
+                 compute_config: ComputeConfig):
         super().__init__(aml_component_loader=aml_component_loader)
         self.parameters = parameters
         self.compute_config = compute_config
@@ -65,10 +67,9 @@ class Game(BlackBoxMembershipInferenceGameBase):
     def __init__(self, shared_training_parameters: SharedTrainingParameters,
                  shared_inference_parameters: SharedInferenceParameters, workspace: WorkspaceConfig,
                  game_config: GameConfig, shadow_model_config: ShadowModelConfig) -> None:
-        
+
         gpu_distributed_config = ClusterComputeConfig(**(workspace.compute["gpu_distributed"]))
         gpu_single_config = ClusterComputeConfig(**(workspace.compute["gpu_single"]))
-
 
         train_loader = TrainLMComponentLoader(
             aml_component_loader=AMLComponentLoader(workspace=workspace),

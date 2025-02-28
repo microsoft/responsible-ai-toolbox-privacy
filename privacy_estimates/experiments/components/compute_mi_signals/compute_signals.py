@@ -7,7 +7,6 @@ from ast import literal_eval
 from enum import Enum
 
 
-
 class Arguments(BaseModel):
     predictions_and_labels: Path
     mi_signals: Path
@@ -26,7 +25,9 @@ def main(args: Arguments) -> int:
     predictions_and_labels.set_format(type="numpy")
 
     mi_signal = predictions_and_labels.map(
-        lambda predictions, labels: {"mi_signal": compute_mi_signals(predictions, labels, method=args.method, prediction_format=args.prediction_format, **extra_args)},
+        lambda predictions, labels: {"mi_signal": compute_mi_signals(
+            predictions, labels, method=args.method, prediction_format=args.prediction_format, **extra_args
+        )},
         batched=True, input_columns=[args.prediction_column, args.label_column],
         remove_columns=predictions_and_labels.column_names
     )

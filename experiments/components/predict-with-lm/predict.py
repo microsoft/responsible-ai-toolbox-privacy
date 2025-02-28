@@ -67,7 +67,7 @@ class DistributedEvaluator:
         device = self.devices[rank]
         model = self.models[rank]
         model.eval()
-        
+
         with torch.no_grad():
             batch = {k: v.to(device) for k, v in batch.items()}
             input_ids = batch["input_ids"]

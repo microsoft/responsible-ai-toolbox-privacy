@@ -8,10 +8,11 @@ from .base import TrainArtifactGroupBase, TrainSingleArtifactAndScoreArguments
 
 class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
     def __init__(self, num_artifacts: int, group_size: int, single_artifact_arguments: TrainSingleArtifactAndScoreArguments):
-        super().__init__(num_artifacts=num_artifacts, group_size=group_size, single_artifact_arguments=single_artifact_arguments)
+        super().__init__(
+            num_artifacts=num_artifacts, group_size=group_size, single_artifact_arguments=single_artifact_arguments
+        )
 
         self.train_artifact_and_score_loader = TrainSingleArtifactAndScoreLoader(arguments=single_artifact_arguments)
-
 
     def load(self, train_base_data: Input, validation_base_data, in_out_data: Input, in_indices: Input, out_indices: Input,
              base_seed: int, artifact_group_index: int, num_points_per_artifact: Input):
@@ -44,7 +45,6 @@ class TrainArtifactGroupDistributedLoader(TrainArtifactGroupBase):
                     metrics.append(train_artifact_and_score.outputs.metrics)
                 if hasattr(train_artifact_and_score.outputs, "dp_parameters"):
                     dp_parameters.append(train_artifact_and_score.outputs.dp_parameters)
-
 
             output = {
                 "scores_in": aggregate_output(

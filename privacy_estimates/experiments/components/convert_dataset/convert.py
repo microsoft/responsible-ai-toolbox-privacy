@@ -10,7 +10,7 @@ ENV = {
 
 
 @command_component(name="privacy_estimates__convert_dataset__convert_chat_jsonl_to_hfd", environment=ENV)
-def convert_chat_jsonl_to_hfd(data: Input(type="uri_file"), output: Output(type="uri_folder")):
+def convert_chat_jsonl_to_hfd(data: Input(type="uri_file"), output: Output(type="uri_folder")):  # noqa: F821
     """
     Convert a JSONL file to a Hugging Face dataset.
     """
@@ -27,7 +27,7 @@ def convert_chat_jsonl_to_hfd(data: Input(type="uri_file"), output: Output(type=
 
 
 @command_component(name="privacy_estimates__convert_dataset__convert_hfd_to_jsonl", environment=ENV)
-def convert_hfd_to_jsonl(data: Input(type="uri_folder"), output: Output(type="uri_file")):
+def convert_hfd_to_jsonl(data: Input(type="uri_folder"), output: Output(type="uri_file")):  # noqa: F821
     """
     Convert a Hugging Face dataset to a JSONL file.
     """

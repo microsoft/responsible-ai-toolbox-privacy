@@ -4,7 +4,8 @@ from pathlib import Path
 
 
 def compute_mi_signals(
-    predictions_and_labels: Input, method: str, prediction_column: str, prediction_format: str, label_column: str = "label", **kwargs
+    predictions_and_labels: Input, method: str, prediction_column: str, prediction_format: str, label_column: str = "label",
+    **kwargs
 ):
     return load_component(
         source=str(Path(__file__).parent/"component_spec.yaml")

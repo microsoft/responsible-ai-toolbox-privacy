@@ -54,8 +54,8 @@ class PreparedData:
 
 
 def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds: Dataset, in_sample_indices_ds: Dataset,
-                  out_sample_indices_ds: Dataset, artifact_index: int, seed: int, num_points_per_artifact: int, sample_selection: str,
-                  merge_unused_samples: str, num_repetitions: int = 1) -> PreparedData:
+                  out_sample_indices_ds: Dataset, artifact_index: int, seed: int, num_points_per_artifact: int,
+                  sample_selection: str, merge_unused_samples: str, num_repetitions: int = 1) -> PreparedData:
     """
     Component that prepare data for training a artifact
 
@@ -99,8 +99,9 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
     )
 
     if sample_selection == SampleSelectionMethod.INDEPENDENT:
-        rows_for_artifact = np.random.default_rng(seed=seed).choice(np.arange(len(in_sample_indices_ds)), num_points_per_artifact,
-                                                                 replace=True)
+        rows_for_artifact = np.random.default_rng(seed=seed).choice(
+            np.arange(len(in_sample_indices_ds)), num_points_per_artifact, replace=True
+        )
     elif sample_selection == SampleSelectionMethod.PARTITIONED:
         i_start = (artifact_index * num_points_per_artifact) % len(in_sample_indices_ds)
         i_end = ((artifact_index + 1) * num_points_per_artifact) % len(in_sample_indices_ds)
@@ -110,11 +111,11 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
             rows_for_artifact = np.arange(i_start, i_end)
     else:
         raise NotImplementedError(f"sample_selection={sample_selection} is not implemented")
-    
+
     assert len(rows_for_artifact) == num_points_per_artifact, (
         f"rows_for_artifact must have length {num_points_per_artifact}, but has length {len(rows_for_artifact)}"
     )
-    
+
     in_sample_indices = in_sample_indices_ds.select(rows_for_artifact, keep_in_memory=True)
     out_sample_indices = out_sample_indices_ds.select(rows_for_artifact, keep_in_memory=True)
 
@@ -180,7 +181,8 @@ def _prepare_data(train_base_ds: Dataset, validation_base_ds: Dataset, in_out_ds
 
     assert len(train_data_for_artifact_ds) > 0, "train_data_for_artifact_ds must have at least one sample"
 
-    # Check that validation_data_for_artifact_ds doesn't contain any samples from train_data_for_artifact_ds (other than null rows)
+    # Check that validation_data_for_artifact_ds doesn't contain any samples from train_data_for_artifact_ds
+    # (other than null rows)
     train_data_for_artifact_sample_indices = [
         f"{s}-{i}"
         for s, i
@@ -276,10 +278,10 @@ def prepare_data_for_aml_parallel(
 
 @command_component(name="privacy_estimates__prepare_data", environment=ENV)
 def prepare_data(train_base_data: Input, validation_base_data: Input, in_out_data: Input, in_indices: Input, out_indices: Input,
-                 artifact_index: Input(type="uri_file"), seed: Input(type="uri_file"),
-                 num_points_per_artifact: Input(type="uri_file"), in_data_for_artifact: Output, out_data_for_artifact: Output,
-                 train_data_for_artifact: Output, validation_data_for_artifact: Output, sample_selection: str,
-                 merge_unused_samples: str, num_repetitions: int = 1):
+                 artifact_index: Input(type="uri_file"), seed: Input(type="uri_file"),  # noqa: F821
+                 num_points_per_artifact: Input(type="uri_file"), in_data_for_artifact: Output,  # noqa: F821
+                 out_data_for_artifact: Output, train_data_for_artifact: Output, validation_data_for_artifact: Output,
+                 sample_selection: str, merge_unused_samples: str, num_repetitions: int = 1):
     """
     Component that prepare data for training a artifact
 

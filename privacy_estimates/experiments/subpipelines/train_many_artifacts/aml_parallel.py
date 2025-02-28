@@ -11,7 +11,9 @@ from .base import TrainArtifactGroupBase
 class TrainArtifactGroupAMLParallelLoader(TrainArtifactGroupBase):
     def __init__(self, num_artifacts: int, group_size: int, num_concurrent_jobs_per_node: int,
                  single_artifact_arguments: TrainSingleArtifactAndScoreArguments):
-        super().__init__(num_artifacts=num_artifacts, group_size=group_size, single_artifact_arguments=single_artifact_arguments)
+        super().__init__(
+            num_artifacts=num_artifacts, group_size=group_size, single_artifact_arguments=single_artifact_arguments
+        )
         self.num_concurrent_jobs_per_node = num_concurrent_jobs_per_node
 
         # Add optional outputs to the parallel loaders
@@ -46,7 +48,8 @@ class TrainArtifactGroupAMLParallelLoader(TrainArtifactGroupBase):
             prepare_data = prepare_data_for_aml_parallel(
                 train_base_data=train_base_data, validation_base_data=validation_base_data, in_out_data=in_out_data,
                 in_indices=in_indices, out_indices=out_indices, artifact_index_start=artifact_index_start,
-                artifact_index_end=artifact_index_end, group_base_seed=base_seed, num_points_per_artifact=num_points_per_artifact,
+                artifact_index_end=artifact_index_end, group_base_seed=base_seed,
+                num_points_per_artifact=num_points_per_artifact,
                 sample_selection=self.single_artifact_arguments.sample_selection,
                 merge_unused_samples=self.single_artifact_arguments.merge_unused_samples,
                 num_repetitions=self.single_artifact_arguments.num_repetitions,
@@ -56,8 +59,8 @@ class TrainArtifactGroupAMLParallelLoader(TrainArtifactGroupBase):
 
             train_artifacts_parallel = self.train_artifacts_parallel_loader.load(
                 train_data=filter_train_data.outputs.filtered,
-                validation_data=prepare_data.outputs.validation_data_for_artifacts, seed=prepare_data.outputs.seeds_for_artifacts,
-                artifact_indices=artifact_indices,
+                validation_data=prepare_data.outputs.validation_data_for_artifacts,
+                seed=prepare_data.outputs.seeds_for_artifacts, artifact_indices=artifact_indices,
             )
 
             filter_in_samples = filter_aux_data_aml_parallel(full=prepare_data.outputs.in_data_for_artifacts)
@@ -73,10 +76,10 @@ class TrainArtifactGroupAMLParallelLoader(TrainArtifactGroupBase):
             )
 
             reinsert_in_scores = reinsert_aux_data_aml_parallel(
-                filtered=compute_predictions_in_parallel.outputs.predictions, aux=filter_in_samples.outputs.aux
+                filtered=compute_scores_in_parallel.outputs.predictions, aux=filter_in_samples.outputs.aux
             )
             reinsert_out_scores = reinsert_aux_data_aml_parallel(
-                filtered=compute_predictions_out_parallel.outputs.predictions, aux=filter_out_samples.outputs.aux
+                filtered=compute_scores_out_parallel.outputs.predictions, aux=filter_out_samples.outputs.aux
             )
 
             scores_in = reinsert_in_scores.outputs.full
