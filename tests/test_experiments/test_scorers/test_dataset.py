@@ -11,5 +11,5 @@ def test_ngram_scorer():
     test_data = Dataset.from_dict({
         "text": ["ab cd ef", "uv wx yz"]
     })
-    scores = test_data.map(lambda t: {"log_score": scorer.compute_logscore(t)}, input_columns="text")
-    assert scores["log_score"][0] > scores["log_score"][1]
+    scores = test_data.map(scorer.compute_logscore, input_columns="text")
+    assert scores["log_mi_signal"][0] > scores["log_mi_signal"][1]

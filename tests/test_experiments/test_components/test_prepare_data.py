@@ -31,8 +31,8 @@ class TestPrepareData:
         with pytest.raises(ValueError):
             _prepare_data(
                 in_out_ds=in_out_data, in_sample_indices_ds=in_indices, out_sample_indices_ds=out_indices,
-                train_base_ds=train_base_data, validation_base_ds=validation_base_data, seed=42, num_points_per_model=2,
-                model_index=0, sample_selection="independent", merge_unused_samples="none"
+                train_base_ds=train_base_data, validation_base_ds=validation_base_data, seed=42, num_points_per_artifact=2,
+                artifact_index=0, sample_selection="independent", merge_unused_samples="none"
             )
 
     def test_partitioned_selection_no_merge(self):
@@ -62,16 +62,16 @@ class TestPrepareData:
 
         results = _prepare_data(in_out_ds=in_out_data, in_sample_indices_ds=in_indices, out_sample_indices_ds=out_indices,
                                 train_base_ds=train_base_data, validation_base_ds=validation_base_data, seed=42,
-                                num_points_per_model=2, model_index=0, sample_selection="partitioned",
+                                num_points_per_artifact=2, artifact_index=0, sample_selection="partitioned",
                                 merge_unused_samples="none")
-        assert results.train_data_for_model["sample_index"] == [None, 0]
-        assert results.train_data_for_model["split"] == [None, "val"]
-        assert results.in_data_for_model["sample_index"] == [0, None]
-        assert results.in_data_for_model["split"] == ["val", None]
-        assert results.out_data_for_model["sample_index"] == [0, 1]
-        assert results.out_data_for_model["split"] == ["trn", "trn"]
-        assert results.validation_data_for_model["sample_index"] == [2]
-        assert results.validation_data_for_model["split"] == ["val"]
+        assert results.train_data_for_artifact["sample_index"] == [None, 0]
+        assert results.train_data_for_artifact["split"] == [None, "val"]
+        assert results.in_data_for_artifact["sample_index"] == [0, None]
+        assert results.in_data_for_artifact["split"] == ["val", None]
+        assert results.out_data_for_artifact["sample_index"] == [0, 1]
+        assert results.out_data_for_artifact["split"] == ["trn", "trn"]
+        assert results.validation_data_for_artifact["sample_index"] == [2]
+        assert results.validation_data_for_artifact["split"] == ["val"]
 
     def test_partitioned_selection_merge_all_with_train(self):
         in_out_data = Dataset.from_dict({
@@ -100,13 +100,13 @@ class TestPrepareData:
 
         results = _prepare_data(
             train_base_ds=train_base_data, validation_base_ds=validation_base_data, in_out_ds=in_out_data,
-            in_sample_indices_ds=in_indices, out_sample_indices_ds=out_indices, seed=42, num_points_per_model=2,
-            model_index=0, sample_selection="partitioned", merge_unused_samples="all_with_train"
+            in_sample_indices_ds=in_indices, out_sample_indices_ds=out_indices, seed=42, num_points_per_artifact=2,
+            artifact_index=0, sample_selection="partitioned", merge_unused_samples="all_with_train"
         )
-        assert results.train_data_for_model["sample_index"] == [None, 1, 3, None, None, 0]
-        assert results.train_data_for_model["split"] == [None, "val", "val", None, None, "val"]
-        assert results.validation_data_for_model["sample_index"] == [2]
-        assert results.validation_data_for_model["split"] == ["val"]
+        assert results.train_data_for_artifact["sample_index"] == [None, 1, 3, None, None, 0]
+        assert results.train_data_for_artifact["split"] == [None, "val", "val", None, None, "val"]
+        assert results.validation_data_for_artifact["sample_index"] == [2]
+        assert results.validation_data_for_artifact["split"] == ["val"]
 
     def test_partitioned_selection_merge_all_with_train_raise_duplicate_train(self):
         in_out_data = Dataset.from_dict({
@@ -136,8 +136,8 @@ class TestPrepareData:
         with pytest.raises(ValueError):
             _prepare_data(
                 train_base_ds=train_base_data, validation_base_ds=validation_base_data, in_out_ds=in_out_data,
-                in_sample_indices_ds=in_indices, out_sample_indices_ds=out_indices, seed=42, num_points_per_model=2,
-                model_index=0, sample_selection="partitioned", merge_unused_samples="all_with_train"
+                in_sample_indices_ds=in_indices, out_sample_indices_ds=out_indices, seed=42, num_points_per_artifact=2,
+                artifact_index=0, sample_selection="partitioned", merge_unused_samples="all_with_train"
             )
 
     def generate_data_unequal_len_in_out(self):
