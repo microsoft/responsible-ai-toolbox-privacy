@@ -2,16 +2,17 @@ import numpy as np
 import functools
 import scipy
 
+from argparse_dataclass import ArgumentParser
+from dataclasses import dataclass
 from datasets import load_from_disk, Dataset
 from typing import Sequence, Hashable, Dict, Tuple, Optional
-from pydantic_cli import run_and_exit
-from pydantic import BaseModel
 from pathlib import Path
 from multiprocessing import cpu_count
 from tqdm_loggable.auto import tqdm
 
 
-class Arguments(BaseModel):
+@dataclass
+class Arguments:
     challenge_points: Path
     shadow_model_statistics: Path
     scores: Path
@@ -189,9 +190,7 @@ def main(args: Arguments) -> int:
     return 0
 
 
-def exception_handler(ex):
-    raise RuntimeError("An error occurred while running the script.") from ex
-
-
 if __name__ == "__main__":
-    run_and_exit(Arguments, main, exception_handler=exception_handler)
+    parser = ArgumentParser(Arguments)
+    args = parser.parse_args()
+    main(args=args)

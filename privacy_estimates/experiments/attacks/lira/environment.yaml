@@ -5,11 +5,10 @@ dependencies:
   - pip
   - python=3.8.12
   - pip:
+    - argparse-dataclass
     - azure-ai-ml
     - datasets
     - mldesigner
-    - pydantic
-    - pydantic_cli
     - scipy
     - tensorflow_privacy
     - tqdm-loggable

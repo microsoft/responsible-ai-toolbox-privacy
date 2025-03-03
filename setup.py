@@ -55,8 +55,10 @@ setup(
         "dev": [
             "pytest",
             "sympy",
+            "nltk",
             "opacus",
             "tensorflow-privacy",
+            "torch",
         ],
         "pipelines": [
             "argparse_dataclass",
