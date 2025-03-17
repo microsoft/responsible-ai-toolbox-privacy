@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from json import dump, load
+from urllib.parse import urlparse
 
 
 @dataclass
@@ -35,3 +36,22 @@ class DPParameters:
             num_steps=n_steps,
             subsampling_probability=p,
         )
+
+
+def is_url(path: str) -> bool:
+    """Check if the given path is a valid URL."""
+    try:
+        result = urlparse(path)
+        # Ensure scheme is either 'http' or 'https' and there is a network location
+        return all([result.scheme in ("http", "https"), result.netloc])
+    except ValueError:
+        return False
+
+
+class SingletonMeta(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(SingletonMeta, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]

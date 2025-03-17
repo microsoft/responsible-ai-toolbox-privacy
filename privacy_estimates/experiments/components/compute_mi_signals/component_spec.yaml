@@ -1,0 +1,46 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates_experiments_compute_mi_signal
+display_name: Compute membership inference signal
+version: local1
+type: command
+description: Compute membership inference signal
+inputs:
+  predictions_and_labels:
+    type: uri_folder
+    description: Dataset in huggingface datasets format
+  method:
+    type: string
+    description: Membership inference signal
+  prediction_format:
+    type: string
+    description: "Prediction format. One of: logit, logprob, prob"
+  prediction_column:
+    type: string
+    description: Name of the column containing predictions
+  label_column:
+    type: string
+    description: Name of the column containign labels
+    default: label
+  extra_args:
+    type: string
+    description: Extra arguments for the signal computation. (E.g. 'arg=val1 arg2=val2')
+    optional: true 
+outputs:
+  mi_signal:
+    type: uri_folder
+    description: Membership inference signal in huggingface datasets format
+code: .
+additional_includes:
+        - "../../attacks/signals.py"
+command: >-
+  python compute_signals.py \
+    --predictions_and_labels ${{inputs.predictions_and_labels}} \
+    $[[ --extra_args '${{inputs.extra_args}}' ]] \
+    --prediction_format ${{inputs.prediction_format}} \
+    --prediction_column ${{inputs.prediction_column}} \
+    --label_column ${{inputs.label_column}} \
+    --method ${{inputs.method}} \
+    --mi_signals ${{outputs.mi_signal}}
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

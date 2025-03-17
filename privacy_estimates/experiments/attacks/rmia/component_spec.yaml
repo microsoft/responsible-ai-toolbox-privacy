@@ -1,0 +1,37 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates__experiments__attacks__rmia
+display_name: rmia
+version: local1
+type: command
+description: Robust MI Attack
+inputs:
+  challenge_points:
+    type: uri_folder
+    description: Challenge points in Huggingface dataset format
+  mi_statistics:
+    type: uri_folder
+    description: MI statistics in Huggingface dataset format
+  offline_a:
+    type: number
+    description: RMIA Offline parameter. If not supplied online attack is performed
+    optional: true
+  use_log_column:
+    type: boolean
+    description: Use log columns (i.e. `log_mi_signal`) for reference signals. This may be more numerically stable if the reference signals are very small as in the probability of a long sequence.
+    optional: true
+    default: false
+outputs:
+  scores:
+    type: uri_folder
+    description: Trained model
+code: .
+command: >-
+  python rmia.py \
+    --challenge-points ${{inputs.challenge_points}} \
+    --mi-statistics ${{inputs.mi_statistics}} \
+    $[[ --offline-a ${{inputs.offline_a}} ]] \
+    $[[ --use-log-column ${{inputs.use_log_column}} ]] \
+    --scores ${{outputs.scores}} 
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04

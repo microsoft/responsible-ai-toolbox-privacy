@@ -9,10 +9,9 @@ import pandas as pd
 
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
-from azure.ai.ml.entities import Component, PipelineJob
-from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azure.core.exceptions import ClientAuthenticationError
-from dataclasses import dataclass
+from azure.ai.ml.entities import Component, PipelineJob, Job, JobResourceConfiguration, QueueSettings
+from azure.identity import DefaultAzureCredential, AzureCliCredential, ChainedTokenCredential
+from dataclasses import dataclass, field
 from hydra.core.hydra_config import HydraConfig
 from pathlib import Path
 from omegaconf import OmegaConf, DictConfig
@@ -20,11 +19,95 @@ from typing import TypeVar, Type, Any, get_type_hints, Dict, Union, List, Ordere
 from dataclasses import is_dataclass
 from yaml import safe_load
 from parmap import map as pmap
-from typing import Optional, Callable, Optional, Iterable
+from typing import Optional, Callable, Optional, Iterable, get_args, get_origin
 from collections.abc import Mapping
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
+from tqdm import tqdm
+from functools import lru_cache
+from importlib.metadata import version
+
+from privacy_estimates.experiments.utils import SingletonMeta
+
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=None)
+def get_credential() -> ChainedTokenCredential:
+    return ChainedTokenCredential(
+        AzureCliCredential(),
+        DefaultAzureCredential(),
+    )
+
+
+@dataclass
+class RegistryConfig:
+    registry_name: str
+    location: str = None
+    credential: Optional[DefaultAzureCredential] = None
+
+    def __post_init__(self) -> None:
+        self.ml_client = self._get_ml_client()
+
+    def _get_ml_client(self) -> MLClient:
+        credential = self.credential
+        if credential is None:
+            credential = get_credential()
+        return MLClient(credential=credential, registry_name=self.registry_name, registry_location=self.location)
+
+
+class ComputeConfig:
+    def apply(self, job: Job) -> Job:
+        raise NotImplementedError("Must be implemented in subclass")
+
+
+@dataclass
+class ServerlessComputeConfig(ComputeConfig):
+    instance_type: str
+    instance_count: int = 1
+    job_tier: str = "Standard"
+    process_count_per_instance: int = 1
+    locations: Optional[List[str]] = None
+
+    def apply(self, job: Job) -> Job:
+        job.compute = "serverless"
+        job.resources = JobResourceConfiguration(instance_count=self.instance_count, instance_type=self.instance_type,
+                                                 locations=self.locations)
+        job.queue_settings = QueueSettings(job_tier=self.job_tier)
+        if job.distribution is not None:
+            job.distribution.process_count_per_instance = self.process_count_per_instance
+        elif self.process_count_per_instance > 1:
+            raise ValueError("Cannot set process_count_per_instance without setting distribution")
+        return job
+
+
+@dataclass
+class ClusterComputeConfig(ComputeConfig):
+    cluster_name: str
+    process_count_per_instance: int = 1
+
+    def apply(self, job: Job) -> Job:
+        job.compute = self.cluster_name
+        if job.distribution is not None:
+            job.distribution.process_count_per_instance = self.process_count_per_instance
+        elif self.process_count_per_instance > 1:
+            raise ValueError("Cannot set process_count_per_instance without setting distribution")
+        return job
+
+
+def from_dict(cls, d: Dict) -> ClusterComputeConfig:
+    d = d.copy()
+    type = d.pop("type", None)
+    if type is None:
+        raise ValueError("Creating ClusterComputeConfig from dict requires a 'type' key")
+    if type == "serverless":
+        return ServerlessComputeConfig(**d)
+    elif type == "cluster":
+        return ClusterComputeConfig(**d)
+    else:
+        raise ValueError(f"Unknown compute type {type}")
+
+setattr(ComputeConfig, "from_dict", classmethod(from_dict))
 
 
 @dataclass
@@ -32,23 +115,29 @@ class WorkspaceConfig:
     workspace_name: str
     resource_group: str
     subscription_id: str
-    cpu_compute: Optional[str] = None
-    gpu_compute: Optional[str] = None
-    large_memory_cpu_compute: Optional[str] = None
+    default_compute: Optional[str] = None
+    compute: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.ml_client = self._get_ml_client()
-        if self.large_memory_cpu_compute is None:
-            self.large_memory_cpu_compute = self.cpu_compute
+
+        if self.default_compute is not None:
+            if "default" in self.compute:
+                raise ValueError("Cannot specify both default_compute and 'default' in compute")
+            self.compute["default"] = self.default_compute
+
+        for n, c in self.compute.items():
+            if isinstance(c, str):
+                self.compute[n] = ClusterComputeConfig(cluster_name=c)
+            elif isinstance(c, Mapping):
+                self.compute[n] = ComputeConfig.from_dict(c)
+            else:
+                raise ValueError(f"Invalid compute configuration for {n}")
+
+        self.default_compute = self.compute.get("default", None)
 
     def _get_ml_client(self) -> MLClient:
-        try:
-            credential = DefaultAzureCredential()
-            # Check if given credential can get token successfully.
-            credential.get_token("https://management.azure.com/.default")
-        except ClientAuthenticationError:
-            # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
-            credential = InteractiveBrowserCredential()
+        credential = get_credential()
         return MLClient(credential=credential, subscription_id=self.subscription_id, resource_group_name=self.resource_group,
                         workspace_name=self.workspace_name)
 
@@ -73,10 +162,16 @@ class WorkspaceConfig:
             cpu_compute=cfg.get('cpu_compute', None),
             gpu_compute=cfg.get('gpu_compute', None),
             large_memory_cpu_compute=cfg.get('large_memory_cpu_compute', None),
+            compute=cfg.get('compute', {}),
         )
 
     @classmethod
     def from_env_vars(cls, **kwargs):
+        subscription = os.environ.get('AZUREML_ARM_SUBSCRIPTION', None)
+        workspace = os.environ.get('AZUREML_ARM_WORKSPACE_NAME', None)
+        group = os.environ.get('AZUREML_ARM_RESOURCE_GROUP', None)
+        if not all([subscription, workspace, group]):
+            return None
         return cls(
             subscription_id=os.environ['AZUREML_ARM_SUBSCRIPTION'],
             workspace_name=os.environ['AZUREML_ARM_WORKSPACE_NAME'],
@@ -86,10 +181,41 @@ class WorkspaceConfig:
 
     @classmethod
     def from_az_cli(cls, **kwargs):
-        sub = json.loads(check_output(["az", "account", "show"]))["id"]
-        name = json.loads(check_output(["az", "config", "get", "defaults.workspace"]))["value"]
-        group = json.loads(check_output(["az", "config", "get", "defaults.group"]))["value"]
+        try:
+            sub = json.loads(check_output(["az", "account", "show"]))["id"]
+            name = json.loads(check_output(["az", "config", "get", "defaults.workspace"]))["value"]
+            group = json.loads(check_output(["az", "config", "get", "defaults.group"]))["value"]
+        except CalledProcessError:
+            return None
         return cls(subscription_id=sub, workspace_name=name, resource_group=group, **kwargs)
+
+    @classmethod
+    def create(cls, yaml_path: Optional[Path] = None, **kwargs):
+        """
+        Creates an instance of the class first by trying to load the configuration from a YAML file, then by trying to load
+        the configuration from environment variables, and finally by trying to load the configuration from the Azure CLI.
+
+        Args:
+            yaml_path (Optional[Path]): Path to a YAML file containing configuration settings. If provided, the class instance
+                                        will be created using the settings from the YAML file.
+            **kwargs: Additional keyword arguments that can be used to customize the class instance creation.
+
+        Returns:
+            An instance of the class.
+
+        Raises:
+            None.
+
+        """
+        if yaml_path is not None:
+            return cls.from_yaml(yaml_path)
+        if (
+            {"AZUREML_ARM_SUBSCRIPTION", "AZUREML_ARM_WORKSPACE_NAME", "AZUREML_ARM_RESOURCE_GROUP"}.issubset(
+                set(os.environ.keys())
+            )
+        ):
+            return cls.from_env_vars(**kwargs)
+        return cls.from_az_cli(**kwargs)
 
 
 T = TypeVar("T")
@@ -102,6 +228,8 @@ def dictconfig_to_dataclass(cfg: DictConfig, dataclass_type: Type[T]) -> T:
             mutable_dict = OmegaConf.to_container(cfg_obj, resolve=True) if isinstance(cfg_obj, DictConfig) else cfg_obj
             for key, value in fields.items():
                 if key in mutable_dict:
+                    if get_origin(value) == list and len(get_args(value)) == 1 and is_dataclass(get_args(value)[0]):
+                        mutable_dict[key] = [convert_nested(item, get_args(value)[0]) for item in mutable_dict[key]]
                     if isinstance(mutable_dict[key], DictConfig) or isinstance(mutable_dict[key], dict):
                         mutable_dict[key] = convert_nested(mutable_dict[key], fields[key])
             try:
@@ -117,14 +245,77 @@ def dictconfig_to_dataclass(cfg: DictConfig, dataclass_type: Type[T]) -> T:
     return convert_nested(cfg, dataclass_type)
 
 
-class AMLComponentLoader:
-    def __init__(self, workspace: WorkspaceConfig):
-        self.workspace = workspace
-        self.override_version = None
+def is_url(path: str) -> bool:
+    return str(path).startswith("http://") or str(path).startswith("https://")
+
+
+def get_latest_version(client: MLClient, name: str) -> str:
+    latest_version = None
+    created_at = None
+    for component in client.components.list(name=name):
+        if created_at is None or component.creation_context.created_at > created_at:
+            latest_version = component.version
+            created_at = component.creation_context.created_at
+    return latest_version
+
+
+class PrivacyEstimatesComponentLoader(metaclass=SingletonMeta):
+    def __init__(self, client: Optional[MLClient] = None, override_version: Optional[str] = None):
+        """
+        Singleton class to load privacy_estimates AML components.
+
+        This class is used to have universal way of loading components for the privacy estimates package.
+        Most of the time, you will not need to interact with this class directly, since the default is to load the components
+        locally i.e. from your local privacy_estimates installation. However, other use cases require signed AML components
+        in this case we want to globally select the version of the AML components to load.
+
+        Args:
+            client (Optional[MLClient]): An optional MLClient instance to interact with Azure Machine Learning services.
+            override_version (Optional[str]): An optional string to override the component version. If not provided, 
+                                              the version will be fetched from the PRIVACY_ESTIMATES_COMPONENT_VERSION 
+                                              environment variable.
+        """
+        self.client = client
+        self.override_version = override_version
+
+        if self.override_version is None:
+            logger.info("Using component version from PRIVACY_ESTIMATES_COMPONENT_VERSION environment variable")
+            self.override_version = os.environ.get("PRIVACY_ESTIMATES_COMPONENT_VERSION", None)
+
+    @classmethod
+    def set_client(cls, client: MLClient, version: str = version("privacy_estimates")) -> None:
+        """
+        Sets the global MLClient and version for the PrivacyEstimatesComponentLoader.
+
+        Args:
+            client (MLClient): The MLClient instance to be set globally.
+            version (str, optional): The version of the privacy estimates to override. Defaults to the version of the 
+                                     "privacy_estimates" package. It is also possible to pass 'default' which will use
+                                     the default version of the components in the workspace.
+        """
+        loader = PrivacyEstimatesComponentLoader(client=client, override_version=version)
+        if loader.client is not client or loader.override_version != version:
+            raise ValueError("Could not set global client and version. It probably has been set already.")
+
+    def load_from_function(self, func: Callable[..., Component], version: str = "local") -> Callable[..., Component]:
+        version = self.override_version or version
+
+        if version == "local":
+            return func
+        else:
+            return self.load_by_name(name=func.component.name, version=version)
 
     def load_from_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         version = self.override_version or version
 
+        if path.exists():
+            return self._load_from_local_component_spec(path, version)
+        elif is_url(path):
+            return self._load_from_remote_component_spec(path, version)
+        else:
+            raise FileNotFoundError(f"Could not find component spec at {path}. Path does not exist.")
+
+    def _load_from_local_component_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
         if not path.exists():
             raise FileNotFoundError(f"Could not find component spec at {path}. Path does not exist.")
 
@@ -139,20 +330,31 @@ class AMLComponentLoader:
             with path.open() as f:
                 spec = safe_load(f)
             name = spec["name"]
-            return load_component(client=self.workspace.ml_client, name=name, version=version)
+            return self.load_by_name(name=name, version=version)
+
+    def _load_from_remote_component_spec(self, url: str, version: str = "local") -> Callable[..., Component]:
+        raise NotImplementedError("Loading components from remote URLs is not yet supported")
 
     def load_by_name(self, name: str, version: str) -> Callable[..., Component]:
-        return load_component(client=self.workspace.ml_client, name=name, version=version)
+        if self.client is None:
+            raise ValueError("Cannot load component by name without a client")
+        if version == "local":
+            raise ValueError("Cannot load component by name with version 'local'")
+        if version == "latest":
+            version = get_latest_version(self.client, name=name)
+        if version == "default":
+            return self.client.components.get(name)
+        return self.client.components.get(name=name, version=version)
 
 
 class ExperimentBase:
     def __init__(self, workspace: WorkspaceConfig):
-        self.aml_component_loader = AMLComponentLoader(workspace=workspace)
         self.workspace = workspace
 
         # initialize AML logging
         logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
         logging.getLogger("azure.identity._credentials.chained").setLevel(logging.WARNING)
+        logging.getLogger("azure.identity").setLevel(logging.WARNING)
 
     def submit(self, display_name: Optional[str] = None, tags: Optional[Dict[str, str]] = None) -> PipelineJob:
         self.validate()
@@ -172,9 +374,11 @@ class ExperimentBase:
                 tags[f"{group_name}.{param_name}"] = str(param_value)
 
         logger.info("Submitting job...")
+        if not isinstance(self.default_compute, ClusterComputeConfig):
+            raise ValueError("default_compute must be an instance of ClusterComputeConfig")
+        job.settings.default_compute = self.default_compute.cluster_name
         submitted_job = self.workspace.ml_client.jobs.create_or_update(
-            job, compute=self.default_compute, experiment_name=self.experiment_name, tags=tags,
-            skip_validation=False
+            job, experiment_name=self.experiment_name, tags=tags, skip_validation=False
         )
         return submitted_job
 
@@ -211,15 +415,6 @@ class ExperimentBase:
         self.pipeline(**pipeline_parameters_dict)
         logger.info("Pipeline validated")
 
-    def load_component_from_spec(self, path: Path, version: str = "local") -> Callable[..., Component]:
-        return self.aml_component_loader.load_from_component_spec(path, version)
-
-    def load_component_by_name(self, name: str, version: str) -> Callable[..., Component]:
-        return self.aml_component_loader.load_by_name(name, version)
-
-    def set_compute_target(self, component: Component, target: str):
-        component.runsettings.configure(target=target)
-
     @classmethod
     def main(cls, config_path):
         """
@@ -244,7 +439,8 @@ class ExperimentBase:
             submit = config.pop("submit", False)
             name = config.pop("name", None)
 
-            type_hints.pop("return")
+            if "return" in type_hints:
+                type_hints.pop("return")
             if set(type_hints.keys()) != set(config.keys()):
                 missing_keys_in_config = set(type_hints.keys()) - set(config.keys())
                 if len(missing_keys_in_config) > 0:
@@ -281,11 +477,22 @@ class DatastoreURI(str):
         return str.__new__(cls, uri)
 
     @classmethod
+    def from_datastore_uri(cls, uri: str, workspace: WorkspaceConfig) -> "DatastoreURI":
+        if "subscriptions" in uri:
+            return cls(uri)
+        workspace_path = f"azureml://subscriptions/{workspace.subscription_id}/resourcegroups/{workspace.resource_group}/" \
+                         f"workspaces/{workspace.workspace_name}/"
+        uri = uri.replace("azureml://", workspace_path)
+        return cls(uri)
+
+    @classmethod
     def from_asset_uri(cls, uri: str, workspace: WorkspaceConfig) -> "DatastoreURI":
         pattern = re.compile(r"/data/([^/]+)")
         match = re.search(pattern, uri)
         if match:
             data = match.group(1)
+        else:
+            raise ValueError(f"URI {uri} does not match pattern {pattern}. Verify that the URI is a valid Asset URI.")
 
         pattern = re.compile(r"/versions/([^/]+)")
         match = re.search(pattern, uri)
@@ -318,20 +525,26 @@ class DatastoreURI(str):
 
 
 class Job:
-    def __init__(self, aml_run, local_name: Optional[str] = None):
-        from azureml.core import Run
-        self.aml_run: Run = aml_run
-        self.details = aml_run.get_details()
-        self.ws = WorkspaceConfig(
-            workspace_name=aml_run.experiment.workspace.name,
-            resource_group=aml_run.experiment.workspace.resource_group,
-            subscription_id=aml_run.experiment.workspace.subscription_id,
-        )
+    def __init__(
+        self, aml_job, workspace: WorkspaceConfig, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None
+    ):
+        self.aml_job = aml_job
+        self.ws = workspace
+
+        self.aml_run = self.ws.workspace.get_run(aml_job.name)
+        if add_tags is None:
+            add_tags = dict()
+        self.details = self.aml_run.get_details()
         self.local_name = local_name
 
+        existing_tags = self.aml_run.get_tags()
+        duplicate_keys = set(existing_tags.keys()).intersection(add_tags.keys())
+        if len(duplicate_keys) > 0:
+            raise ValueError(f"Tags {duplicate_keys} already exist in the job. Cannot add tags with duplicate keys.")
+        self.aml_run.set_tags({**existing_tags, **add_tags})
+
     @classmethod
-    def from_url(cls, url: str, local_name: Optional[str] = None) -> "Job":
-        from azureml.core import Run
+    def from_url(cls, url: str, local_name: Optional[str] = None, add_tags: Optional[Dict[str, str]] = None) -> "Job":
         parsed_url = urlparse(url)
 
         query_dict = parse_qs(parsed_url.query)
@@ -348,20 +561,40 @@ class Job:
         run_value_index = path_segments.index('runs') + 1
         run_id = path_segments[run_value_index]
 
-        run = Run.get(ws.workspace, run_id=run_id)
+        aml_job = ws.ml_client.jobs.get(run_id)
 
-        return Job(aml_run=run, local_name=local_name)
+        node_path, = query_dict.get('nsq', [None])
+        if node_path is not None:
+            node_path = node_path.replace("nodePath == ", "").replace("\\/", "/")
+            node_path_ls = [ p for p in node_path.split("/") if p ]
+            job = Job(aml_job=aml_job, workspace=ws)
+            while len(node_path_ls) > 0:
+                job = job.get_node(node_path_ls.pop(0))
+            aml_job = job.aml_job
+        return Job(aml_job=aml_job, workspace=ws, local_name=local_name, add_tags=add_tags)
 
     @classmethod
     def from_id(cls, workspace: WorkspaceConfig, run_id: str, local_name: Optional[str] = None) -> "Job":
-        from azureml.core import Run
-        run = Run.get(workspace.workspace, run_id=run_id)
-        return Job(aml_run=run, local_name=local_name)
+        aml_job = workspace.ml_client.jobs.get(run_id)
+        return Job(aml_job=aml_job, local_name=local_name)
 
     def get_node(self, name: str) -> "Job":
-        children = self.aml_run.get_children()
-        node = next(filter(lambda x: x.display_name == name, children))
-        return Job(aml_run=node)
+        children = self.ws.ml_client.jobs.list(parent_job_name=self.aml_job.name)
+        node = None
+        for c in children:
+            if c.display_name == name:
+                node = c
+                break
+        if node is None:
+            raise ValueError(
+                f"Node {name} not found in job {self.aml_job.name}. "
+                f"Available nodes: {', '.join([c.display_name for c in children])}"
+            )
+        if node.properties["StepType"] == "SubGraphCloudStep":
+            children = list(self.ws.ml_client.jobs.list(parent_job_name=node.name))
+            assert len(children) == 1
+            node = self.ws.ml_client.jobs.get(children[0].name)
+        return Job(aml_job=node, workspace=self.ws)
 
     def download_input(self, name: str, path: str, match_pattern: str = "*") -> Path:
         input_details = self.details['runDefinition']['inputAssets'][name]
@@ -371,11 +604,18 @@ class Job:
         return local_path
 
     def download_output(self, name: str, path: str, match_pattern: str = "*") -> Path:
-        output_details = self.details['runDefinition']['outputAssets'][name]
-        uri = DatastoreURI.from_asset_uri(uri=output_details["asset"]["assetId"],
-                                          workspace=self.ws)
+        run_id = self.aml_run.id
+        if self.aml_job.properties.get("azureml.isreused", False):
+            run_id = self.aml_job.properties["azureml.reusedrunid"]
+        uri_path = self.details['runDefinition']['outputData'][name]["outputLocation"]["uri"]["path"]
+        uri_path = uri_path.replace("${{name}}", run_id)
+        uri = DatastoreURI.from_datastore_uri(uri=uri_path, workspace=self.ws)
         local_path = uri.download_content(path=path, match_pattern=match_pattern)
         return local_path
+
+    def resubmit(self):
+        breakpoint()
+        return self.ws.ml_client.jobs.create_or_update(self.aml_job) 
 
     def get_command(self, input_paths: Optional[Dict[str, Path]] = None, output_path: Optional[Path] = None) -> str:
         """
@@ -426,6 +666,18 @@ class Job:
             return json.loads(properties['azureml.parameters'])
         else:
             return {}
+
+    @property
+    def environment_variables(self) -> Dict[str, Any]:
+        return self.details["runDefinition"]["environmentVariables"]
+
+    @property
+    def input_parameters(self) -> Dict[str, Any]:
+        env_vars = self.details["runDefinition"]["environmentVariables"]
+        input_params = {
+            k.replace("AZUREML_PARAMETER_", ""): v for k, v in env_vars.items() if k.startswith("AZUREML_PARAMETER_")
+        }
+        return input_params
 
     @property
     def experiment_name(self) -> str:
@@ -515,13 +767,15 @@ class JobList:
 
     @classmethod
     def from_table_with_urls(cls, table: pd.DataFrame, url_column: Optional[str] = "AML",
-                             filter_by_column: Optional[str] = None) -> "JobList":
+                             add_tags_from_columns: Optional[List[str]] = None) -> "JobList":
         """
         Creates a JobList object from a pandas DataFrame.
         """
-        if filter_by_column is not None:
-            table = table[bool(table[filter_by_column])]
-        return cls.from_urls(table[url_column])
+        if add_tags_from_columns is None:
+            tags = None
+        else:
+            tags = {c: table[c] for c in add_tags_from_columns}
+        return cls.from_urls(table[url_column], add_tags=tags)
 
     @classmethod
     def from_table_with_ids(cls, table: pd.DataFrame, id_column: str, workspace: WorkspaceConfig,
@@ -531,7 +785,8 @@ class JobList:
         return cls.from_ids(workspace=workspace, ids=table[id_column])
 
     @classmethod
-    def from_urls(cls, urls: Union[List[str], OrderedDict[str, str]], disable_pbar: Optional[bool] = True) -> "JobList":
+    def from_urls(cls, urls: Union[List[str], OrderedDict[str, str]], disable_pbar: Optional[bool] = True,
+                  add_tags: Optional[Dict[str, List[str]]] = None) -> "JobList":
         """
         Creates a JobList object from a list of job URLs.
 
@@ -542,10 +797,19 @@ class JobList:
         Returns:
             JobList: A JobList object containing the jobs specified in the list of URLs.
         """
-        if isinstance(urls, Mapping):
-            jobs = pmap(Job.from_url, urls.values(), urls.keys(), pm_pbar=not disable_pbar)
+        if add_tags is not None:
+            tags = [{k: v} for j in range(len(urls)) for i, (k, v) in enumerate(add_tags.items()) if i == j]
         else:
-            jobs = pmap(Job.from_url, urls, pm_pbar=not disable_pbar)
+            tags = [{} for _ in range(len(urls))]
+
+        if isinstance(urls, Mapping):
+            jobs = [
+                Job.from_url(url=url, local_name=name, add_tags=tags)
+                for (name, url), tags
+                in tqdm(zip(urls.items(), tags), disable=disable_pbar)
+            ]
+        else:
+            jobs = [Job.from_url(url=url, add_tags=tag) for url, tag in tqdm(zip(urls, tags), disable=disable_pbar)]
         return cls(jobs=list(jobs))
 
     @classmethod

@@ -19,9 +19,11 @@ from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from tqdm import tqdm
-from typing import Callable, Optional
+from typing import Callable, Optional, List, Dict
+from functools import partial
+from itertools import islice
 
-from models.cnn import CNN, compute_prediction_metrics, compute_accuracy, compute_loss
+from models.cnn import CNN, compute_prediction_metrics, compute_accuracy, compute_loss, collate_image_batch
 from dpd import CanaryGradient, CanaryTrackingOptimizer, DPDistinguishingData
 from utils import DPParameters
 
@@ -62,6 +64,12 @@ class Arguments(BaseModel):
     )
     dataloader_num_workers: int = Field(
         default=4, description="Number of workers for data loading. 0 means that the data will be loaded in the main process"
+    )
+    dataloader_prefetch_factor: int = Field(
+        default=2, description="Number of batches loaded in advance by each worker"
+    )
+    keep_data_in_memory: int = Field(
+        default=0, description="Keep the data in memory"
     )
     logging_steps: int = Field(
         default=100, description="Prints accuracy, loss, and privacy accounting information during training every k logical "
@@ -109,8 +117,8 @@ class Arguments(BaseModel):
 
 def train(args: Arguments,
           model: nn.Module,
-          device: torch.device,
           train_loader: DataLoader,
+          device: str,
           optimizer: optim.Optimizer,
           epoch: int,
           compute_epsilon: Optional[Callable[[int], float]] = None):
@@ -192,8 +200,8 @@ def train(args: Arguments,
 def main(args: Arguments):
     print(args)
 
-    train_data = datasets.load_from_disk(args.train_data_path)
-    test_data = datasets.load_from_disk(args.test_data_path)
+    train_data = datasets.load_from_disk(args.train_data_path, keep_in_memory=args.keep_data_in_memory)
+    test_data = datasets.load_from_disk(args.test_data_path, keep_in_memory=args.keep_data_in_memory)
 
     if not args.use_cpu and not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available")
@@ -218,16 +226,19 @@ def main(args: Arguments):
     np.random.seed(args.seed)
 
     train_loader = DataLoader(
-        train_data.with_format("torch"),
+        train_data,
         batch_size=args.total_train_batch_size,
         num_workers=args.dataloader_num_workers,
+        prefetch_factor=args.dataloader_prefetch_factor,
         pin_memory=True,
+        collate_fn=partial(collate_image_batch, device="cpu"),
     )
 
     test_loader = DataLoader(
-        test_data.with_format("torch"),
+        test_data,
         batch_size=args.max_physical_batch_size,
-        num_workers=args.dataloader_num_workers
+        num_workers=args.dataloader_num_workers,
+        collate_fn=partial(collate_image_batch, device="cpu"),
     )
 
     # Supress warnings

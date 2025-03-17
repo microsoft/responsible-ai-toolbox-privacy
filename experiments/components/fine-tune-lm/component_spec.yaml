@@ -1,0 +1,83 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates_experiments_fine_tune_language_model
+display_name: Fine-tune transformer language model
+version: local1
+type: command
+description: Fine-tune transformer language model
+inputs:
+  train_data:
+    type: uri_folder
+    description: Training data in Huggingface dataset format
+    optional: false
+  validation_data:
+    type: uri_folder
+    description: Validation data in Huggingface dataset format
+    optional: false
+  text_column:
+    type: string
+    description: Name of the text column in the dataset
+  seed:
+    type: integer
+    description: Random seed
+    default: 123891
+    optional: false
+  model_name:
+    type: string
+    description: Model name.
+    optional: false
+  num_train_epochs:
+    type: number
+    description: Number of training epochs.
+    optional: false
+  learning_rate:
+    type: number 
+    description: Learning rate.
+    optional: false
+  per_device_train_batch_size:
+    type: integer
+    description: Per device train batch size.
+    optional: false
+  gradient_accumulation_steps:
+    type: integer
+    description: Number of gradient accumulation steps.
+    optional: false
+  max_sequence_length:
+    type: integer
+    description: Max sequence length of input samples. 
+outputs:
+  model:
+    type: uri_folder
+    description: Trained models.
+code: .
+additional_includes:
+  - "../../data"
+resources:
+  instance_count: 1
+distribution:
+  type: pytorch
+  process_count_per_instance: 1
+command: >-
+  python fine_tune_lm.py \
+    --train_data ${{inputs.train_data}} \
+    --eval_data ${{inputs.validation_data}} \
+    --text_column ${{inputs.text_column}} \
+    --model_name_or_path ${{inputs.model_name}} \
+    --lr_scheduler_type constant \
+    --learning_rate ${{inputs.learning_rate}} \
+    --num_train_epochs ${{inputs.num_train_epochs}} \
+    --logging_strategy steps \
+    --logging_steps 1 \
+    --save_strategy no \
+    --disable_tqdm 1 \
+    --eval_strategy epoch \
+    --dataloader_num_workers 2 \
+    --remove_unused_columns 0 \
+    --label_names label \
+    --per_device_train_batch_size ${{inputs.per_device_train_batch_size}} \
+    --gradient_accumulation_steps ${{inputs.gradient_accumulation_steps}} \
+    --max_sequence_length ${{inputs.max_sequence_length}} \
+    --output_dir ${{outputs.model}} \
+    --seed ${{inputs.seed}}
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.8-cudnn8-ubuntu22.04

@@ -1,0 +1,33 @@
+defaults:
+  - workspace: M365Research-PPML-EUS
+  - _self_
+
+shared_training_parameters:
+  target_epsilon: 8.0
+  num_train_epochs: 3.0
+  learning_rate: 5e-4
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 128
+  per_sample_max_grad_norm: 0.1
+  max_sequence_length: 67
+  delta: 1e-5
+  model_name: roberta-base
+
+shared_inference_parameters:
+  batch_size: 256
+
+game_config:
+  num_models: 1
+  seed: 1920
+  num_concurrent_jobs_per_node: 1
+  num_challenge_points_per_model: 1024
+
+mi_signal_config:
+  method: TaylorSoftMargin
+  extra_args:
+    temp: 2.0 
+    taylor_m: 0.6
+    taylor_n: 4
+
+rmia_config:
+  offline_a: 0.5

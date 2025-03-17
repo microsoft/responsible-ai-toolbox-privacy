@@ -1,0 +1,50 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+name: privacy_estimates_experiments_predict_with_lm
+display_name: Compute predictions with a language model
+version: local1
+description: "Compute predictions with a language model"
+inputs:
+  model:
+    type: uri_folder
+    description: "Path to the model to use in HF format"
+  data:
+    type: uri_folder
+    description: "Path to the data in HF format."
+  per_device_batch_size:
+    type: integer
+    description: "Batch size per device"
+    type: integer
+  text_column:
+    type: string
+    description: "Name of the text column in the dataset"
+  log_level:
+    type: string
+    description: "Log level."
+    default: info
+  disable_distributed:
+    type: boolean
+    description: "Disable distributed training"
+    default: true
+outputs:
+  predictions:
+    type: uri_folder
+    description: Output directory
+
+code: ./
+additional_includes:
+  - "../../data"
+
+command: >-
+  python predict.py \
+    --model_path ${{inputs.model}} \
+    --per_device_batch_size ${{inputs.per_device_batch_size}} \
+    --data_path ${{inputs.data}} \
+    --text_column ${{inputs.text_column}} \
+    --predictions_path ${{outputs.predictions}} \
+    --log_level ${{inputs.log_level}} \
+    --disable_distributed ${{inputs.disable_distributed}} 
+
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.8-cudnn8-ubuntu22.04
+  conda_file: ./environment.yaml

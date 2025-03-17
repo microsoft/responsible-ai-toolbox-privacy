@@ -1,0 +1,24 @@
+defaults:
+  - workspace: M365Research-PPML-EUS
+  - _self_
+
+shared_training_parameters:
+  per_device_train_batch_size: 32
+  learning_rate: 1e-4
+  num_train_epochs: 3
+  model_name: gpt2
+  gradient_accumulation_steps: 1
+  max_sequence_length: 512
+
+shared_inference_parameters:
+  per_device_batch_size: 32
+
+game_config:
+  num_models: 1
+  seed: 1920
+  num_concurrent_jobs_per_node: 1
+  num_challenge_points_per_model: 1024
+
+shadow_model_config:
+  num_models: 2
+  in_fraction: 0.5

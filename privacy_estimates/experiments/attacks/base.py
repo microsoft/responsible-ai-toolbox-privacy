@@ -7,5 +7,5 @@ class AttackLoader(ABC):
         pass
 
     @property
-    def requires_shadow_model_statistics(self) -> bool:
+    def requires_shadow_artifact_statistics(self) -> bool:
         return False

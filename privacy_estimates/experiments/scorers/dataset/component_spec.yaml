@@ -1,0 +1,28 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates__experiments__scorer__dataset
+display_name: dataset_scorer
+version: local1
+type: command
+description: MI Scorer for dataset
+inputs:
+  artifact:
+    type: uri_folder
+    description: Synthetic dataset in Huggingface dataset format
+  dataset:
+    type: uri_folder
+    description: Dataset to be scored in Huggingface dataset format
+  template:
+    type: string
+    description: |
+      Template to convert a row of the dataset to a string.
+      For example if the dataset has columns: label and text: "Generate a {label} sentence: {text}"
+      Another example, if there is just a single column could be just to select the column: "{text}"
+outputs:
+  scores:
+    type: uri_folder
+    description: membership scores for the dataset in Huggingface dataset format
+code: .
+command: python scorer.py --synthetic-dataset ${{inputs.artifact}} --scoring-dataset ${{inputs.dataset}} --template "${{inputs.template}}" --scores ${{outputs.scores}} 
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04
+  conda_file: environment.yaml

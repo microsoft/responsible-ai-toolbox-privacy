@@ -19,7 +19,7 @@ class TestCanaryGradient:
         cg = CanaryGradient(shapes=shapes, method=method, norm=norm, is_static=is_static)
 
         dim_shapes = sum(sum(np.prod(p) for p in group) for group in shapes)
-        dim_cg = sum(sum(p.numel() for p in group) for group in cg.gradient) 
+        dim_cg = sum(sum(p.numel() for p in group) for group in cg.gradient)
         assert dim_shapes == dim_cg
 
         cg_norm_2 = 0.0
@@ -54,7 +54,7 @@ class TestCanaryTrackingOptimizer:
 
         optimizer.zero_grad()
 
-        x = torch.randn((8,10))
+        x = torch.randn((8, 10))
         y = model(x)
         y.mean().backward()
 
@@ -72,13 +72,14 @@ class TestCanaryTrackingOptimizer:
         assert canary_tracking_optimizer.observations[0] == pytest.approx(score.item())
 
     def get_observation(self, norm: float, method: str, mean: float, std: float, batch_size: int):
-        model = GradSampleModule(nn.Linear(10, 1, bias=False))
+        dim = 100
+        model = GradSampleModule(nn.Linear(dim, 1, bias=False))
 
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
         optimizer.zero_grad()
 
-        x = torch.randn((batch_size, 10)) * std + mean
+        x = torch.randn((batch_size, dim)) * std + mean
         y = model(x)
         y.mean().backward()
 
@@ -113,7 +114,3 @@ class TestCanaryTrackingOptimizer:
         _, p = stats.shapiro(observations)
 
         assert p > 0.05
-
-
-
-

@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Union
 from pathlib import Path
 from warnings import warn
+from tempfile import TemporaryDirectory
 
 from privacy_estimates import convert_eps_deltas_to_fpr_fnr
 
@@ -14,7 +15,7 @@ class AbstractTradeOffCurve(ABC):
         pass
 
     @abstractmethod
-    def append_to_fpr_tpr_plot(self, fig, ax):
+    def append_to_fpr_tpr_plot(self, fig, ax, plot_zeros: bool = True):
         pass
 
 
@@ -45,10 +46,17 @@ class TradeOffCurve(AbstractTradeOffCurve):
         ax.legend()
         return fig, ax
 
-    def append_to_fpr_tpr_plot(self, fig, ax, plot_args=None):
+    def append_to_fpr_tpr_plot(self, fig, ax, plot_zeros: bool = True, plot_args=None):
         if plot_args is None:
             plot_args = {}
-        ax.plot(self.fpr, 1 - self.fnr, label=self.name, **plot_args)
+        x = self.fpr
+        y = 1 - self.fnr
+        if not plot_zeros:
+            # if either x or y is zero, remove the point
+            mask = (x > 0) & (y > 0)
+            x = x[mask]
+            y = y[mask]
+        ax.plot(x, y, label=self.name, **plot_args)
         ax.legend()
         return fig, ax
 
@@ -81,22 +89,27 @@ class EmpiricalTradeOffCurve(AbstractTradeOffCurve):
             hi=self.hi.interpolate_curve(fpr),
         )
 
-    def append_to_fpr_fnr_plot(self, fig, ax, color: str = "blue"):
-        fig, ax = self.lo.append_to_fpr_fnr_plot(fig, ax, plot_args={"color": color, "linestyle": "-."})
-        fig, ax = self.hi.append_to_fpr_fnr_plot(fig, ax, plot_args={"color": color, "linestyle": "--"})
+    def append_to_fpr_fnr_plot(self, fig, ax):
+        fig, ax = self.lo.append_to_fpr_fnr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "-."})
+        fig, ax = self.hi.append_to_fpr_fnr_plot(fig, ax, plot_args={"color": "blue", "linestyle": "--"})
         fpr = self.all_fpr()
         fnr_lo = self.lo.interpolate_curve(fpr).fnr
         fnr_hi = self.hi.interpolate_curve(fpr).fnr
-        ax.fill_between(fpr, fnr_lo, fnr_hi, alpha=0.2, color=color)
+        ax.fill_between(fpr, fnr_lo, fnr_hi, alpha=0.2, color="blue")
         return fig, ax
 
-    def append_to_fpr_tpr_plot(self, fig, ax, color: str = "blue"):
-        fig, ax = self.lo.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": color, "linestyle": "-."})
-        fig, ax = self.hi.append_to_fpr_tpr_plot(fig, ax, plot_args={"color": color, "linestyle": "--"})
+    def append_to_fpr_tpr_plot(self, fig, ax, plot_zeros: bool = True):
+        fig, ax = self.lo.append_to_fpr_tpr_plot(fig, ax, plot_zeros=plot_zeros, plot_args={"color": "blue", "linestyle": "-."})
+        fig, ax = self.hi.append_to_fpr_tpr_plot(fig, ax, plot_zeros=plot_zeros, plot_args={"color": "blue", "linestyle": "--"})
         fpr = self.all_fpr()
         tpr_hi = 1 - self.lo.interpolate_curve(fpr).fnr
         tpr_lo = 1 - self.hi.interpolate_curve(fpr).fnr
-        ax.fill_between(tpr_lo, fpr, tpr_hi, alpha=0.2, color=color)
+        if not plot_zeros:
+            mask = (tpr_lo > 0) & (tpr_hi > 0)
+            fpr = fpr[mask]
+            tpr_lo = tpr_lo[mask]
+            tpr_hi = tpr_hi[mask]
+        ax.fill_between(fpr, tpr_lo, tpr_hi, alpha=0.2, color="blue")
         return fig, ax
 
     def fnr_as_dict(self) -> Dict[str, List[float]]:
@@ -152,7 +165,7 @@ class AbstractLogger(ABC):
 
 class MatplotlibLogger(AbstractLogger):
     def __init__(self, path: Path):
-        self.path = path
+        self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 
     def log(self, report: PrivacyReport):
@@ -163,27 +176,37 @@ class MatplotlibLogger(AbstractLogger):
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
                 fig, ax = curve.append_to_fpr_fnr_plot(fig, ax)
+            ax.plot([0, 1], [1, 0], label="perfect privacy", color="grey", linestyle="--")
+            ax.set_xlim([0, 1])
+            ax.set_ylim([0, 1])
             ax.set_xlabel("FPR")
             ax.set_ylabel("FNR")            
             ax.set_aspect("equal")
+            ax.legend(loc="lower right")
             plt.savefig(self.path/"trade_off_curves.png")
 
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
                 fig, ax = curve.append_to_fpr_tpr_plot(fig, ax)
+            ax.plot([0, 1], [0, 1], label="perfect privacy", color="grey", linestyle="--") 
+            ax.set_xlim([0, 1])
+            ax.set_ylim([0, 1])
             ax.set_xlabel("FPR")
             ax.set_ylabel("TPR")
             ax.set_aspect("equal")
+            ax.legend(loc="lower right")
             plt.savefig(self.path/"trade_off_curves_fpr_tpr.png")
 
             fig, ax = plt.subplots()
             for curve in report.trade_off_curves:
-                fig, ax = curve.append_to_fpr_tpr_plot(fig, ax)
-            ax.set_xlabel("TPR")
-            ax.set_ylabel("FPR")
+                fig, ax = curve.append_to_fpr_tpr_plot(fig, ax, plot_zeros=False)
+            ax.plot([0, 1], [0, 1], label="perfect privacy", color="grey", linestyle="--")
+            ax.set_xlabel("FPR")
+            ax.set_ylabel("TPR")
             ax.set_xscale("log")
             ax.set_yscale("log")
             ax.set_aspect("equal")
+            ax.legend(loc="lower right")
             plt.savefig(self.path/"trade_off_curves_fpr_tpr_log.png")
 
         if report.mi_score_distribution is not None:
@@ -215,14 +238,15 @@ class AMLLogger(AbstractLogger):
             return
 
         # Create PNGs and log to images
-        MatplotlibLogger(Path(".")).log(report)
-        if len(report.trade_off_curves) > 0:
-            self.run.log_image(name="trade_off_curves.png", path="trade_off_curves.png")
-            self.run.log_image(name="trade_off_curves_fpr_tpr.png", path="trade_off_curves_fpr_tpr.png")
-            self.run.log_image(name="trade_off_curves_fpr_tpr_log.png", path="trade_off_curves_fpr_tpr_log.png")
-        if report.mi_score_distribution is not None:
-            self.run.log_image(name="mi_score_histogram.png", path="mi_score_histogram.png")
-            self.run.log_image(name="mi_score_kde.png", path="mi_score_kde.png")
+        with TemporaryDirectory() as temp_dir:
+            MatplotlibLogger(Path(temp_dir)).log(report)
+            if len(report.trade_off_curves) > 0:
+                self.run.log_image(name="trade_off_curves.png", path="trade_off_curves.png")
+                self.run.log_image(name="trade_off_curves_fpr_tpr.png", path="trade_off_curves_fpr_tpr.png")
+                self.run.log_image(name="trade_off_curves_fpr_tpr_log.png", path="trade_off_curves_fpr_tpr_log.png")
+            if report.mi_score_distribution is not None:
+                self.run.log_image(name="mi_score_histogram.png", path="mi_score_histogram.png")
+                self.run.log_image(name="mi_score_kde.png", path="mi_score_kde.png")
 
         if len(report.trade_off_curves) > 0:
             # Log trade off curves as tables to metrics
@@ -262,7 +286,7 @@ class AMLLogger(AbstractLogger):
 
 class PDFLogger(AbstractLogger):
     def __init__(self, path: Path):
-        self.path = path
+        self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 
     def log(self, report: PrivacyReport):

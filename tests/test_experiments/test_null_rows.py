@@ -18,4 +18,3 @@ def test_null_rows():
     ds = drop_null_rows(ds)
 
     assert len(ds) == 4
-

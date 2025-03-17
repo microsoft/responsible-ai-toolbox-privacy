@@ -1,0 +1,54 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: privacy_estimates_experiments_compute_predictions_with_transformer_classifier
+display_name: Compute predictions using transformer classifier
+version: local1
+type: command
+description: Compute predictions using transformer classifier
+inputs:
+  model:
+    type: uri_folder
+    description: The checkpoint directory
+    optional: false
+  dataset:
+    type: uri_folder
+    description: Dataset in Huggingface dataset format
+    optional: false
+  model_rel_path:
+    type: string
+    description: Relative path to experiment directory to extract model checkpoints
+    default: "./"
+    optional: false
+  tokenizer_rel_path:
+    type: string
+    description: Relative path to experiment directory to extract tokenizer
+    default: "./"
+    optional: false
+  params_rel_path:
+    type: string
+    description: Relative path to experiment directory to extract params
+    default: "./params.json"
+    optional: false
+  batch_size:
+    type: integer
+    description: Batch size for the model
+    default: 1024
+    optional: true
+outputs:
+  predictions:
+    type: uri_folder
+    description: Predictions in Huggingface dataset format
+code: .
+additional_includes:
+  - "../../data"
+command: >-
+  python predict_with_transformer_classifier.py \
+    --dataset ${{inputs.dataset}} \
+    --experiment_dir ${{inputs.model}} \
+    --model_rel_path ${{inputs.model_rel_path}} \
+    --tokenizer_rel_path ${{inputs.tokenizer_rel_path}} \
+    --params_rel_path ${{inputs.params_rel_path}} \
+    $[[ --batch_size ${{inputs.batch_size}} ]] \
+    --output ${{outputs.predictions}}
+environment:
+  conda_file: environment.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.6-cudnn8-ubuntu20.04

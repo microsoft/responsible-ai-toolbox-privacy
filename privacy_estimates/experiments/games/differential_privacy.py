@@ -5,7 +5,7 @@ from azure.ai.ml.entities import PipelineJob
 from abc import abstractmethod
 
 from privacy_estimates.experiments.aml import ExperimentBase, WorkspaceConfig
-from privacy_estimates.experiments.loaders import TrainingComponentLoader, SingleGameLoader
+from privacy_estimates.experiments.loaders import TrainComponentLoader, SingleGameLoader
 from privacy_estimates.experiments.components import postprocess_dpd_data, compute_privacy_estimates
 from privacy_estimates.experiments.subpipelines.run_many_games import RunManyGamesLoader
 from privacy_estimates.experiments.games.configs import PrivacyEstimationConfig
@@ -21,7 +21,7 @@ class GameConfig:
 
 
 class DPDSingleGame(SingleGameLoader):
-    def __init__(self, train_loader: TrainingComponentLoader):
+    def __init__(self, train_loader: TrainComponentLoader):
         self.train_loader = train_loader
 
     def load(self, train_data: Input, validation_data, seed: int):
@@ -77,7 +77,7 @@ class DifferentialPrivacyGameBase(ExperimentBase):
 
     @property
     @abstractmethod
-    def train_loader(self) -> TrainingComponentLoader:
+    def train_loader(self) -> TrainComponentLoader:
         raise NotImplementedError(
             f"train_loader not implemented for {self.__class__.__name__}"
         )

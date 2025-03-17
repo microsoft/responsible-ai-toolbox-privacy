@@ -7,6 +7,7 @@ from prv_accountant import PRVAccountant, PoissonSubsampledGaussianMechanism
 from typing import Tuple, Optional
 from pydantic_cli import run_and_exit
 from pydantic import BaseModel
+from sklearn.metrics import roc_curve
 
 from privacy_estimates import report as priv_report, compute_privacy_curve_lo_hi
 
@@ -40,8 +41,8 @@ def setup_accountant(dp_parameters_path: Path) -> Tuple[PRVAccountant, int]:
 def main(args: Arguments) -> int:
     report = priv_report.PrivacyReport()
 
-    scores_ds = Dataset.load_from_disk(args.scores)
-    challenge_bits_ds = Dataset.load_from_disk(args.challenge_bits)
+    scores_ds = Dataset.load_from_disk(str(args.scores))
+    challenge_bits_ds = Dataset.load_from_disk(str(args.challenge_bits))
 
     # Add MI score distribution
     report.mi_score_distribution = priv_report.MIScoreDistribution(
@@ -67,8 +68,13 @@ def main(args: Arguments) -> int:
     )
     report.add_trade_off_curve(to_curve_emp)
 
+    # Add ROC curve
+    fpr, tpr, _ = roc_curve(challenge_bits_ds["challenge_bit"], scores_ds["score"])
+    report.add_trade_off_curve(priv_report.TradeOffCurve(fpr=fpr, fnr=1-tpr, name="roc"))
+
     # Output
     loggers = [
+        priv_report.PDFLogger(path="."),
         priv_report.AMLLogger(),
         priv_report.MatplotlibLogger(path=args.privacy_report),
         priv_report.PDFLogger(path=args.privacy_report),

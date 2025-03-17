@@ -1,0 +1,12 @@
+name: ComponentEnvironment
+channels:
+  - defaults
+dependencies:
+  - pip=21.2.4
+  - python=3.8.12
+  - pip:
+    - azure-ai-ml
+    - datasets
+    - mldesigner
+    - openai>1.0.0
+    - tqdm-loggable

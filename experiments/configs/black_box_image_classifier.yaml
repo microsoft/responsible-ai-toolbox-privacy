@@ -1,0 +1,24 @@
+defaults:
+  - workspace: M365Research-PPML-EUS
+  - _self_
+
+shared_training_parameters:
+  total_train_batch_size: 512
+  target_epsilon: 8.0
+  num_train_epochs: 50.0
+  learning_rate: 0.5
+  max_physical_batch_size: 512
+  per_sample_max_grad_norm: 2.6
+  delta: 1e-5
+  lr_scheduler_gamma: 0.96
+
+shared_inference_parameters:
+  batch_size: 512
+
+game_config:
+  num_models: 1024
+  seed: 1920
+  num_concurrent_jobs_per_node: 8
+
+shadow_model_config:
+  num_models: 512

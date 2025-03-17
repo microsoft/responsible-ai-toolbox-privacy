@@ -2,8 +2,8 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager, ExitStack
-from pydantic_cli import run_and_exit
-from pydantic import BaseModel, Field
+from dataclasses import dataclass, field
+from argparse_dataclass import ArgumentParser
 from pathlib import Path
 from typing import Dict, Optional
 from tempfile import TemporaryDirectory
@@ -11,10 +11,17 @@ from tempfile import TemporaryDirectory
 from privacy_estimates.experiments.aml import WorkspaceConfig, Job
 
 
-class Arguments(BaseModel):
-    workspace_config: Optional[Path] = Field(default=None, cli=["--workspace-config"])
-    run_id: Optional[str] = Field(defaulte=None, cli=["--run-id"])
-    url: Optional[str] = Field(default=None, cli=["--url"])
+@dataclass
+class Arguments:
+    workspace_config: Optional[Path] = field(default=None, metadata={
+        "args": ["--workspace-config"], "help": "Path to the workspace configuration JSON file."
+    })
+    run_id: Optional[str] = field(default=None, metadata={
+        "args": ["--run-id"], "help": "Run ID of the job to debug."
+    })
+    url: Optional[str] = field(default=None, metadata={
+        "args": ["--url"], "help": "URL of the job to debug. (Often requires quotes around the URL.)"
+    })
 
 
 @contextmanager
@@ -29,15 +36,17 @@ def download_inputs_to_temp_dir(job: Job) -> Dict[str, Path]:
 
 
 def main(args: Arguments):
-    workspace_and_run_id = bool(args.workspace_config) and bool(args.run_id)
-    if workspace_and_run_id == bool(args.url):
+    if bool(args.run_id) == bool(args.url):
         raise ValueError(
-            "Must specify either --workspace-config and --run-id or --url"
+            "Must specify either --run-id or --url"
         )
     if args.url:
         job = Job.from_url(args.url)
-    if workspace_and_run_id:
-        ws = WorkspaceConfig.from_yaml(args.workspace_config)
+    if args.run_id:
+        if args.workspace_config:
+            ws = WorkspaceConfig.from_yaml(args.workspace_config)
+        else:
+            ws = WorkspaceConfig.from_az_cli()
         job = Job.from_id(ws, run_id=args.run_id)
 
     with download_inputs_to_temp_dir(job) as input_paths:
@@ -53,4 +62,6 @@ def main(args: Arguments):
 
 
 if __name__ == "__main__":
-    run_and_exit(Arguments, main)
+    parser = ArgumentParser(Arguments)
+    args = parser.parse_args()
+    main(args=args)

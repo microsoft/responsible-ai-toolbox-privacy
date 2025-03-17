@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: privacy_estimates_experiments_compute_privacy_estimates
+name: privacy_estimates__compute_privacy_estimates
 display_name: Compute Privacy Estimates
 version: local1
 type: command
@@ -30,12 +30,8 @@ outputs:
 code: .
 additional_includes:
         - "../../../../privacy_estimates"
-        - "../../../../setup.py"
-        - "../../../../VERSION"
-        - "../../../../README.md"
-        - "../../../../scripts"
 command: >-
-  python -m pip install -e .[report] && python compute_privacy_estimates.py \
+  python compute_privacy_estimates.py \
     $[[ --dp_parameters ${{inputs.dp_parameters}} ]] \
     --scores ${{inputs.scores}} \
     --challenge_bits ${{inputs.challenge_bits}} \
@@ -43,5 +39,5 @@ command: >-
     --alpha ${{inputs.alpha}} \
     --privacy_report ${{outputs.privacy_report}}
 environment:
-  conda_file: environment.yaml
+  conda_file: environment.conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

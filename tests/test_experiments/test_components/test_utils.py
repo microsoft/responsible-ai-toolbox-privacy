@@ -1,8 +1,7 @@
-import sys
 import os
 from azure.ai.ml.entities import Command
 from pathlib import Path
-from typing import Dict, Callable, Generator, Any, TypeVar
+from typing import Dict, Callable, Generator, TypeVar
 from contextlib import contextmanager, ExitStack
 from tempfile import TemporaryDirectory
 from datasets import Dataset
