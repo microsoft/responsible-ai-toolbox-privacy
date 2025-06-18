@@ -58,7 +58,7 @@ class AOAIConfig:
     api_key: str
     version: str
 
-    def get_model(self) -> models.AzureOpenAI:
+    def get_model(self):
         return models.AzureOpenAI(
             model=self.model,
             azure_endpoint=self.azure_endpoint,

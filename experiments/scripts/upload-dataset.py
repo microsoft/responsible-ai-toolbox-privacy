@@ -1,12 +1,14 @@
+from multiprocessing.context import SpawnProcess
 from tempfile import TemporaryDirectory
 from pathlib import Path
 from abc import ABC
-from pydantic_cli import run_and_exit
-from pydantic import Field, BaseModel
 from pathlib import Path
-from datasets import Dataset, Features, ClassLabel, Array3D, load_dataset
+from datasets import Dataset, Features, ClassLabel, Array3D, load_dataset, features
 from azure.ai.ml.entities import Data
 from azure.ai.ml.constants import AssetTypes
+from typing import Dict, Optional
+from argparse_dataclass import ArgumentParser
+from dataclasses import dataclass, field
 
 from privacy_estimates.experiments.aml import WorkspaceConfig, RegistryConfig
 
@@ -89,6 +91,40 @@ class SST2(DatasetLoader):
         return "GLUE SST2 dataset in the HuggingFace format"
     
 
+class SNLI(DatasetLoader):
+    def __init__(self, split: str):
+        super().__init__(split=split)
+
+    def preprocess_row(self, row: Dict) -> Dict:
+        return {
+            "sentence": f"Premise: {row['premise']} Hypothesis: {row['hypothesis']}"
+        }
+
+    def as_dataset(self):
+        assert self.split in ["train", "test"]
+
+        ds = load_dataset("stanfordnlp/snli", split=self.split)
+        ds = ds.filter(lambda row: row["label"] != -1)
+        ds = ds.cast_column("label", features.ClassLabel(names=["entailing", "neutral", "contradicting"]))
+        ds = ds.map(self.preprocess_row)
+
+        return ds
+
+
+class SNLI100k(DatasetLoader):
+    def __init__(self, split: str):
+        self.ds_loader = SNLI(split=split)
+        super().__init__(split=split)
+
+    def as_dataset(self):
+        ds = self.ds_loader.as_dataset()
+        if self.split == "train":
+            n_records = 100_000
+        elif self.split == "test":
+            n_records = 9824
+        return ds.select(range(n_records))
+    
+
 class AmazonPolarity5k(DatasetLoader):
     def __init__(self, split: str):
         super().__init__(split=split)
@@ -118,34 +154,34 @@ def get_dataset_loader(dataset_name: str, split: str) -> DatasetLoader:
     return AVAILABLE_DATASETS[dataset_name](split=split)
 
 
-class Arguments(BaseModel):
-    dataset_name: str = Field(
-        description="Name of the dataset to load",
-        choices=AVAILABLE_DATASETS.keys(),
-        cli=["--dataset-name"],
+@dataclass
+class Arguments:
+    dataset_name: str = field(
+        metadata={
+            "help": "Name of the dataset to load",
+            "choices": AVAILABLE_DATASETS.keys(),
+        }
     )
-    split: str = Field(
-        description="Split of the dataset to load",
+    split: str = field(
+        metadata={
+            "help": "Split of the dataset to load",
+        }
     )
-    workspace_config: Path = Field(
+    workspace_config: Optional[Path] = field(
         default=None,
-        cli=["--workspace-config"],
-        description="Path to the workspace config file",
+        metadata={"help": "Path to the workspace config file",}
     )
-    registry_name: str = Field(
+    registry_name: Optional[str] = field(
         default=None,
-        cli=["--registry-name"],
-        description="Name of the registry to use [Optional]",
+        metadata={"help": "Name of the registry to use [Optional]"}
     )
-    registry_location: str = Field(
+    registry_location: Optional[str] = field(
         default=None,
-        cli=["--registry-location"],
-        description="Location of the registry to use [Optional]",
+        metadata={"help": "Location of the registry to use [Optional]"},
     )
-    version: str = Field(
+    version: Optional[str] = field(
         default=None,
-        cli=["--version"],
-        description="Version of the dataset to upload",
+        metadata={"help": "Version of the dataset to upload"}
     )
 
 
@@ -174,4 +210,6 @@ def main(args: Arguments):
 
 
 if __name__ == "__main__":
-    run_and_exit(Arguments, main)
+    parser = ArgumentParser(Arguments)
+    args = parser.parse_args()
+    main(args=args)
