@@ -1,4 +1,5 @@
 import hydra
+import io
 import os
 import logging
 import json
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=None)
-def get_credential() -> ChainedTokenCredential:
+def default_credential() -> ChainedTokenCredential:
     return ChainedTokenCredential(
         AzureCliCredential(),
         DefaultAzureCredential(),
@@ -43,16 +44,14 @@ def get_credential() -> ChainedTokenCredential:
 @dataclass
 class RegistryConfig:
     registry_name: str
-    location: str = None
-    credential: Optional[DefaultAzureCredential] = None
+    location: Optional[str] = None
+    credential: ChainedTokenCredential = default_credential()
 
     def __post_init__(self) -> None:
         self.ml_client = self._get_ml_client()
 
     def _get_ml_client(self) -> MLClient:
         credential = self.credential
-        if credential is None:
-            credential = get_credential()
         return MLClient(credential=credential, registry_name=self.registry_name, registry_location=self.location)
 
 
@@ -115,6 +114,7 @@ class WorkspaceConfig:
     workspace_name: str
     resource_group: str
     subscription_id: str
+    credential: ChainedTokenCredential = default_credential()
     default_compute: Optional[str] = None
     compute: Dict[str, str] = field(default_factory=dict)
 
@@ -137,8 +137,7 @@ class WorkspaceConfig:
         self.default_compute = self.compute.get("default", None)
 
     def _get_ml_client(self) -> MLClient:
-        credential = get_credential()
-        return MLClient(credential=credential, subscription_id=self.subscription_id, resource_group_name=self.resource_group,
+        return MLClient(credential=self.credential, subscription_id=self.subscription_id, resource_group_name=self.resource_group,
                         workspace_name=self.workspace_name)
 
     @property
@@ -536,6 +535,7 @@ class Job:
             add_tags = dict()
         self.details = self.aml_run.get_details()
         self.local_name = local_name
+        self.name = self.aml_job.name
 
         existing_tags = self.aml_run.get_tags()
         duplicate_keys = set(existing_tags.keys()).intersection(add_tags.keys())
@@ -576,7 +576,7 @@ class Job:
     @classmethod
     def from_id(cls, workspace: WorkspaceConfig, run_id: str, local_name: Optional[str] = None) -> "Job":
         aml_job = workspace.ml_client.jobs.get(run_id)
-        return Job(aml_job=aml_job, local_name=local_name)
+        return Job(aml_job=aml_job, workspace=workspace, local_name=local_name)
 
     def get_node(self, name: str) -> "Job":
         children = self.ws.ml_client.jobs.list(parent_job_name=self.aml_job.name)
@@ -595,6 +595,14 @@ class Job:
             assert len(children) == 1
             node = self.ws.ml_client.jobs.get(children[0].name)
         return Job(aml_job=node, workspace=self.ws)
+    
+    @property
+    def nodes(self) -> List[str]:
+        """
+        Returns a list of node names in the job. This is useful for debugging and understanding the structure of the job.
+        """
+        children = self.ws.ml_client.jobs.list(parent_job_name=self.aml_job.name)
+        return [c.display_name for c in children]
 
     def download_input(self, name: str, path: str, match_pattern: str = "*") -> Path:
         input_details = self.details['runDefinition']['inputAssets'][name]
@@ -612,10 +620,6 @@ class Job:
         uri = DatastoreURI.from_datastore_uri(uri=uri_path, workspace=self.ws)
         local_path = uri.download_content(path=path, match_pattern=match_pattern)
         return local_path
-
-    def resubmit(self):
-        breakpoint()
-        return self.ws.ml_client.jobs.create_or_update(self.aml_job) 
 
     def get_command(self, input_paths: Optional[Dict[str, Path]] = None, output_path: Optional[Path] = None) -> str:
         """
@@ -724,7 +728,68 @@ class Job:
                     f"Column {c} not found. Available columns: {list(self.parameters.keys()) + list(self.tags.keys())}"
                 )
         return pd.DataFrame([row])
+    
+    def get_logs(self) -> Dict[str, str]:
+        raise NotImplementedError("This method is not implemented. It is a placeholder for future implementation.")
+        breakpoint()
+        pass
+    
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.aml_run.id,
+            "experiment_name": self.experiment_name,
+            "job_name": self.job_name,
+            "description": self.description,
+            "tags": self.tags,
+            "url": self.url,
+            "children": {n: self.get_node(n).name for n in self.nodes},
+        }
 
+    def save_to_container(self, container_client: "azure.storage.blob.ContainerClient"):
+        """
+        Stors all outputs, metrics and logs to container
+        """
+        dest_dir = "blobazureml/" + self.aml_job.name
+
+        def _upload_file(local_path: str, blob_path: str):
+            with open(local_path, "rb") as data:
+                container_client.upload_blob(name=blob_path, data=data)
+
+        container_client.upload_blob(
+            name=dest_dir + "/metrics.json", data=json.dumps(self.get_metrics(), indent=2), overwrite=True
+        )
+        container_client.upload_blob(
+            name=dest_dir + "/details.json", data=json.dumps(self.as_dict(), indent=2), overwrite=True
+        )
+
+        for children in self.nodes:
+            child_job = self.get_node(children)
+            child_job.save_to_container(container_client)
+
+
+class ContainerJob(Job):
+    def __init__(self, name: str, container_client: "azure.storage.blob.ContainerClient"):
+        self.name = name
+        self.base_blob = "blobazureml/" + self.name + "/"
+        self.container_client = container_client
+
+        self.details = self._read_json_blob("details.json")
+
+    def _read_json_blob(self, blob_name: str) -> Dict[str, Any]:
+        raw_data = self.container_client.download_blob(blob=self.base_blob + blob_name).readall()
+        data = json.loads(raw_data.decode())
+        return data
+
+    def get_metrics(self) -> Dict[str, Any]:
+        return self._read_json_blob("metrics.json")
+
+    def get_node(self, name: str) -> Job:
+        children = self.details["children"]
+        return ContainerJob(name=children[name], container_client=self.container_client)
+
+    @property
+    def nodes(self) -> List[str]:
+        return list(self.details["children"].keys())
 
 YELLOW = "#ffeeba"
 GREEN = "#d4edda"
