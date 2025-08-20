@@ -64,7 +64,7 @@ setup(
             "argparse_dataclass",
             "azure-ai-ml",
             "azure-identity",
-            "azure-storage",
+            "azure-storage-blob",
             "azureml-core",
             "azureml-fsspec",
             "datasets",
