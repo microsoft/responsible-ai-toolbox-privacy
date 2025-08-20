@@ -1,5 +1,5 @@
 import hydra
-import io
+import time
 import os
 import logging
 import json
@@ -8,10 +8,12 @@ import shlex
 import fnmatch
 import pandas as pd
 
+from tempfile import TemporaryDirectory
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
 from azure.ai.ml.entities import Component, PipelineJob, Job, JobResourceConfiguration, QueueSettings
 from azure.identity import DefaultAzureCredential, AzureCliCredential, ChainedTokenCredential
+from azure.storage.blob import ContainerClient, BlobClient
 from dataclasses import dataclass, field
 from hydra.core.hydra_config import HydraConfig
 from pathlib import Path
@@ -500,13 +502,53 @@ class DatastoreURI(str):
 
         asset = workspace.ml_client.data.get(name=data, version=version)
         return cls(asset.path)
+    
+    def get_ml_client(self, credential: ChainedTokenCredential = default_credential()) -> MLClient:
+        pattern = re.compile(r"/subscriptions/([^/]+)/resourcegroups/([^/]+)/workspaces/([^/]+)")
+        match = re.search(pattern, self)
+        if match:
+            return MLClient(
+                credential=credential,
+                subscription_id=match.group(1),
+                resource_group_name=match.group(2),
+                workspace_name=match.group(3),
+            )
+        raise RuntimeError()
+    
+    @property
+    def path(self) -> str:
+        match = re.search(r"/paths/(.+)", self)
+        if not match:
+            raise ValueError(f"URI {self} is not a valid Datastore URI.")
+        path = match.group(1)
+        return path
+ 
+    def get_container_client(self, credential: ChainedTokenCredential = default_credential()) -> ContainerClient:
+        ml_client = self.get_ml_client(credential)
+        # extract the value after /datastores/
+        match = re.search(r"/datastores/([^/]+)/", self)
+        if not match:
+            raise ValueError(f"URI {self} is not a valid Datastore URI.")
+        datastore_name = match.group(1)
+        ds = ml_client.datastores.get(datastore_name)
+        c_client = ContainerClient.from_container_url(
+            f"https://{ds.account_name}.blob.{ds.endpoint}/{ds.container_name}", credential=credential
+        )
+        return c_client
 
-    def download_content(self, path: Union[str, Path], match_pattern: str = "*") -> Path:
+    def download_content(
+        self, path: Union[str, Path], match_pattern: str = "*", credential: ChainedTokenCredential = default_credential(),
+        progress_bar: bool = False
+    ) -> Path:
         try:
             from azureml.fsspec import AzureMachineLearningFileSystem
+            from fsspec.callbacks import TqdmCallback
         except ImportError as e:
             raise ImportError("Please install azureml-fsspec to use this function") from e
-        fs = AzureMachineLearningFileSystem(self)
+        fs = AzureMachineLearningFileSystem(self, credential=credential)
+        get_kwargs = dict()
+        if progress_bar:
+            get_kwargs["callback"] = TqdmCallback()
         if fs.isfile(self):
             fs.get(rpath=self, lpath=path)
             return Path(path) / os.path.basename(self)
@@ -517,10 +559,32 @@ class DatastoreURI(str):
             for f in files:
                 if fs.isdir(f):
                     local_dir = os.path.join(local_path, os.path.basename(os.path.dirname(str(f) + os.path.sep)))
-                    fs.get(rpath=f, lpath=local_dir, recursive=True)
+                    fs.get(rpath=f, lpath=local_dir, recursive=True, **get_kwargs)
                 else:
-                    fs.get(rpath=f, lpath=local_path, recursive=False)
+                    fs.get(rpath=f, lpath=local_path, recursive=False, **get_kwargs)
             return Path(path)
+        
+    def copy_content(self, destination_client: BlobClient):
+        src_client = self.get_container_client()
+        src_blbs = list(src_client.list_blobs(name_starts_with=self.path))
+        src_urls = [f"{src_client.url}/{blb.name}" for blb in src_blbs]
+        blb_sizes = [blb.size for blb in src_blbs]
+
+        dest_blob_names = [
+            f"{destination_client.blob_name}/{blb.name.replace(self.path, '')}"
+            for blb in src_client.list_blobs(name_starts_with=self.path)
+        ]
+        bearer_token = src_client.credential.get_token("https://storage.azure.com/.default").token
+        source_auth = f"Bearer {bearer_token}"
+
+        pbar = tqdm(total=sum(blb_sizes), unit="B", unit_scale=True, desc=f"Copying {self.path}")
+        for src_url, dest_blb_name, blb_size in zip(src_urls, dest_blob_names, blb_sizes):
+            destination_client.blob_name = dest_blb_name
+            destination_client.upload_blob_from_url(
+                src_url, source_authorization=source_auth, overwrite=True
+            )
+            pbar.update(blb_size)
+        pbar.close()
 
 
 class Job:
@@ -603,22 +667,43 @@ class Job:
         """
         children = self.ws.ml_client.jobs.list(parent_job_name=self.aml_job.name)
         return [c.display_name for c in children]
-
-    def download_input(self, name: str, path: str, match_pattern: str = "*") -> Path:
+    
+    def get_input_uri(self, name: str) -> DatastoreURI:
+        """
+        Get the input URI for a given input asset name.
+        """
+        if name not in self.details['runDefinition']['inputAssets']:
+            raise ValueError(f"Input asset {name} not found in job {self.aml_job.name}")
         input_details = self.details['runDefinition']['inputAssets'][name]
-        uri = DatastoreURI.from_asset_uri(uri=input_details["asset"]["assetId"],
-                                          workspace=self.ws)
-        local_path = uri.download_content(path=path, match_pattern=match_pattern)
+        uri = DatastoreURI.from_asset_uri(uri=input_details["asset"]["assetId"], workspace=self.ws)
+        return uri
+
+    def download_input(
+        self, name: str, path: str, match_pattern: str = "*", credential: ChainedTokenCredential = default_credential(),
+        progress_bar: bool = False
+    ) -> Path:
+        uri = self.get_input_uri(name)
+        local_path = uri.download_content(
+            path=path, match_pattern=match_pattern, progress_bar=progress_bar, credential=credential
+        )
         return local_path
 
-    def download_output(self, name: str, path: str, match_pattern: str = "*") -> Path:
+    def get_output_uri(self, name: str) -> DatastoreURI:
         run_id = self.aml_run.id
         if self.aml_job.properties.get("azureml.isreused", False):
             run_id = self.aml_job.properties["azureml.reusedrunid"]
         uri_path = self.details['runDefinition']['outputData'][name]["outputLocation"]["uri"]["path"]
         uri_path = uri_path.replace("${{name}}", run_id)
-        uri = DatastoreURI.from_datastore_uri(uri=uri_path, workspace=self.ws)
-        local_path = uri.download_content(path=path, match_pattern=match_pattern)
+        return DatastoreURI.from_datastore_uri(uri=uri_path, workspace=self.ws)
+
+    def download_output(
+        self, name: str, path: str, match_pattern: str = "*", credential: ChainedTokenCredential = default_credential(),
+        progress_bar: bool = False
+    ) -> Path:
+        uri = self.get_output_uri(name)
+        local_path = uri.download_content(
+            path=path, match_pattern=match_pattern, credential=credential, progress_bar=progress_bar
+        )
         return local_path
 
     def get_command(self, input_paths: Optional[Dict[str, Path]] = None, output_path: Optional[Path] = None) -> str:
@@ -662,6 +747,10 @@ class Job:
     @property
     def inputs(self) -> List[str]:
         return list(self.details["runDefinition"]["inputAssets"].keys())
+    
+    @property
+    def outputs(self) -> List[str]:
+        return list(self.details["runDefinition"].get("outputData", dict()).keys())
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -730,9 +819,9 @@ class Job:
         return pd.DataFrame([row])
     
     def get_logs(self) -> Dict[str, str]:
-        raise NotImplementedError("This method is not implemented. It is a placeholder for future implementation.")
-        breakpoint()
-        pass
+        details = self.aml_run.get_details_with_logs()
+        logs = details["logFiles"]
+        return logs
     
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -743,9 +832,10 @@ class Job:
             "tags": self.tags,
             "url": self.url,
             "children": {n: self.get_node(n).name for n in self.nodes},
+            "outputs": self.outputs,
         }
 
-    def save_to_container(self, container_client: "azure.storage.blob.ContainerClient"):
+    def save_to_container(self, container_client: ContainerClient):
         """
         Stors all outputs, metrics and logs to container
         """
@@ -755,12 +845,27 @@ class Job:
             with open(local_path, "rb") as data:
                 container_client.upload_blob(name=blob_path, data=data)
 
+        def _upload_directory(local_path: str, blob_path: str):
+            for root, dirs, files in os.walk(local_path):
+                for filename in files:
+                    file_path = os.path.join(root, filename)
+                    blob_file_path = blob_path +"/" + os.path.relpath(file_path, local_path).replace(os.path.sep, "/")
+                    _upload_file(file_path, blob_file_path)
+
         container_client.upload_blob(
             name=dest_dir + "/metrics.json", data=json.dumps(self.get_metrics(), indent=2), overwrite=True
         )
         container_client.upload_blob(
             name=dest_dir + "/details.json", data=json.dumps(self.as_dict(), indent=2), overwrite=True
         )
+        container_client.upload_blob(
+            name=dest_dir + "/logs.json", data=json.dumps(self.get_logs(), indent=2), overwrite=True
+        )
+
+        for o in self.outputs:
+            destination_client = container_client.get_blob_client(blob=f"{dest_dir}/outputs/{o}")
+            uri = self.get_output_uri(o)
+            uri.copy_content(destination_client=destination_client)
 
         for children in self.nodes:
             child_job = self.get_node(children)
@@ -768,7 +873,7 @@ class Job:
 
 
 class ContainerJob(Job):
-    def __init__(self, name: str, container_client: "azure.storage.blob.ContainerClient"):
+    def __init__(self, name: str, container_client: ContainerClient):
         self.name = name
         self.base_blob = "blobazureml/" + self.name + "/"
         self.container_client = container_client
@@ -790,6 +895,45 @@ class ContainerJob(Job):
     @property
     def nodes(self) -> List[str]:
         return list(self.details["children"].keys())
+
+    @property
+    def outputs(self) -> List[str]:
+        return self.details["outputs"]
+
+    def get_logs(self) -> Dict[str, str]:
+        return self._read_json_blob("logs.json")
+
+    def download_output(self, name: str, path: Path, match_pattern: str = "*", progress_bar: bool = True) -> Path:
+        """
+        Downloads the output of the job to the specified path.
+        """
+        if match_pattern != "*":
+            raise NotImplementedError("Match pattern is not supported for ContainerJob")
+        if name not in self.outputs:
+            raise ValueError(f"Output '{name}' not found in job outputs. Available outputs are: {self.outputs}")
+
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
+
+        blob_path = self.base_blob + "outputs/" + name
+        files = list(self.container_client.list_blobs(name_starts_with=blob_path))
+        if len(files) == 1 and files[0].name.endswith(blob_path):
+            # this is a uri_file output (only a single file)
+            local_path = path / name
+            with local_path.open("wb") as f:
+                f.write(self.container_client.download_blob(files[0].name).readall())
+        else:
+            file_sizes = [f.size for f in files]
+            # this is a uri_folder output download the whole folder
+            local_path = path
+            pbar = tqdm(total=sum(file_sizes), unit="B", unit_scale=True, desc=f"Downloading {name} output", disable=not progress_bar)
+            for blob in files:
+                with (local_path / blob.name.replace(blob_path, "")).open("wb") as f:
+                    f.write(self.container_client.download_blob(blob.name).readall())
+                pbar.update(blob.size)
+            pbar.close()
+        return local_path
+
 
 YELLOW = "#ffeeba"
 GREEN = "#d4edda"

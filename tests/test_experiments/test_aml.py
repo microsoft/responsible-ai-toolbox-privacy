@@ -2,6 +2,7 @@ import pytest
 from functools import lru_cache
 from azure.ai.ml import MLClient
 from azure.storage.blob import ContainerClient
+from tempfile import TemporaryDirectory
 
 from privacy_estimates.experiments.aml import WorkspaceConfig, Job, ContainerJob
 
@@ -35,7 +36,7 @@ def test_download_job():
         pytest.skip("M365Research workspace is not available")
 
     job = Job.from_url(
-        "https://ml.azure.com/experiments/id/807cdd35-4692-4dd2-a35c-d08b45ec59dd/runs/gray_river_vhv6b33wwj?wsid=/subscriptions/acc09744-1ee3-4242-b375-93421c63af0c/resourceGroups/Singularity/providers/Microsoft.MachineLearningServices/workspaces/M365Research&tid=72f988bf-86f1-41af-91ab-2d7cd011db47#"
+        "https://ml.azure.com/experiments/id/914d9efe-6054-4ca0-8e4b-e9ae7d398cc2/runs/willing_crayon_d9f75kx03h?wsid=/subscriptions/acc09744-1ee3-4242-b375-93421c63af0c/resourceGroups/Singularity/providers/Microsoft.MachineLearningServices/workspaces/M365Research&tid=72f988bf-86f1-41af-91ab-2d7cd011db47#"
     )
     container_client = ContainerClient(
         account_url="https://m365resexternal.blob.core.windows.net/",
@@ -47,15 +48,5 @@ def test_download_job():
     container_job = ContainerJob(
         name=job.name, container_client=container_client
     )
-    metrics = container_job.get_node("ppo").get_metrics()
-    breakpoint()
-
-    container_client.upload_blob()
-
-
-
-    blob_job = BlobJob.from_url(
-        "",
-        container_name=""
-    )
-
+    with TemporaryDirectory() as tmp_dir:
+        container_job.get_node("component").download_output(name="output", path=tmp_dir)

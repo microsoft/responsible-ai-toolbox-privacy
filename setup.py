@@ -63,6 +63,8 @@ setup(
         "pipelines": [
             "argparse_dataclass",
             "azure-ai-ml",
+            "azure-identity",
+            "azure-storage",
             "azureml-core",
             "azureml-fsspec",
             "datasets",
