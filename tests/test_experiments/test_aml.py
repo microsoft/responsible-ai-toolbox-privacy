@@ -4,7 +4,7 @@ from azure.ai.ml import MLClient
 from azure.storage.blob import ContainerClient
 from tempfile import TemporaryDirectory
 
-from privacy_estimates.experiments.aml import WorkspaceConfig, Job, ContainerJob
+from privacy_estimates.experiments.aml import WorkspaceConfig, Job, ContainerJob, default_credential
 
 
 WORKSPACE_DETAILS = {
@@ -31,22 +31,38 @@ def test_workspace_config():
     assert isinstance(ws.ml_client, MLClient)
 
 
-def test_download_job():
-    if not is_m365res_ws_available():
-        pytest.skip("M365Research workspace is not available")
+class TestContainerJob:
+    def test_download_job(self):
+        if not is_m365res_ws_available():
+            pytest.skip("M365Research workspace is not available")
 
-    job = Job.from_url(
-        "https://ml.azure.com/experiments/id/914d9efe-6054-4ca0-8e4b-e9ae7d398cc2/runs/willing_crayon_d9f75kx03h?wsid=/subscriptions/acc09744-1ee3-4242-b375-93421c63af0c/resourceGroups/Singularity/providers/Microsoft.MachineLearningServices/workspaces/M365Research&tid=72f988bf-86f1-41af-91ab-2d7cd011db47#"
-    )
-    container_client = ContainerClient(
-        account_url="https://m365resexternal.blob.core.windows.net/",
-        container_name="2025-zhao-guicursor",
-        credential=job.ws.credential
-    )
-    job.save_to_container(container_client)
+        job = Job.from_url(
+            "https://ml.azure.com/experiments/id/914d9efe-6054-4ca0-8e4b-e9ae7d398cc2/runs/willing_crayon_d9f75kx03h?wsid=/subscriptions/acc09744-1ee3-4242-b375-93421c63af0c/resourceGroups/Singularity/providers/Microsoft.MachineLearningServices/workspaces/M365Research&tid=72f988bf-86f1-41af-91ab-2d7cd011db47#"
+        )
+        container_client = ContainerClient(
+            account_url="https://m365resexternal.blob.core.windows.net/",
+            container_name="2025-zhao-guicursor",
+            credential=job.ws.credential
+        )
+        job.save_to_container(container_client)
 
-    container_job = ContainerJob(
-        name=job.name, container_client=container_client
-    )
-    with TemporaryDirectory() as tmp_dir:
-        container_job.get_node("component").download_output(name="output", path=tmp_dir)
+        container_job = ContainerJob(
+            name=job.name, container_client=container_client
+        )
+        with TemporaryDirectory() as tmp_dir:
+            container_job.get_node("component").download_output(name="output", path=tmp_dir)
+
+    def test_download_output_uri_folder(self):
+        if not is_m365res_ws_available():
+            pytest.skip("M365Research workspace is not available")
+
+        container_client = ContainerClient(
+            account_url="https://m365resexternal.blob.core.windows.net/",
+            container_name="2025-zhao-guicursor",
+            credential=default_credential(),
+        )
+        container_job = ContainerJob(
+            name="silly_napkin_wmsm18w6s3", container_client=container_client
+        )
+        with TemporaryDirectory() as tmp_dir:
+            container_job.get_node("cursor_rl_component").download_output(name="save_checkpoint_path", path=tmp_dir, match_pattern="global_step_50/actor/merged_model/*")

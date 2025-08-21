@@ -8,7 +8,7 @@ import shlex
 import fnmatch
 import pandas as pd
 
-from subprocess import check_call
+from subprocess import check_call, CalledProcessError, DEVNULL
 from tempfile import TemporaryDirectory
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from hydra.core.hydra_config import HydraConfig
 from pathlib import Path
 from omegaconf import OmegaConf, DictConfig
-from typing import TypeVar, Type, Any, get_type_hints, Dict, Union, List, OrderedDict
+from typing import TypeVar, Type, Any, get_type_hints, Dict, Union, List, OrderedDict, Iterator
 from dataclasses import is_dataclass
 from yaml import safe_load
 from parmap import map as pmap
@@ -468,6 +468,17 @@ class ExperimentBase:
         hydra_run()
 
 
+def azcopy(cmd: List[str]):
+    env = os.environ.copy()
+    env["AZCOPY_AUTO_LOGIN_TYPE"] = "AZCLI"
+    env["AZCOPY_TENANT_ID"] = "72f988bf-86f1-41af-91ab-2d7cd011db47"
+    try:
+        check_call(["azcopy", "--help"], env=env, stdout=DEVNULL, stderr=DEVNULL)
+    except CalledProcessError:
+        raise RuntimeError("azcopy is not installed or not found in PATH. Please see https://aka.ms/azcopy for help")
+    check_call(["azcopy"] + cmd, env=env)
+
+
 class DatastoreURI(str):
     def __new__ (cls, uri: str):
         pattern = re.compile(
@@ -567,11 +578,10 @@ class DatastoreURI(str):
         
     def copy_content(self, destination_client: BlobClient, use_azcopy: bool = True):
         if use_azcopy:
-            cmd = [
-                "azcopy", "sync", self.get_container_client().url + "/" + self.path, destination_client.url,
-                "--recursive", "--compare-hash", "md5",
-            ]
-            check_call(cmd)
+            azcopy([
+                "sync", self.get_container_client().url + "/" + self.path, destination_client.url, "--recursive",
+                "--compare-hash", "md5",
+            ])
         else:
             src_client = self.get_container_client()
             src_blbs = list(src_client.list_blobs(name_starts_with=self.path))
@@ -885,7 +895,7 @@ class ContainerJob(Job):
     def get_metrics(self) -> Dict[str, Any]:
         return self._read_json_blob("metrics.json")
 
-    def get_node(self, name: str) -> Job:
+    def get_node(self, name: str) -> "ContainerJob":
         children = self.details["children"]
         return ContainerJob(name=children[name], container_client=self.container_client)
 
@@ -900,35 +910,55 @@ class ContainerJob(Job):
     def get_logs(self) -> Dict[str, str]:
         return self._read_json_blob("logs.json")
 
-    def download_output(self, name: str, path: Path, match_pattern: str = "*", progress_bar: bool = True) -> Path:
+    def list_output(self, name: str):
+        if name not in self.outputs:
+            raise ValueError(f"Output '{name}' not found in job outputs. Available outputs are: {self.outputs}")
+        blob_path = self.base_blob + "outputs/" + name
+        return self.container_client.list_blobs(name_starts_with=blob_path)
+
+    def download_output(self, name: str, path: Path, match_pattern: str = "*", progress_bar: bool = True, use_azcopy: bool = True) -> Path:
         """
         Downloads the output of the job to the specified path.
         """
-        if match_pattern != "*":
-            raise NotImplementedError("Match pattern is not supported for ContainerJob")
-        if name not in self.outputs:
-            raise ValueError(f"Output '{name}' not found in job outputs. Available outputs are: {self.outputs}")
+        blob_path = self.base_blob + "outputs/" + name
+        files = list(self.list_output(name))
 
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
 
-        blob_path = self.base_blob + "outputs/" + name
-        files = list(self.container_client.list_blobs(name_starts_with=blob_path))
         if len(files) == 1 and files[0].name.endswith(blob_path):
             # this is a uri_file output (only a single file)
+            if match_pattern != "*":
+                raise ValueError("Match pattern must be '*' for single file outputs.")
             local_path = path / name
             with local_path.open("wb") as f:
                 f.write(self.container_client.download_blob(files[0].name).readall())
         else:
-            file_sizes = [f.size for f in files]
-            # this is a uri_folder output download the whole folder
             local_path = path
-            pbar = tqdm(total=sum(file_sizes), unit="B", unit_scale=True, desc=f"Downloading {name} output", disable=not progress_bar)
-            for blob in files:
-                with (local_path / blob.name.replace(blob_path, "")).open("wb") as f:
-                    f.write(self.container_client.download_blob(blob.name).readall())
-                pbar.update(blob.size)
-            pbar.close()
+            # this is a uri_folder output: always apply match pattern filtering for cleaner code
+            if use_azcopy:
+                src = f"{self.container_client.url}/{blob_path}/"
+                if match_pattern != "*":
+                    assert match_pattern.startswith("/") == False
+                    src += f"{match_pattern}"
+                azcopy(["copy", src, str(path), "--recursive"])
+            else:
+                files = [
+                    f for f in files
+                    if fnmatch.fnmatch(f.name.replace(blob_path, "", 1), match_pattern)
+                ]
+                file_sizes = [f.size for f in files]
+                pbar = tqdm(total=sum(file_sizes), unit="B", unit_scale=True, desc=f"Downloading {name} output", disable=not progress_bar)
+                for blob in files:
+                    rel_path = blob.name.replace(blob_path, "", 1)
+                    if rel_path.startswith("/"):
+                        rel_path = rel_path[1:]
+                    local_file = local_path / rel_path
+                    local_file.parent.mkdir(parents=True, exist_ok=True)
+                    with local_file.open("wb") as f:
+                        f.write(self.container_client.download_blob(blob.name).readall())
+                    pbar.update(blob.size)
+                pbar.close()
         return local_path
 
 
