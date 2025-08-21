@@ -775,6 +775,12 @@ class Job:
         properties = self.details['properties']
         if 'azureml.parameters' in properties:
             return json.loads(properties['azureml.parameters'])
+        elif any(p.startswith("AZUREML_PARAMETER_") for p in self.details["runDefinition"]["environmentVariables"].keys()):
+            return {
+                k.replace("AZUREML_PARAMETER_", ""): v
+                for k, v in self.details["runDefinition"]["environmentVariables"].items()
+                if k.startswith("AZUREML_PARAMETER_")
+            }
         else:
             return {}
 
@@ -851,6 +857,8 @@ class Job:
             "url": self.url,
             "children": {n: self.get_node(n).name for n in self.nodes},
             "outputs": self.outputs,
+            "status": self.details["status"],
+            "parameters": self.parameters,
         }
 
     def save_to_container(self, container_client: ContainerClient):
