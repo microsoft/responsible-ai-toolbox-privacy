@@ -8,6 +8,7 @@ import shlex
 import fnmatch
 import pandas as pd
 
+from subprocess import check_call
 from tempfile import TemporaryDirectory
 from urllib.parse import urlparse, parse_qs
 from azure.ai.ml import MLClient, load_component
@@ -564,27 +565,34 @@ class DatastoreURI(str):
                     fs.get(rpath=f, lpath=local_path, recursive=False, **get_kwargs)
             return Path(path)
         
-    def copy_content(self, destination_client: BlobClient):
-        src_client = self.get_container_client()
-        src_blbs = list(src_client.list_blobs(name_starts_with=self.path))
-        src_urls = [f"{src_client.url}/{blb.name}" for blb in src_blbs]
-        blb_sizes = [blb.size for blb in src_blbs]
+    def copy_content(self, destination_client: BlobClient, use_azcopy: bool = True):
+        if use_azcopy:
+            cmd = [
+                "azcopy", "sync", self.get_container_client().url + "/" + self.path, destination_client.url,
+                "--recursive", "--compare-hash", "md5",
+            ]
+            check_call(cmd)
+        else:
+            src_client = self.get_container_client()
+            src_blbs = list(src_client.list_blobs(name_starts_with=self.path))
+            src_urls = [f"{src_client.url}/{blb.name}" for blb in src_blbs]
+            blb_sizes = [blb.size for blb in src_blbs]
 
-        dest_blob_names = [
-            f"{destination_client.blob_name}/{blb.name.replace(self.path, '')}"
-            for blb in src_client.list_blobs(name_starts_with=self.path)
-        ]
-        bearer_token = src_client.credential.get_token("https://storage.azure.com/.default").token
-        source_auth = f"Bearer {bearer_token}"
+            dest_blob_names = [
+                f"{destination_client.blob_name}/{blb.name.replace(self.path, '')}"
+                for blb in src_client.list_blobs(name_starts_with=self.path)
+            ]
+            bearer_token = src_client.credential.get_token("https://storage.azure.com/.default").token
+            source_auth = f"Bearer {bearer_token}"
 
-        pbar = tqdm(total=sum(blb_sizes), unit="B", unit_scale=True, desc=f"Copying {self.path}")
-        for src_url, dest_blb_name, blb_size in zip(src_urls, dest_blob_names, blb_sizes):
-            destination_client.blob_name = dest_blb_name
-            destination_client.upload_blob_from_url(
-                src_url, source_authorization=source_auth, overwrite=True
-            )
-            pbar.update(blb_size)
-        pbar.close()
+            pbar = tqdm(total=sum(blb_sizes), unit="B", unit_scale=True, desc=f"Copying {self.path}")
+            for src_url, dest_blb_name, blb_size in zip(src_urls, dest_blob_names, blb_sizes):
+                destination_client.blob_name = dest_blb_name
+                destination_client.upload_blob_from_url(
+                    src_url, source_authorization=source_auth, overwrite=True
+                )
+                pbar.update(blb_size)
+            pbar.close()
 
 
 class Job:
@@ -840,17 +848,6 @@ class Job:
         Stors all outputs, metrics and logs to container
         """
         dest_dir = "blobazureml/" + self.aml_job.name
-
-        def _upload_file(local_path: str, blob_path: str):
-            with open(local_path, "rb") as data:
-                container_client.upload_blob(name=blob_path, data=data)
-
-        def _upload_directory(local_path: str, blob_path: str):
-            for root, dirs, files in os.walk(local_path):
-                for filename in files:
-                    file_path = os.path.join(root, filename)
-                    blob_file_path = blob_path +"/" + os.path.relpath(file_path, local_path).replace(os.path.sep, "/")
-                    _upload_file(file_path, blob_file_path)
 
         container_client.upload_blob(
             name=dest_dir + "/metrics.json", data=json.dumps(self.get_metrics(), indent=2), overwrite=True
